@@ -1,0 +1,19 @@
+name = "MRMP"
+uuid = "c7aa4c1c-513e-40f4-a62b-c98230a9110a"
+authors = ["Keisuke Okumura <okumura.k@coord.c.titech.ac.jp>"]
+version = "0.1.0"
+
+[deps]
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+
+[compat]
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

@@ -1,0 +1,27 @@
+name: Run test
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - '.github/workflows/test.yml'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        julia-version: ['1.6']
+        os: [macos-10.15, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: "setup julia"
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
