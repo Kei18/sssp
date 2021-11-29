@@ -30,5 +30,5 @@ Manifest.toml
 # End of https://www.toptal.com/developers/gitignore/api/julia
 
 # custom
-/local/
+*/local/
 .DS_Store
