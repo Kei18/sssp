@@ -12,3 +12,8 @@ end
     include("../example/line2d.jl")
     @test S != nothing
 end
+
+@testset "arm2" begin
+    include("../example/arm2.jl")
+    @test S != nothing
+end
