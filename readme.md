@@ -3,7 +3,8 @@ MRMP
 
 [![Run test](https://github.com/Kei18/mrmp/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/Kei18/mrmp/actions/workflows/test.yml)
 
-A private research repo for multi-robot motion planning (MRMP), written in Julia (≥v1.6).
+A private research repo for multi-robot motion planning (MRMP), written in Julia (≥v1.6), tested on MacOS-10.15.
+
 
 
 ## Demo
@@ -26,6 +27,11 @@ julia --project=.
 
 ```sh
 julia --project=. -e "using IJulia; jupyterlab()"
+```
+
+#### Test
+```sh
+julia --project=. -e 'using Pkg;Pkg.test()'
 ```
 
 

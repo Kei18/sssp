@@ -31,4 +31,5 @@ Manifest.toml
 
 # custom
 */local/
+/local/
 .DS_Store

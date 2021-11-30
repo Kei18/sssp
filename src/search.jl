@@ -132,6 +132,7 @@ function search(
     end
 
     if VERBOSE > 0; println(); end
+    println("failed to find solution")
     return (nothing, V, nothing)
 end
 
