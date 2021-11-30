@@ -1,5 +1,7 @@
-export gen_connect_point, gen_collide_point, gen_check_goal
+export gen_connect_point, gen_collide_point, gen_collide_line, gen_check_goal
 export gen_random_walk, gen_h_func, gen_g_func, gen_get_sample_nums
+export gen_connect_line, gen_collide_line
+
 using LinearAlgebra: norm, dot, normalize
 
 function direction(p_i::Vector{Float64}, p_j::Vector{Float64}, p_k::Vector{Float64})::Float64
@@ -69,6 +71,10 @@ function dist(q1::StatePoint3D, q2::StatePoint3D)::Float64
     return norm([q1.x - q2.x, q1.y - q2.y, q1.z - q2.z])
 end
 
+function dist(q1::StateLine2D, q2::StateLine2D)::Float64
+    return norm([q1.x - q2.x, q1.y - q2.y])
+end
+
 function dist(q_from::StatePoint2D, q_to::StatePoint2D, o::CircleObstacle2D)::Float64
     return dist([q_from.x, q_from.y], [q_to.x, q_to.y], [o.x, o.y])
 end
@@ -103,6 +109,28 @@ function gen_collide_point(rads::Vector{Float64})::Function
     end
 end
 
+function gen_collide_line(rads::Vector{Float64}; step=10)::Function
+    N = length(rads)
+    return (Q_from::Vector{Node{StateLine2D}}, Q_to::Vector{Node{StateLine2D}}) -> begin
+        for i = 1:N, j = i+1:N
+            q_i_from = Q_from[i].q
+            q_i_to = Q_to[i].q
+            q_j_from = Q_from[j].q
+            q_j_to = Q_to[j].q
+            for e_i=(0:step)/step, e_j=(0:step)/step
+                a_i = (1-e_i) * [q_i_from.x, q_i_from.y] + e_i * [q_i_to.x, q_i_to.y]
+                a_j = (1-e_j) * [q_j_from.x, q_j_from.y] + e_j * [q_j_to.x, q_j_to.y]
+                t_i = (1-e_i) * q_i_from.theta + e_i * q_i_to.theta
+                t_j = (1-e_j) * q_j_from.theta + e_j * q_j_to.theta
+                b_i = rads[i] * [ cos(t_i), sin(t_i) ] + a_i
+                b_j = rads[j] * [ cos(t_j), sin(t_j) ] + a_j
+                if segments_intersect(a_i, b_i, a_j, b_j); return true; end
+            end
+        end
+        return false
+    end
+end
+
 function gen_connect_point(
     rads::Vector{Float64}, obstacles::Vector{Obs} where Obs<:CircleObstacle, eps::Float64=0.2
     )::Function
@@ -128,6 +156,31 @@ function gen_connect_point(
     return f
 end
 
+function gen_connect_line(
+    rads::Vector{Float64}, obstacles::Vector{CircleObstacle2D}, eps::Float64=0.2; step=10
+    )::Function
+
+    return (q_from::StateLine2D, q_to::StateLine2D, i::Int64) -> begin
+        if norm([q_from.x - q_to.x, q_from.y - q_to.y, (q_from.theta - q_to.theta) / π ]) > eps
+            return false
+        end
+
+        for e=(0:step)/step
+            a = (1-e) * [q_from.x, q_from.y] + e * [q_to.x, q_to.y]
+            t = (1-e) * q_from.theta + e * q_to.theta
+            b = a + rads[i] * [ cos(t), sin(t) ]
+
+            # outside
+            if !all([ 0 <= x <= 1 for x in vcat(a, b) ]); return false; end
+
+            # obstacles
+            if any([ dist(a, b, [o.x, o.y]) < o.r for o in obstacles ]); return false; end
+        end
+
+        return true
+    end
+end
+
 function gen_random_walk(eps::Float64)::Function
     origin(d::Int64) = begin
         f = () -> rand(d) * 2 - fill(1, d)
@@ -143,6 +196,9 @@ function gen_random_walk(eps::Float64)::Function
         elseif isa(q, StatePoint3D)
             s = origin(3)
             return StatePoint3D(q.x + s[1], q.y + s[2], q.z + s[3])
+        elseif isa(q, StateLine2D)
+            s = origin(3)
+            return StateLine2D(s[1] + q.x, s[2] + q.y, s[3] * π + q.theta)
         end
         return copy(q)
     end

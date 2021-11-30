@@ -2,18 +2,18 @@ using MRMP
 using Random: seed!
 
 # define models
-config_init = [StatePoint2D(0.1, 0.1), StatePoint2D(0.1, 0.9)]
-config_goal = [StatePoint2D(0.9, 0.9), StatePoint2D(0.9, 0.1)]
+config_init = [StateLine2D(0.1, 0.1, 0), StateLine2D(0.1, 0.9, 0), StateLine2D(0.5, 0.1, π/2)]
+config_goal = [StateLine2D(0.9, 0.9, π), StateLine2D(0.9, 0.1, π), StateLine2D(0.5, 0.9, -π/2)]
 obstacles = [
     CircleObstacle2D(0.3, 0.5, 0.1),
     CircleObstacle2D(0.5, 0.6, 0.05),
     CircleObstacle2D(0.7, 0.3, 0.05),
 ]
-rads = fill(0.1, length(config_init))
+rads = fill(0.2, length(config_init))
 eps = 0.1
-connect = gen_connect_point(rads, obstacles, eps)
-collide = gen_collide_point(rads)
-check_goal = gen_check_goal(config_goal)
+connect = gen_connect_line(rads, obstacles, eps)
+collide = gen_collide_line(rads)
+check_goal = gen_check_goal(config_goal, goal_rad=0.05)
 h_func = gen_h_func(config_goal)
 g_func = gen_g_func(config_init, greedy=true)
 random_walk = gen_random_walk(eps)
@@ -37,9 +37,9 @@ S, V, VISITED = search(
 )
 directory = "./local/"
 if !isdir(directory); mkpath(directory); end
-plot_res!(config_init, config_goal, obstacles, V, S, VISITED, filename=directory*"/point2d.pdf")
+plot_res!(config_init, config_goal, obstacles, V, S, VISITED, filename=directory*"/line2d.pdf")
 if S != nothing
     plot_anim!(config_init, config_goal, obstacles, S, VISITED, rads,
-               filename=directory*"/point2d.gif")
+               filename=directory*"/line2d.gif")
 end
 nothing

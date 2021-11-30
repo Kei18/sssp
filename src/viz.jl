@@ -45,7 +45,7 @@ function plot_roadmap!(V::Vector{Vector{Node{State}}}) where State<:AbsState
         for v in V[i]
             for u_id in v.neighbors
                 u = V[i][u_id]
-                if State == StatePoint2D
+                if State in [StatePoint2D, StateLine2D]
                     plot!([u.q.x, v.q.x], [u.q.y, v.q.y]; markershape=:circle, params...)
                 elseif State == StatePoint3D
                     plot!([u.q.x, v.q.x], [u.q.y, v.q.y], [u.q.z, v.q.z];
@@ -60,7 +60,7 @@ function plot_start_goal!(
     config_init::Vector{State}, config_goal::Vector{State}) where State<:AbsState
     for (i, (q_init, q_goal)) in enumerate(zip(config_init, config_goal))
         params = Dict(:seriestype => :scatter, :markersize => 5, :label => nothing, :color => COLORS[i])
-        if State == StatePoint2D
+        if State in [StatePoint2D, StateLine2D]
             plot!([q_init.x], [q_init.y]; markershape=:hex, params...)
             plot!([q_goal.x], [q_goal.y]; markershape=:star, params...)
         elseif State == StatePoint3D
@@ -83,7 +83,7 @@ function plot_traj!(S_fin::SuperNode{State},
         S = VISITED[S.parent_id]
         for (i, v) in enumerate(S.Q)
             if x_arr[i][1] == v.q.x && y_arr[i][1] == v.q.y; continue; end
-            if State <: StatePoint
+            if State in [StatePoint2D, StatePoint3D, StateLine2D]
                 pushfirst!(x_arr[i], v.q.x)
                 pushfirst!(y_arr[i], v.q.y)
                 if State == StatePoint3D
@@ -156,6 +156,10 @@ function plot_anim!(
             plot_circle!(v.q.x, v.q.y, rads[i], COLORS[i], 3.0, fillalpha=0.1)
         elseif State == StatePoint3D
             plot_sphere!(v.q.x, v.q.y, v.q.z, rads[i], COLORS[i])
+        elseif State == StateLine2D
+            plot!([v.q.x, rads[i] * cos(v.q.theta) + v.q.x],
+                  [v.q.y, rads[i] * sin(v.q.theta) + v.q.y],
+                  color=COLORS[i], lw=5, label=nothing)
         end
     end
 
