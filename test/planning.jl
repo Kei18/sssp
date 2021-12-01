@@ -17,3 +17,8 @@ end
     include("../example/arm2.jl")
     @test S != nothing
 end
+
+@testset "car" begin
+    include("../example/car.jl")
+    @test S != nothing
+end

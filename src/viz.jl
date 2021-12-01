@@ -67,7 +67,7 @@ function plot_start_goal!(
     rads::Union{Nothing, Vector{Float64}}=nothing) where State<:AbsState
     for (i, (q_init, q_goal)) in enumerate(zip(config_init, config_goal))
         params = Dict(:seriestype => :scatter, :markersize => 5, :label => nothing, :color => COLORS[i])
-        if State in [StatePoint2D, StateLine2D]
+        if State in [StatePoint2D, StateLine2D, StateCar]
             plot!([q_init.x], [q_init.y]; markershape=:hex, params...)
             plot!([q_goal.x], [q_goal.y]; markershape=:star, params...)
         elseif State == StatePoint3D
@@ -191,7 +191,14 @@ function plot_anim!(
             pos2 = get_arm_tip_point(v.q, rads[i])
             plot!([v.q.x, pos1[1], pos2[1]], [v.q.y, pos1[2], pos2[2]], color=COLORS[i],
                   lw=5, markershape=:circle, markersize=3, label=nothing)
-            scatter!([v.q.x], [v.q.y], markershpa=10, markershape=:hex, color=COLORS[i], label=nothing)
+            scatter!([v.q.x], [v.q.y], markershpa=10,
+                     markershape=:hex, color=COLORS[i], label=nothing)
+        elseif State == StateCar
+            plot_circle!(v.q.x, v.q.y, rads[i], COLORS[i], 3.0, fillalpha=0.1)
+            p_from_x = rads[i] * cos(v.q.theta) + v.q.x
+            p_from_y = rads[i] * sin(v.q.theta) + v.q.y
+            plot!([v.q.x, p_from_x], [v.q.y, p_from_y],
+                  lw=5, color=COLORS[i], legend=nothing)
         end
     end
 

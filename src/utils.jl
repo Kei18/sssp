@@ -141,7 +141,9 @@ function gen_collide_line(rads::Vector{Float64}; step=10)::Function
 end
 
 function gen_connect_point(
-    rads::Vector{Float64}, obstacles::Vector{Obs} where Obs<:CircleObstacle, eps::Float64=0.2
+    rads::Vector{Float64},
+    obstacles::Vector{Obs} where Obs<:CircleObstacle,
+    eps::Float64=0.2
     )::Function
 
     return (q_from::StatePoint, q_to::StatePoint, i::Int64) -> begin
@@ -150,9 +152,13 @@ function gen_connect_point(
 
         # check: q_to \in C_free
         if isa(q_to, StatePoint2D)
-            if !all([rads[i] <= x <= 1 - rads[i] for x in [q_to.x, q_to.y]]); return false; end
+            if !all([rads[i] <= x <= 1 - rads[i] for x in [q_to.x, q_to.y]])
+                return false
+            end
         else
-            if !all([rads[i] <= x <= 1 - rads[i] for x in [q_to.x, q_to.y, q_to.z]]); return false; end
+            if !all([rads[i] <= x <= 1 - rads[i] for x in [q_to.x, q_to.y, q_to.z]])
+                return false
+            end
         end
 
         # check: collisions with static obstqacles
@@ -166,11 +172,15 @@ function gen_connect_point(
 end
 
 function gen_connect_line(
-    rads::Vector{Float64}, obstacles::Vector{CircleObstacle2D}, eps::Float64=0.2; step=10
+    rads::Vector{Float64},
+    obstacles::Vector{CircleObstacle2D},
+    eps::Float64=0.2;
+    step=10
     )::Function
 
     return (q_from::StateLine2D, q_to::StateLine2D, i::Int64) -> begin
-        if norm([q_from.x - q_to.x, q_from.y - q_to.y, (q_from.theta - q_to.theta) / π ]) > eps
+        if norm([q_from.x - q_to.x, q_from.y - q_to.y,
+                 (q_from.theta - q_to.theta) / π ]) > eps
             return false
         end
 
@@ -205,7 +215,10 @@ function get_arm_tip_point(q::StateArm2, rad::Float64)
 end
 
 function gen_connect_arm2(
-    rads::Vector{Float64}, obstacles::Vector{CircleObstacle2D}, eps::Float64=0.2; step::Int64=10)::Function
+    rads::Vector{Float64},
+    obstacles::Vector{CircleObstacle2D},
+    eps::Float64=0.2; step::Int64=10
+    )::Function
 
     return (q_from::StateArm2, q_to::StateArm2, i::Int64) -> begin
         if dist(q_from, q_to) > eps; return false; end
@@ -215,8 +228,12 @@ function gen_connect_arm2(
         d2 = atan(sin(q_to.theta2 - q_from.theta2), cos(q_to.theta2 - q_from.theta2))
 
         # check self-collision
-        if π/2 < mod(q_from.theta2, 2π) < π && π < mod(q_to.theta2, 2π) < 3π/2; return false; end
-        if π/2 < mod(q_to.theta2, 2π) < π && π < mod(q_from.theta2, 2π) < 3π/2; return false; end
+        if π/2 < mod(q_from.theta2, 2π) < π && π < mod(q_to.theta2, 2π) < 3π/2
+            return false
+        end
+        if π/2 < mod(q_to.theta2, 2π) < π && π < mod(q_from.theta2, 2π) < 3π/2
+            return false
+        end
 
         for e=(0:step)/step
             t1 = d1*e + q_from.theta1
@@ -269,10 +286,14 @@ function gen_collide_arm2(rads::Vector{Float64}; step::Int64=10)::Function
 
             # exact check (but approximated)
             for e_i=(0:step)/step, e_j=(0:step)/step
-                t_i_1 = (mod(q_i_to.theta1, 2π) - mod(q_i_from.theta1, 2π))*e_i + q_i_from.theta1
-                t_i_2 = (mod(q_i_to.theta2, 2π) - mod(q_i_from.theta2, 2π))*e_i + q_i_from.theta2
-                t_j_1 = (mod(q_j_to.theta1, 2π) - mod(q_j_from.theta1, 2π))*e_j + q_j_from.theta1
-                t_j_2 = (mod(q_j_to.theta2, 2π) - mod(q_j_from.theta2, 2π))*e_j + q_j_from.theta2
+                t_i_1 = (mod(q_i_to.theta1, 2π) - mod(q_i_from.theta1, 2π))*e_i
+                t_i_1 += q_i_from.theta1
+                t_i_2 = (mod(q_i_to.theta2, 2π) - mod(q_i_from.theta2, 2π))*e_i
+                t_i_2 += q_i_from.theta2
+                t_j_1 = (mod(q_j_to.theta1, 2π) - mod(q_j_from.theta1, 2π))*e_j
+                t_j_1 += q_j_from.theta1
+                t_j_2 = (mod(q_j_to.theta2, 2π) - mod(q_j_from.theta2, 2π))*e_j
+                t_j_2 += q_j_from.theta2
                 q_i = StateArm2(p_i_0..., t_i_1, t_i_2)
                 q_j = StateArm2(p_j_0..., t_j_1, t_j_2)
                 p_i_1 = get_arm_intermediate_point(q_i, rads[i])
@@ -312,10 +333,14 @@ function gen_random_walk(eps::Float64)::Function
         elseif isa(q, StateArm2)
             s = origin(2)
             return StateArm2(q.x, q.y, s[1]*π + q.theta1, s[2]*π + q.theta2)
+        elseif isa(q, StateCar)
+            s = origin(2)
+            # todo
         end
         return copy(q)
     end
 end
+
 
 function gen_check_goal(
     config_goal::Vector{State};
@@ -335,7 +360,11 @@ function gen_h_func(config_goal::Vector{State})::Function where State<:AbsState
     end
 end
 
-function gen_g_func(config_init::Vector{State}; greedy::Bool=false)::Function where State<:AbsState
+function gen_g_func(
+    config_init::Vector{State};
+    greedy::Bool=false
+    )::Function where State<:AbsState
+
     return (Q_from::Vector{Node{State}}, Q_to::Vector{Node{State}}) -> begin
         return greedy ? 0 : sum([dist(u.q, v.q) for (u, v) in zip(Q_from, Q_to)])
     end

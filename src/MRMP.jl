@@ -5,5 +5,6 @@ include("obstacle.jl")
 include("search.jl")
 include("viz.jl")
 include("utils.jl")
+include("car.jl")
 
 end
