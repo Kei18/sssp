@@ -1,5 +1,3 @@
-export CircleObstacle2D, CircleObstacle3D
-
 abstract type Obstacle end
 abstract type CircleObstacle <: Obstacle end
 

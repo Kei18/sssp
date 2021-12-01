@@ -1,7 +1,8 @@
-export search, Node, SuperNode
+import DataStructures: PriorityQueue, enqueue!, dequeue!
+import Printf: @printf, @sprintf
 
-using DataStructures: PriorityQueue, enqueue!, dequeue!
-using Printf: @printf, @sprintf
+abstract type AbsState end
+abstract type StatePoint <: AbsState end
 
 mutable struct Node{State<:AbsState}
     q::State

@@ -1,10 +1,10 @@
-export StateCar, dist, gen_collide_car, gen_connect_car, gen_random_walk
-
 struct StateCar <: AbsState
     x::Float64
     y::Float64
     theta::Float64
 end
+
+const OMEGA_MAX = 4π
 
 function dist(q1::StateCar, q2::StateCar)::Float64
     return norm([q1.x - q2.x, q1.y - q2.y])
@@ -13,7 +13,7 @@ end
 function get_omega_t(
     q_from::StateCar,
     q_to::StateCar,
-    omega_max::Float64=4π
+    omega_max::Float64=OMEGA_MAX
     )::Tuple{Float64, Float64}
 
     theta_diff = q_to.theta - q_from.theta
@@ -71,11 +71,12 @@ function get_car_intermediate_state(
     return StateCar(x, y, theta)
 end
 
-function gen_connect_car(
+function gen_connect(
+    q::StateCar,  # to identify type
     rads::Vector{Float64},
     obstacles::Vector{CircleObstacle2D},
-    omega_max::Float64,
-    eps::Float64=0.2;
+    eps::Float64;
+    omega_max::Float64=OMEGA_MAX,
     step::Int64=10
     )::Function
 
@@ -102,7 +103,12 @@ function gen_connect_car(
     end
 end
 
-function gen_collide_car(rads::Vector{Float64}, omega_max::Float64; step::Int64=10)
+function gen_collide(
+    q::StateCar,
+    rads::Vector{Float64};
+    omega_max::Float64=OMEGA_MAX,
+    step::Int64=10)::Function
+
     N = length(rads)
     return (Q_from::Vector{Node{StateCar}}, Q_to::Vector{Node{StateCar}}) -> begin
         for i = 1:N, j = i+1:N
@@ -122,8 +128,7 @@ function gen_collide_car(rads::Vector{Float64}, omega_max::Float64; step::Int64=
     end
 end
 
-
-function gen_random_walk(eps::Float64, omega_max::Float64)::Function
+function gen_random_walk(q::StateCar, eps::Float64; omega_max::Float64=OMEGA_MAX)::Function
     return (q::StateCar) -> begin
         omega = rand() * omega_max * 2 - omega_max
         t = rand() * eps
@@ -141,8 +146,8 @@ function gen_random_walk(eps::Float64, omega_max::Float64)::Function
     end
 end
 
-
-function plot_line!(q_from::StateCar, q_to::StateCar, color="black"; lw=1, step::Int64=10)
+function plot_motion!(
+    q_from::StateCar, q_to::StateCar, rad::Float64, params; step::Int64=10)
     if q_from.x == q_to.x && q_from.y == q_to.y; return; end
     (omega, t) = get_omega_t(q_from, q_to)
     x_arr = Vector{Float64}()
@@ -152,48 +157,25 @@ function plot_line!(q_from::StateCar, q_to::StateCar, color="black"; lw=1, step:
         pushfirst!(x_arr, q.x)
         pushfirst!(y_arr, q.y)
     end
-    plot!(x_arr, y_arr, color=color, lw=lw, label=nothing)
-end
-
-function plot_roadmap!(
-    V::Vector{Vector{Node{StateCar}}};
-    rads::Union{Vector{Float64}, Nothing}=nothing)
-
-    for i = 1:length(V)
-        for v in V[i]
-            for u_id in v.neighbors
-                u = V[i][u_id]
-                plot_line!(v.q, u.q, COLORS[i], lw=0.2)
-            end
-            scatter!([v.q.x], [v.q.y],
-                     markersize=2, markershpe=:circle, label=nothing, color=COLORS[i])
-        end
+    p = copy(params)
+    if haskey(p, :markershape)
+        scatter!([x_arr[end]], [y_arr[end]]; params...)
+        delete!(p, :markershape)
     end
+    plot!(x_arr, y_arr; p...)
 end
 
-
-function plot_traj!(
-    S_fin::SuperNode{StateCar},
-    VISITED::Dict{String, SuperNode{StateCar}},
-    lw::Float64=3.0;
-    rads::Union{Nothing, Vector{Float64}}=nothing)
-
-    if S_fin == nothing; return; end
-    N = length(S_fin.Q)
-    S = S_fin
-    S_parent = S_fin
-    while S.parent_id != nothing
-        S = VISITED[S.parent_id]
-        for (i, v) in enumerate(S.Q)
-            if v.q.x == S_parent.Q[i].q.x && v.q.y == S_parent.Q[i].q.y; continue; end
-            q_from = v.q
-            q_to = S_parent.Q[i].q
-            plot_line!(q_from, q_to, COLORS[i]; lw=lw)
-        end
-        S_parent = S
-    end
+function plot_start_goal!(q_init::StateCar, q_goal::StateCar, rad::Float64, params)
+    plot!([q_init.x], [q_init.y]; markershape=:hex, params...)
+    plot!([q_goal.x], [q_goal.y]; markershape=:star, params...)
 end
 
+function plot_agent!(q::StateCar, rad::Float64, color::String)
+    plot_circle!(q.x, q.y, rad, color, 3.0, fillalpha=0.1)
+    p_from_x = rad * cos(q.theta) + q.x
+    p_from_y = rad * sin(q.theta) + q.y
+    plot!([q.x, p_from_x], [q.y, p_from_y], lw=5, color=color, legend=nothing)
+end
 
 function expand!(
     V::Vector{Node{StateCar}},
