@@ -75,7 +75,7 @@ function plot_start_goal!(
 end
 
 function plot_traj!(
-    solution::Union{Nothing, Vector{Vector{State}}},
+    solution::Union{Nothing, Vector{Vector{Node{State}}}},
     rads=Vector{Float64};
     lw::Float64=3.0
     ) where State<:AbsState
@@ -86,7 +86,7 @@ function plot_traj!(
         Q_from = solution[t]
         for i = 1:N
             params = Dict(:color => COLORS[i], :lw => lw, :label => nothing)
-            plot_motion!(Q_from[i], Q_to[i], rads[i], params)
+            plot_motion!(Q_from[i].q, Q_to[i].q, rads[i], params)
         end
     end
 end
@@ -113,7 +113,7 @@ function plot_res!(
     obstacles::Vector{Obs} where Obs<:Obstacle,
     rads::Vector{Float64},
     roadmaps::Vector{Vector{Node{State}}},
-    solution::Union{Nothing, Vector{Vector{State}}}=nothing;
+    solution::Union{Nothing, Vector{Vector{Node{State}}}}=nothing;
     filename::Union{Nothing, String}=nothing
     ) where State<:AbsState
 
@@ -131,7 +131,7 @@ function plot_anim!(
     config_goal::Vector{State},
     obstacles::Vector{Obs} where Obs<:Obstacle,
     rads::Vector{Float64},
-    solution::Union{Nothing, Vector{Vector{State}}}=nothing;
+    solution::Union{Nothing, Vector{Vector{Node{State}}}}=nothing;
     filename::String="tmp.gif",
     fps::Int64=10
     ) where State<:AbsState
@@ -146,8 +146,8 @@ function plot_anim!(
         plot_obs!(obstacles)
         plot_traj!(solution, rads; lw=1.0)
         plot_start_goal!(config_init, config_goal, rads)
-        for (i, q) in enumerate(Q)
-            plot_agent!(q, rads[i], COLORS[i])
+        for (i, v) in enumerate(Q)
+            plot_agent!(v.q, rads[i], COLORS[i])
         end
     end
     return gif(anim, filename, fps=fps)

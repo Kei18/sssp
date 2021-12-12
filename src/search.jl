@@ -172,14 +172,14 @@ end
 function backtrack(
     S_fin::SuperNode{State},
     VISITED::Dict{String, SuperNode{State}}
-    )::Vector{Vector{State}} where State<:AbsState
+    )::Vector{Vector{Node{State}}} where State<:AbsState
 
     S = S_fin
     solution = []
     while S.parent_id != nothing
-        pushfirst!(solution, map(v -> v.q, S.Q))
+        pushfirst!(solution, S.Q)
         S = VISITED[S.parent_id]
     end
-    pushfirst!(solution, map(v -> v.q, S.Q))
+    pushfirst!(solution, S.Q)
     return solution
 end

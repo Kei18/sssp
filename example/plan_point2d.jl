@@ -18,5 +18,6 @@ solution, roadmaps = simple_search(config_init, config_goal, obstacles, rads; pa
 
 # plot results
 filename = "./local/point2d"
-plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution; filename="$filename.pdf")
+plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution;
+          filename="$filename.pdf")
 plot_anim!(config_init, config_goal, obstacles, rads, solution; filename="$filename.gif")
