@@ -75,22 +75,19 @@ function plot_start_goal!(
 end
 
 function plot_traj!(
-    S_fin::Union{Nothing, SuperNode{State}},
-    VISITED::Union{Nothing, Dict{String, SuperNode{State}}},
+    solution::Union{Nothing, Vector{Vector{State}}},
     rads=Vector{Float64};
     lw::Float64=3.0
     ) where State<:AbsState
 
-    if S_fin == nothing; return; end
-    N = length(S_fin.Q)
-    S_from, S_to = S_fin, S_fin
-    while S_from.parent_id != nothing
-        S_from = VISITED[S_from.parent_id]
+    if solution == nothing; return; end
+    N = length(solution[1])
+    for (t, Q_to) in enumerate(solution[2:end])
+        Q_from = solution[t]
         for i = 1:N
             params = Dict(:color => COLORS[i], :lw => lw, :label => nothing)
-            plot_motion!(S_from.Q[i].q, S_to.Q[i].q, rads[i], params)
+            plot_motion!(Q_from[i], Q_to[i], rads[i], params)
         end
-        S_to = S_from
     end
 end
 
@@ -115,16 +112,15 @@ function plot_res!(
     config_goal::Vector{State},
     obstacles::Vector{Obs} where Obs<:Obstacle,
     rads::Vector{Float64},
-    V::Vector{Vector{Node{State}}},
-    S_fin::Union{Nothing, SuperNode{State}},
-    VISITED::Union{Nothing, Dict{String, SuperNode{State}}};
+    roadmaps::Vector{Vector{Node{State}}},
+    solution::Union{Nothing, Vector{Vector{State}}}=nothing;
     filename::Union{Nothing, String}=nothing
     ) where State<:AbsState
 
     plot_init!(State)
     plot_obs!(obstacles)
-    plot_roadmap!(V, rads)
-    plot_traj!(S_fin, VISITED, rads)
+    plot_roadmap!(roadmaps, rads)
+    plot_traj!(solution, rads)
     plot_start_goal!(config_init, config_goal, rads)
     safe_savefig!(filename)
     return plot!()
@@ -135,33 +131,23 @@ function plot_anim!(
     config_goal::Vector{State},
     obstacles::Vector{Obs} where Obs<:Obstacle,
     rads::Vector{Float64},
-    S_fin::Union{Nothing, SuperNode{State}},
-    VISITED::Union{Nothing, Dict{String, SuperNode{State}}};
+    solution::Union{Nothing, Vector{Vector{State}}}=nothing;
     filename::String="tmp.gif",
     fps::Int64=10
     ) where State<:AbsState
 
-    if S_fin == nothing
+    if solution == nothing
         @warn "solution has not computed yet!"
         return
     end
 
-    S = S_fin
-    S_id_list = []
-    while S.parent_id != nothing
-        pushfirst!(S_id_list, S.id)
-        S = VISITED[S.parent_id]
-    end
-    pushfirst!(S_id_list, S.id)
-
-    anim = @animate for S_id in S_id_list
+    anim = @animate for Q in solution
         plot_init!(State)
-        S = VISITED[S_id]
         plot_obs!(obstacles)
-        plot_traj!(S_fin, VISITED, rads; lw=1.0)
+        plot_traj!(solution, rads; lw=1.0)
         plot_start_goal!(config_init, config_goal, rads)
-        for (i, v) in enumerate(S.Q)
-            plot_agent!(v.q, rads[i], COLORS[i])
+        for (i, q) in enumerate(Q)
+            plot_agent!(q, rads[i], COLORS[i])
         end
     end
     return gif(anim, filename, fps=fps)

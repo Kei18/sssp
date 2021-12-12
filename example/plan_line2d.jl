@@ -23,10 +23,10 @@ goal_rad=0.05
 # search
 params=Dict(:MAX_ITER => 3, :MAX_LOOP_CNT => 10000)
 seed!(0)
-S, V, VISITED = simple_search(config_init, config_goal, obstacles, rads;
-                              goal_rad=goal_rad, params=params)
+solution, roadmaps = simple_search(config_init, config_goal, obstacles, rads;
+                                   goal_rad=goal_rad, params=params)
 
 # plot results
 filename = "./local/line2d"
-plot_res!(config_init, config_goal, obstacles, rads, V, S, VISITED; filename="$filename.pdf")
-plot_anim!(config_init, config_goal, obstacles, rads, S, VISITED; filename="$filename.gif")
+plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution; filename="$filename.pdf")
+plot_anim!(config_init, config_goal, obstacles, rads, solution; filename="$filename.gif")

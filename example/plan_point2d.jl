@@ -14,9 +14,9 @@ rads = fill(0.1, length(config_init))
 # search
 params=Dict(:MAX_ITER => 3, :MAX_LOOP_CNT => 1000)
 seed!(0)
-S, V, VISITED = simple_search(config_init, config_goal, obstacles, rads; params=params)
+solution, roadmaps = simple_search(config_init, config_goal, obstacles, rads; params=params)
 
 # plot results
 filename = "./local/point2d"
-plot_res!(config_init, config_goal, obstacles, rads, V, S, VISITED; filename="$filename.pdf")
-plot_anim!(config_init, config_goal, obstacles, rads, S, VISITED; filename="$filename.gif")
+plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution; filename="$filename.pdf")
+plot_anim!(config_init, config_goal, obstacles, rads, solution; filename="$filename.gif")

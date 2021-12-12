@@ -95,7 +95,7 @@ function search(
                     println()
                     println("found solution")
                 end
-                return (S, V, VISITED)
+                return (backtrack(S, VISITED), V)
             end
 
             i = S.next
@@ -134,7 +134,7 @@ function search(
 
     if VERBOSE > 0; println(); end
     println("failed to find solution")
-    return (nothing, V, nothing)
+    return (nothing, V)
 end
 
 
@@ -166,4 +166,20 @@ function expand!(
         for v in C_v_u; push!(v.neighbors, u.id); end
         for v in C_u_v; push!(u.neighbors, v.id); end
     end
+end
+
+
+function backtrack(
+    S_fin::SuperNode{State},
+    VISITED::Dict{String, SuperNode{State}}
+    )::Vector{Vector{State}} where State<:AbsState
+
+    S = S_fin
+    solution = []
+    while S.parent_id != nothing
+        pushfirst!(solution, map(v -> v.q, S.Q))
+        S = VISITED[S.parent_id]
+    end
+    pushfirst!(solution, map(v -> v.q, S.Q))
+    return solution
 end
