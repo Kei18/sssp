@@ -1,6 +1,7 @@
 module MRMP
 
 include("search.jl")
+include("smoother.jl")
 include("refine.jl")
 include("obstacle.jl")
 include("viz.jl")

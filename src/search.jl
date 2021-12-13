@@ -1,5 +1,6 @@
 import DataStructures: PriorityQueue, enqueue!, dequeue!
 import Printf: @printf, @sprintf
+using Base: @kwdef
 
 abstract type AbsState end
 abstract type StatePoint <: AbsState end
@@ -10,15 +11,21 @@ mutable struct Node{State<:AbsState}
     neighbors::Vector{Int64}
 end
 
-mutable struct SuperNode{State<:AbsState}
+# to generate id of search nodes
+function get_S_id(Q::Vector{Node{State}}, next::Int64)::String where State<:AbsState
+    return join([v.id for v in Q], "-") * "_" * string(next)
+end
+
+@kwdef mutable struct SuperNode{State<:AbsState}
     Q::Vector{Node{State}}
     next::Int64
-    id::String
-    parent_id::Union{Nothing, String}
-    f::Float64
-    g::Float64
-    h::Float64
-    depth::Int64
+    id::String = get_S_id(Q, next)
+    parent_id::Union{Nothing, String} = nothing
+    g::Float64 = 0.0
+    h::Float64 = 0.0
+    f::Float64 = g + h
+    depth::Int64 = 1
+    t::Int64 = 1 # used in refinement phase
 end
 
 function search(
@@ -50,14 +57,8 @@ function search(
     # initial configuration
     Q_init = [ V[i][1] for i = 1:N ]
 
-    # to generate id of search nodes
-    get_S_id(Q::Vector{Node{State}}, next::Int64) = join([v.id for v in Q], "-") * "_" * string(next)
-
     # initial search node
-    g = 0
-    h = h_func(Q_init)
-    f = g + h
-    S_init = SuperNode{State}(Q_init, 1, get_S_id(Q_init, 1), nothing, f, g, h, 1)
+    S_init = SuperNode{State}(Q=Q_init, next=1, h=h_func(Q_init))
 
     # verbose
     print_progress! = (S::SuperNode{State}, k::Int64, loop_cnt::Int64; force::Bool=false) -> begin
@@ -118,8 +119,8 @@ function search(
                 # create new search node
                 g = S.g + g_func(S.Q, Q)
                 h = h_func(Q)
-                f = g + h
-                S_new = SuperNode{State}(Q, j, new_id, S.id, f, g, h, S.depth+1)
+                S_new = SuperNode{State}(
+                    Q=Q, next=j, id=new_id, parent_id=S.id, g=g, h=h, depth=S.depth+1)
 
                 # insert
                 enqueue!(OPEN, S_new, S_new.f)
@@ -175,7 +176,7 @@ function backtrack(
     )::Vector{Vector{Node{State}}} where State<:AbsState
 
     S = S_fin
-    solution = []
+    solution = Vector{Vector{Node{State}}}()
     while S.parent_id != nothing
         pushfirst!(solution, S.Q)
         S = VISITED[S.parent_id]

@@ -1,192 +1,168 @@
-mutable struct Action{State<:AbsState}
-    id::String
-    from::Node{State}
-    to::Node{State}
-    t::Int64
-    agent::Int64
-    predecessors::Vector{Tuple{Int64, String}}
-    successors::Vector{Tuple{Int64, String}}
-end
-
-function get_action_id(from::Node{State}, to::Node{State}, t::Int64)::String where State<:AbsState
-    return string(from.id) * "_" * string(to.id) * "_" * string(t)
-end
-
-function get_temporal_plan_graph(
-    solution::Vector{Vector{Node{State}}}, collide::Function
-    )::Vector{Vector{Action{State}}} where State<:AbsState
-
-    N = length(solution[1])
-    T = length(solution)
-
-    # temporal plan graph
-    TPG = [ Vector{Action{State}}() for i=1:N ]
-
-    # type-1 dependency
-    for i = 1:N
-        v_last = solution[1][i]
-        for (t, Q) in enumerate(solution[1:end])
-            v_current = Q[i]
-
-            if v_current.id != v_last.id
-                action = Action(get_action_id(v_last, v_current, t), v_last, v_current, t, i,
-                                Vector{Tuple{Int64, String}}(), Vector{Tuple{Int64, String}}())
-
-                # add type-1 dependency
-                if length(TPG[i]) > 0
-                    action_pre = TPG[i][end]
-                    push!(action.predecessors, (i, action_pre.id))
-                end
-
-                # insert
-                push!(TPG[i], action)
-
-                # update
-                v_last = v_current
-            end
-        end
-    end
-
-    # type-2 dependency
-    for i = 1:N
-        for action_self in TPG[i]
-            for j = 1:N
-                if j == i; continue; end
-
-                # exclude ealier actions
-                for action_other in filter(a -> a.t > action_self.t, TPG[j])
-
-                    # create type-2 dependency
-                    Q_from = [action_other.from, action_self.from]
-                    Q_to = [action_other.to, action_self.to]
-                    if collide(Q_from, Q_to)
-                        push!(action_other.predecessors, (action_self.agent, action_self.id))
-                        break
-                    end
-                end
-            end
-        end
-    end
-
-    # remove redundant dependencies
-    for i = 1:N
-        for action in TPG[i]
-            latest_actions = Dict{Int64, Action}()
-            for (j, id) in action.predecessors
-                action_other = TPG[j][findfirst(a -> a.id == id, TPG[j])]
-                if !haskey(latest_actions, j) || latest_actions[j].t < action_other.t
-                    latest_actions[j] = action_other
-                end
-            end
-            action.predecessors = map(a -> (a.agent, a.id), values(latest_actions))
-
-            # update successors
-            for (j, id) in action.predecessors
-                action_other = TPG[j][findfirst(a -> a.id == id, TPG[j])]
-                push!(action_other.successors, (i, action.id))
-            end
-        end
-    end
-
-    return TPG
-end
-
-function smoothing!(
-    TPG::Vector{Vector{Action{State}}}, collide::Function, connect::Function
+function refine!(
+    # problem instances
+    config_init::Vector{State},
+    config_goal::Vector{State},
+    connect::Function,
+    collide::Function,
+    check_goal::Function,
+    # data from past iteration
+    solution::Vector{Vector{Node{State}}},
+    V::Vector{Vector{Node{State}}},
+    # specify search details
+    h_func::Function,
+    g_func::Function,
+    random_walk::Function,
+    get_sample_nums::Function = (k::Int64) -> k + 3;
+    # other parameters
+    agents_refine::Vector{Int64}=[rand(1:length(config_init))],
+    MAX_ITER::Int64 = 3,
+    MAX_LOOP_CNT::Int64 = 100000,
+    VERBOSE::Int64 = 1,
+    VERBOSE_LOOP_CNT::Int64 = 100
     ) where State<:AbsState
 
-    N = length(TPG)
-    get_action = (j, id) -> TPG[j][findfirst(a -> a.id == id, TPG[j])]
+    # number of agents
+    N = length(config_init)
 
-    for i = 1:N
-        k = 1
-        while k < length(TPG[i])
-            k += 1
-            a1 = TPG[i][k-1]
-            a2 = TPG[i][k]
+    # makespan
+    T = length(solution)
 
-            # check connection
-            if !connect(a1.from.q, a2.to.q, i); continue; end
+    # setup refinement
+    agents_fixed = filter(i -> !(i in agents_refine), 1:N)
+    println("refined agents:", agents_refine)
 
-            # check dependencies
-            if any([ j != i for (j, _) in a2.predecessors]); continue; end
-            if any([ j != i for (j, _) in a1.successors]); continue; end
+    function get_Q_id(Q::Vector{Node{State}}, t::Int64, next::Int64)::String
+        return join([v.id for v in Q], "-") * "_" * string(t) * "_" * string(next)
+    end
 
-            # new action candidate
-            a3 = Action(get_action_id(a1.from, a2.to, a1.t),
-                        a1.from, a2.to, a1.t, a1.agent, a1.predecessors, a2.successors)
+    # initial search node
+    Q_init = solution[1]
+    S_init = SuperNode(Q=Q_init, next=0, id=get_Q_id(Q_init, 1, 0), h=h_func(Q_init))
 
-            # check collisions
-            conflicted = false
-            for j = 1:N
-                if j == i; continue; end
-                for a4 in filter(a -> a1.t < a.t < a2.t, TPG[j])
-                    Q_from = [a3.from, a4.from]
-                    Q_to = [a3.to, a4.to]
-                    if collide(Q_from, Q_to)
-                        conflicted = true;
-                        break
-                    end
+    # verbose
+    print_progress! = (S::SuperNode{State}, k::Int64, loop_cnt::Int64; force::Bool=false) -> begin
+        if VERBOSE < 0 || (!force && (loop_cnt % VERBOSE_LOOP_CNT != 0)); return; end
+        @printf("\riteration: %02d, explored node: %08d, f: %.2f, g: %.2f, h: %.2f, depth: %04d",
+                k, loop_cnt, S.f, S.g, S.f, S.depth)
+    end
+
+    # iteration
+    for k = 1:MAX_ITER
+
+        # open list
+        OPEN = PriorityQueue{SuperNode{State}, Float64}()
+
+        # discovered list to avoid duplication
+        VISITED = Dict{String, SuperNode{State}}()
+
+        # setup initail node
+        enqueue!(OPEN, S_init, S_init.f)
+        VISITED[S_init.id] = S_init
+
+        loop_cnt = 0
+        while !isempty(OPEN)
+            loop_cnt += 1
+
+            # pop
+            S = dequeue!(OPEN)
+
+            # check goal
+            if check_goal(S.Q)
+                print_progress!(S, k, loop_cnt, force=true)
+                if VERBOSE > 0
+                    println()
+                    println("found solution")
                 end
-                if conflicted; continue; end
-            end
-            if conflicted; continue; end
-
-            # update action orders
-            deleteat!(TPG[i], k-1:k)
-            insert!(TPG[i], k-1, a3)
-
-            # update dependencies
-            for (j, id) in a3.predecessors
-                a4 = get_action(j, id)
-                m = findfirst(tpl -> tpl[1] == i && tpl[2] == a1.id, a4.successors)
-                deleteat!(a4.successors, m)
-                push!(a4.successors, (i, a3.id))
-            end
-            for (j, id) in a3.successors
-                a4 = get_action(j, id)
-                m = findfirst(tpl -> tpl[1] == i && tpl[2] == a2.id, a4.predecessors)
-                deleteat!(a4.predecessors, m)
-                push!(a4.predecessors, (i, a3.id))
+                return (backtrack(S, VISITED), V)
             end
 
-            k -= 1
-        end
-    end
-end
+            if S.next == 0
+                # update for fixed agents
 
-function get_greedy_solution(
-    TPG::Vector{Vector{Action{State}}}
-    )::Vector{Vector{Node{State}}} where State<:AbsState
-    N = length(TPG)
-    indexes = [ 1 for i = 1:N ]
-    solution = [[arr[1].from for arr in TPG]]
+                # case-1, skip
+                Q_new_id = get_Q_id(S.Q, S.t, 1)
+                if !haskey(VISITED, Q_new_id)  # collision check is unnecessary
+                    S_new = SuperNode(
+                        Q=S.Q,
+                        t=S.t,
+                        next=1,
+                        id=Q_new_id,
+                        parent_id=S.id,
+                        h=h_func(S.Q),
+                        g=S.g,
+                        depth=S.depth+1
+                    )
+                    enqueue!(OPEN, S_new, S_new.f)
+                    VISITED[S_new.id] = S_new
+                end
 
-    while !all([k > length(TPG[i]) for (i, k) in enumerate(indexes)])
-        config = []
-        indexes_last = copy(indexes)
-        for i = 1:N
-            action = TPG[i][min(indexes[i], length(TPG[i]))]
-            if all([findfirst(a -> a.id == id, TPG[j]) < indexes_last[j]
-                    for (j, id) in action.predecessors])
-                indexes[i] = min(indexes[i] + 1, length(TPG[i]) + 1)
-                push!(config, action.to)
+                # case-2: update fixed agents' states
+                Q_new = copy(S.Q)
+                t = min(S.t+1, T)
+                for k in agents_fixed; Q_new[k] = solution[t][k]; end
+                Q_new_id = get_Q_id(Q_new, t, 1)
+                if !haskey(VISITED, Q_new_id) && !collide(S.Q, Q_new)
+                    # insert
+                    S_new = SuperNode(
+                        Q=Q_new,
+                        t=t,
+                        next=1,
+                        id=Q_new_id,
+                        parent_id=S.id,
+                        h=h_func(Q_new),
+                        g=S.g+g_func(S.Q, Q_new),
+                        depth=S.depth+1
+                    )
+                    enqueue!(OPEN, S_new, S_new.f)
+                    VISITED[S_new.id] = S_new
+                end
             else
-                push!(config, action.from)
+                # update for refine agents
+
+                i = agents_refine[S.next]
+                j = (S.next < length(agents_refine)) ? S.next + 1 : 0
+                v = S.Q[i]
+
+                # explore new states
+                # expand!(V[i], v.q, i, get_sample_nums(k), connect, random_walk)
+
+                # expand search node
+                for p_id in vcat(v.neighbors, [v.id])
+
+                    # create new configuration
+                    p = V[i][p_id]
+                    Q = copy(S.Q)
+                    Q[i] = p
+
+                    # check duplication and collision
+                    Q_id = get_Q_id(Q, S.t, j)
+                    if haskey(VISITED, Q_id) || collide(S.Q, Q); continue; end
+
+                    # create new search node
+                    S_new = SuperNode(
+                        Q=Q,
+                        t=S.t,
+                        next=j,
+                        id=Q_id,
+                        parent_id=S.id,
+                        h=h_func(Q),
+                        g=S.g+g_func(S.Q, Q),
+                        depth=S.depth+1
+                    )
+
+                    # insert
+                    enqueue!(OPEN, S_new, S_new.f)
+                    VISITED[S_new.id] = S_new
+                end
             end
+
+            print_progress!(S, k, loop_cnt, force=isempty(OPEN))
         end
-        push!(solution, config)
+
+        if VERBOSE > 0; println(); end
     end
-    return solution
-end
 
-function refine(
-    solution::Vector{Vector{Node{State}}},
-    collide::Function,
-    connect::Function
-    )::Vector{Vector{Node{State}}} where State<:AbsState
-
-    TPG = get_temporal_plan_graph(solution, collide)
-    smoothing!(TPG, collide, connect)
-    return get_greedy_solution(TPG)
+    if VERBOSE > 0; println(); end
+    println("failed to find solution")
+    return (nothing, V)
 end
