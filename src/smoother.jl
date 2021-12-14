@@ -60,9 +60,8 @@ function get_temporal_plan_graph(
                 for action_other in filter(a -> a.t > action_self.t, TPG[j])
 
                     # create type-2 dependency
-                    Q_from = [action_other.from, action_self.from]
-                    Q_to = [action_other.to, action_self.to]
-                    if collide(Q_from, Q_to)
+                    if collide(action_self.from.q, action_self.to.q,
+                               action_other.from.q, action_other.to.q, i, j)
                         push!(action_other.predecessors, (action_self.agent, action_self.id))
                         break
                     end
@@ -110,7 +109,7 @@ function try_skip_connection!(
             a2 = TPG[i][k]
 
             # check connection
-            if !connect(a1.from.q, a2.to.q, i); continue; end
+            if !connect(a1.from.q, a2.to.q, i; ignore_eps=true); continue; end
 
             # check dependencies
             if any([ j != i for (j, _) in a2.predecessors]); continue; end
@@ -124,10 +123,10 @@ function try_skip_connection!(
             conflicted = false
             for j = 1:N
                 if j == i; continue; end
-                for a4 in filter(a -> a1.t < a.t < a2.t, TPG[j])
+                for a4 in TPG[j]
                     Q_from = [a3.from, a4.from]
                     Q_to = [a3.to, a4.to]
-                    if collide(Q_from, Q_to)
+                    if collide(a3.from.q, a3.to.q, a4.from.q, a4.to.q, i, j)
                         conflicted = true;
                         break
                     end
@@ -202,7 +201,6 @@ function get_tpg_cost(
         cost_tables[i][id] = c
         return c
     end
-
 
     return func([f(i, TPG[i][end].id) for i in 1:N])
 end

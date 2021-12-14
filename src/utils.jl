@@ -96,7 +96,6 @@ function gen_get_sample_nums(k_init::Int64)::Function
     return (k::Int64) -> k + k_init - 1
 end
 
-
 function simple_search(
     config_init::Vector{State},
     config_goal::Vector{State},
@@ -118,4 +117,60 @@ function simple_search(
     get_sample_nums = gen_get_sample_nums(sample_num_init)
     return search(config_init, config_goal, connect, collide, check_goal,
                   h_func, g_func, random_walk, get_sample_nums; params...)
+end
+
+function now()
+    return Base.time_ns()
+end
+
+function elapsed_sec(t_s::UInt64)
+    return (now() - t_s) / 1.0e9
+end
+
+# TODO: refactoring
+function print_instance(
+    config_init::Vector{StatePoint2D},
+    config_goal::Vector{StatePoint2D},
+    rads::Vector{Float64},
+    obstacles::Vector{CircleObstacle2D}
+)::Nothing
+
+    println("problem instance:")
+    for (i, (q_init, q_goal, rad)) in enumerate(zip(config_init, config_goal, rads))
+        @printf("- %02d: (%.4f, %.4f) -> (%.4f, %.4f), rad: %.4f\n",
+                i, q_init.x, q_init.y, q_goal.x, q_goal.y, rad)
+    end
+    if !isempty(obstacles)
+        println("obstacles:")
+        for (i, o) in enumerate(obstacles)
+            @printf("- %02d: (%.4f, %.4f), rad: %.4f\n", i, o.x, o.y, o.r)
+        end
+    end
+    println()
+end
+
+function is_valid_instance(
+    config_init::Vector{StatePoint2D},
+    config_goal::Vector{StatePoint2D},
+    rads::Vector{Float64}
+    )::Bool
+
+    for (i, (q1, q2)) in enumerate(zip(config_init, config_goal))
+        if any([x < rads[i] || 1-rads[i] < x for x in [q1.x, q1.y, q2.x, q2.y]])
+            @warn "invalid instance, start/goal of agent-" i " is out of range"
+            return false
+        end
+    end
+    N = length(config_init)
+    for i = 1:N, j = 1+i:N
+        if MRMP.dist(config_init[i], config_init[j]) < rads[i] + rads[j]
+            @warn "invalid instance, starts of agent-" i ", " j " is colliding"
+            return false
+        end
+        if MRMP.dist(config_goal[i], config_goal[j]) < rads[i] + rads[j]
+            @warn "invalid instance, goals of agent-" i ", " j " is colliding"
+            return false
+        end
+    end
+    return true
 end

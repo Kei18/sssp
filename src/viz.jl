@@ -1,6 +1,6 @@
 using Plots
 
-COLORS = ["royalblue", "orange", "lime", "gray", "coral", "brown4"]
+COLORS = ["royalblue", "orange", "lime", "gray", "coral", "brown4", "aquamarine4"]
 
 function plot_circle!(
     x::Float64, y::Float64, r::Float64,
@@ -150,5 +150,9 @@ function plot_anim!(
             plot_agent!(v.q, rads[i], COLORS[i])
         end
     end
+
+    dirname = join(split(filename, "/")[1:end-1], "/")
+    if !isdir(dirname); mkpath(dirname); end
+
     return gif(anim, filename, fps=fps)
 end

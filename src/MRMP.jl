@@ -19,5 +19,6 @@ export gen_random_walk, gen_h_func, gen_g_func, gen_get_sample_nums
 export plot_res!, plot_anim!
 export search, simple_search
 export refine
+export print_instance, is_valid_instance
 
 end

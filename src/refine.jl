@@ -18,8 +18,14 @@ function refine!(
     MAX_ITER::Int64 = 3,
     MAX_LOOP_CNT::Int64 = 100000,
     VERBOSE::Int64 = 1,
-    VERBOSE_LOOP_CNT::Int64 = 100
+    VERBOSE_LOOP_CNT::Int64 = 100,
+    TIME_LIMIT::Union{Nothing, Real}=nothing
     ) where State<:AbsState
+
+    # for timeout
+    t_s = now()
+    elapsed() = elapsed_sec(t_s)
+    timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
     # number of agents
     N = length(config_init)
@@ -29,7 +35,7 @@ function refine!(
 
     # setup refinement
     agents_fixed = filter(i -> !(i in agents_refine), 1:N)
-    println("refined agents:", agents_refine)
+    if VERBOSE > 0; println("\trefined agents:", agents_refine); end
 
     function get_Q_id(Q::Vector{Node{State}}, t::Int64, next::Int64)::String
         return join([v.id for v in Q], "-") * "_" * string(t) * "_" * string(next)
@@ -41,13 +47,16 @@ function refine!(
 
     # verbose
     print_progress! = (S::SuperNode{State}, k::Int64, loop_cnt::Int64; force::Bool=false) -> begin
-        if VERBOSE < 0 || (!force && (loop_cnt % VERBOSE_LOOP_CNT != 0)); return; end
-        @printf("\riteration: %02d, explored node: %08d, f: %.2f, g: %.2f, h: %.2f, depth: %04d",
-                k, loop_cnt, S.f, S.g, S.f, S.depth)
+        if VERBOSE == 0 || (!force && (loop_cnt % VERBOSE_LOOP_CNT != 0)); return; end
+        @printf("\r\t%6.4f sec, iteration: %02d, explored node: %08d, ", elapsed(), k, loop_cnt)
+        @printf("f: %.2f, g: %.2f, h: %.2f, depth: %04d", S.f, S.g, S.f, S.depth)
     end
 
     # iteration
     for k = 1:MAX_ITER
+
+        # check timeout
+        if timeover(); break; end
 
         # open list
         OPEN = PriorityQueue{SuperNode{State}, Float64}()
@@ -60,7 +69,7 @@ function refine!(
         VISITED[S_init.id] = S_init
 
         loop_cnt = 0
-        while !isempty(OPEN)
+        while !isempty(OPEN) && !timeover()
             loop_cnt += 1
 
             # pop
@@ -69,11 +78,8 @@ function refine!(
             # check goal
             if check_goal(S.Q)
                 print_progress!(S, k, loop_cnt, force=true)
-                if VERBOSE > 0
-                    println()
-                    println("found solution")
-                end
-                return (backtrack(S, VISITED), V)
+                if VERBOSE > 0; @printf("\n\t%6.4f sec: found solution\n", elapsed()) end
+                return backtrack(S, VISITED)
             end
 
             if S.next == 0
@@ -124,7 +130,7 @@ function refine!(
                 v = S.Q[i]
 
                 # explore new states
-                # expand!(V[i], v.q, i, get_sample_nums(k), connect, random_walk)
+                expand!(V[i], v.q, i, get_sample_nums(k), connect, random_walk)
 
                 # expand search node
                 for p_id in vcat(v.neighbors, [v.id])
@@ -162,7 +168,6 @@ function refine!(
         if VERBOSE > 0; println(); end
     end
 
-    if VERBOSE > 0; println(); end
-    println("failed to find solution")
-    return (nothing, V)
+    if VERBOSE > 0; @printf("\n\t%6.4f sec: failed to find solution\n", elapsed()) end
+    return nothing
 end

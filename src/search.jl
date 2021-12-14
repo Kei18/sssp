@@ -1,6 +1,6 @@
 import DataStructures: PriorityQueue, enqueue!, dequeue!
 import Printf: @printf, @sprintf
-using Base: @kwdef
+import Base: @kwdef
 
 abstract type AbsState end
 abstract type StatePoint <: AbsState end
@@ -44,8 +44,14 @@ function search(
     MAX_ITER::Int64 = 3,
     MAX_LOOP_CNT::Int64 = 100000,
     VERBOSE::Int64 = 1,
-    VERBOSE_LOOP_CNT::Int64 = 100
+    VERBOSE_LOOP_CNT::Int64 = 100,
+    TIME_LIMIT::Union{Nothing, Real}=nothing
     ) where State<:AbsState
+
+    # for timeout
+    t_s = now()
+    elapsed() = elapsed_sec(t_s)
+    timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
     # number of agents
     N = length(config_init)
@@ -62,13 +68,16 @@ function search(
 
     # verbose
     print_progress! = (S::SuperNode{State}, k::Int64, loop_cnt::Int64; force::Bool=false) -> begin
-        if VERBOSE < 0 || (!force && (loop_cnt % VERBOSE_LOOP_CNT != 0)); return; end
-        @printf("\riteration: %02d, explored node: %08d, f: %.2f, g: %.2f, h: %.2f, depth: %04d",
-                k, loop_cnt, S.f, S.g, S.f, S.depth)
+        if VERBOSE == 0 || (!force && (loop_cnt % VERBOSE_LOOP_CNT != 0)); return; end
+        @printf("\r\t%6.4f sec, iteration: %02d, explored node: %08d, ", elapsed(), k, loop_cnt)
+        @printf("f: %.2f, g: %.2f, h: %.2f, depth: %04d", S.f, S.g, S.f, S.depth)
     end
 
     # iteration
     for k = 1:MAX_ITER
+
+        # check timeout
+        if timeover(); break; end
 
         # open list
         OPEN = PriorityQueue{SuperNode{State}, Float64}()
@@ -82,7 +91,7 @@ function search(
 
         # main loop
         loop_cnt = 0
-        while !isempty(OPEN)
+        while !isempty(OPEN) && !timeover()
             loop_cnt += 1
             if loop_cnt > MAX_LOOP_CNT; break; end
 
@@ -92,10 +101,7 @@ function search(
             # check goal
             if check_goal(S.Q)
                 print_progress!(S, k, loop_cnt, force=true)
-                if VERBOSE > 0
-                    println()
-                    println("found solution")
-                end
+                if VERBOSE > 0; @printf("\n\t%6.4f sec: found solution\n", elapsed()) end
                 return (backtrack(S, VISITED), V)
             end
 
@@ -133,8 +139,7 @@ function search(
         if VERBOSE > 0; println(); end
     end
 
-    if VERBOSE > 0; println(); end
-    println("failed to find solution")
+    if VERBOSE > 0; @printf("\n\t%6.4f sec: failed to find solution\n", elapsed()) end
     return (nothing, V)
 end
 

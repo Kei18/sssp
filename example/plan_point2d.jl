@@ -10,6 +10,7 @@ obstacles = [
     CircleObstacle2D(0.7, 0.3, 0.05),
 ]
 rads = fill(0.1, length(config_init))
+print_instance(config_init, config_goal, rads, obstacles)
 
 # search
 params=Dict(:MAX_ITER => 3, :MAX_LOOP_CNT => 1000)

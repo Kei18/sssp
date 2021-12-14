@@ -25,9 +25,9 @@ function gen_connect(
     eps::Float64=0.2
     )::Function
 
-    return (q_from::StatePoint2D, q_to::StatePoint2D, i::Int64) -> begin
+    return (q_from::StatePoint2D, q_to::StatePoint2D, i::Int64; ignore_eps::Bool=false) -> begin
         # avoid far points
-        if dist(q_from, q_to) > eps; return false; end
+        if !ignore_eps && dist(q_from, q_to) > eps; return false; end
 
         # check: q_to \in C_free
         if !all([rads[i] <= x <= 1 - rads[i] for x in [q_to.x, q_to.y]])
@@ -45,7 +45,8 @@ end
 
 function gen_collide(q::StatePoint2D, rads::Vector{Float64})::Function
     N = length(rads)
-    return (Q_from::Vector{Node{StatePoint2D}}, Q_to::Vector{Node{StatePoint2D}}) -> begin
+
+    f(Q_from::Vector{Node{StatePoint2D}}, Q_to::Vector{Node{StatePoint2D}}) = begin
         for i = 1:N, j = i+1:N
             if dist(Q_from[i].q, Q_to[i].q, Q_from[j].q, Q_to[j].q) < rads[i] + rads[j]
                 return true
@@ -53,6 +54,13 @@ function gen_collide(q::StatePoint2D, rads::Vector{Float64})::Function
         end
         return false
     end
+
+    f(q_i_from::StatePoint2D, q_i_to::StatePoint2D,
+      q_j_from::StatePoint2D, q_j_to::StatePoint2D, i::Int64, j::Int64) = begin
+          return dist(q_i_from, q_i_to, q_j_from, q_j_to) < rads[i] + rads[j]
+    end
+
+    return f
 end
 
 function gen_random_walk(q::StatePoint2D, eps::Float64)::Function
