@@ -156,3 +156,21 @@ function plot_anim!(
 
     return gif(anim, filename, fps=fps)
 end
+
+function plot_tpg(TPG)
+    N = length(TPG)
+    plot(size=(200,400), xlim=(0.5,N+0.5), xticks=1:N)
+
+    get_action = (j, id) -> TPG[j][findfirst(a -> a.id == id, TPG[j])]
+    for (i, actions) in enumerate(TPG)
+        for a in actions
+            for (j, b_id) in a.successors
+                b = get_action(j, b_id)
+                plot!([i, j], [a.t, b.t], label=nothing,
+                      color="black", markersize=5, markershape=:circle)
+            end
+            annotate!(i-0.1, a.t, text(a.id, :black, :right, 3))
+        end
+    end
+    plot!()
+end

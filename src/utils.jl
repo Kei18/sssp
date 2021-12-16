@@ -157,18 +157,18 @@ function is_valid_instance(
 
     for (i, (q1, q2)) in enumerate(zip(config_init, config_goal))
         if any([x < rads[i] || 1-rads[i] < x for x in [q1.x, q1.y, q2.x, q2.y]])
-            @warn "invalid instance, start/goal of agent-" i " is out of range"
+            @warn("invalid instance, start/goal of agent-", i, " is out of range")
             return false
         end
     end
     N = length(config_init)
     for i = 1:N, j = 1+i:N
         if MRMP.dist(config_init[i], config_init[j]) < rads[i] + rads[j]
-            @warn "invalid instance, starts of agent-" i ", " j " is colliding"
+            @warn("invalid instance, starts of agent-", i, ", ", j, " is colliding")
             return false
         end
         if MRMP.dist(config_goal[i], config_goal[j]) < rads[i] + rads[j]
-            @warn "invalid instance, goals of agent-" i ", " j " is colliding"
+            @warn("invalid instance, goals of agent-", i, ", ", j, " is colliding")
             return false
         end
     end

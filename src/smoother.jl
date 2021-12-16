@@ -119,19 +119,27 @@ function try_skip_connection!(
             a3 = Action(get_action_id(a1.from, a2.to, a1.t),
                         a1.from, a2.to, a1.t, a1.agent, a1.predecessors, a2.successors)
 
+            # get causalities
+            causal_actions = get_ancestors(a1, TPG)
+            union!(causal_actions, get_descendants(a2, TPG))
+            causal_actions = filter(val -> val[1] != i, causal_actions)
+
             # check collisions
             conflicted = false
             for j = 1:N
                 if j == i; continue; end
-                for a4 in TPG[j]
-                    Q_from = [a3.from, a4.from]
-                    Q_to = [a3.to, a4.to]
+                for a4 in filter(a -> !((j, a.id) in causal_actions), TPG[j])
                     if collide(a3.from.q, a3.to.q, a4.from.q, a4.to.q, i, j)
-                        conflicted = true;
+                        conflicted = true
                         break
                     end
                 end
                 if conflicted; continue; end
+                # check last location
+                if collide(a3.from.q, a3.to.q, TPG[j][end].to.q, TPG[j][end].to.q, i, j)
+                    conflicted = true
+                    break
+                end
             end
             if conflicted; continue; end
 
@@ -152,10 +160,45 @@ function try_skip_connection!(
                 deleteat!(a4.predecessors, m)
                 push!(a4.predecessors, (i, a3.id))
             end
-
             k -= 1
         end
     end
+end
+
+function get_causal_actions(
+    action::Action{State},
+    TPG::Vector{Vector{Action{State}}},
+    for_ancestors::Bool
+    ) where State<:AbsState
+
+    N = length(TPG)
+    tables = [ Dict{String, Set{Tuple{Int64, String}}}() for i in 1:N ]
+    function f(i, id)
+        action = TPG[i][findfirst(a -> a.id == id, TPG[i])]
+        if haskey(tables[i], id); return tables[i][id]; end
+        causal_actions = Set{Tuple{Int64, String}}()
+        for (j, id_j) in ((for_ancestors) ? action.predecessors : action.successors)
+            push!(causal_actions, (j, id_j))
+            foreach(val -> push!(causal_actions, val), f(j, id_j))
+        end
+        tables[i][id] = causal_actions
+        return causal_actions
+    end
+    return f(action.agent, action.id)
+end
+
+function get_ancestors(
+    action::Action{State},
+    TPG::Vector{Vector{Action{State}}},
+    ) where State<:AbsState
+    return get_causal_actions(action, TPG, true)
+end
+
+function get_descendants(
+    action::Action{State},
+    TPG::Vector{Vector{Action{State}}},
+    ) where State<:AbsState
+    return get_causal_actions(action, TPG, false)
 end
 
 function get_greedy_solution(
@@ -205,13 +248,28 @@ function get_tpg_cost(
     return func([f(i, TPG[i][end].id) for i in 1:N])
 end
 
+import Dates
+
 
 function smoothing(
     solution::Vector{Vector{Node{State}}},
     collide::Function,
-    connect::Function
-    )::Vector{Vector{Node{State}}} where State<:AbsState
+    connect::Function;
+    cost_fn::Function=sum
+    )::Tuple{
+        Vector{Vector{Action{State}}}, Vector{Vector{Node{State}}}, Float64
+    } where State<:AbsState
 
-    TPG = get_temporal_plan_graph(solution, collide, connect)
-    return get_greedy_solution(TPG)
+    solution_tmp = solution
+    cost_last = 0
+    while true
+        TPG = get_temporal_plan_graph(solution_tmp, collide, connect)
+        solution_tmp = get_greedy_solution(TPG)
+        cost = get_tpg_cost(TPG, cost_fn)
+        if cost_last == cost
+            return (TPG, solution_tmp, cost)
+        else
+            cost_last = cost
+        end
+    end
 end

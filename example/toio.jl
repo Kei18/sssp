@@ -86,9 +86,14 @@ function solve(msg)
     # read search parameters
     seed!(haskey(req["search"], "seed") ? req["search"]["seed"] : 0)
     eps = req["search"]["eps"]
-    num_neighbors_init = req["search"]["num_neighbors_init"]
+    num_neighbors = req["search"]["num_neighbors_init"]
     init_search_params = Dict([ (Symbol(key), val) for (key, val) in req["search"]["init"] ])
     refine_search_params = Dict([ (Symbol(key), val) for (key, val) in req["search"]["refine"] ])
+    neighbors_growing_rate = (
+        haskey(req["search"], "neighbors_growing_rate")
+        ? req["search"]["neighbors_growing_rate"]
+        : 1.1
+    )
 
     # setup search details
     q = config_init[1]
@@ -98,54 +103,76 @@ function solve(msg)
     h_func = gen_h_func(config_goal)
     g_func = gen_g_func(greedy=true)
     random_walk = gen_random_walk(q, eps)
-    get_sample_nums = gen_get_sample_nums(num_neighbors_init)
+    get_sample_nums = gen_get_sample_nums(num_neighbors)
+
+    get_roadmap_size() = sum([length(rmp) for rmp in roadmaps])
 
     # get initial solution
     @printf("searching initial solution\n")
-    solution_init, roadmaps = search(
+    solution, roadmaps = search(
         config_init, config_goal, connect, collide, check_goal,
         h_func, g_func, random_walk, get_sample_nums;
         TIME_LIMIT=time_limit - elapsed(),
         init_search_params...)
-    if solution_init == nothing; @fail_to_solve("failed to find initial solution"); end
-    TPG = MRMP.get_temporal_plan_graph(solution_init, collide, connect)
-    solution = MRMP.get_greedy_solution(TPG)
-    cost_best = MRMP.get_tpg_cost(TPG)
+    if solution == nothing; @fail_to_solve("failed to find initial solution"); end
+    (TPG_best, solution_best, cost_best) = smoothing(solution, collide, connect)
+    solution = solution_best
     if timeover(); @fail_to_solve("failed to find initial solution within time limit"); end
-    @printf("%6.4f sec: get initial solution, cost=%6.4f\n", elapsed(), cost_best)
+    @printf("- %8.4f sec: get initial solution, cost=%6.4f, roadmap=%d\n",
+            elapsed(), cost_best, get_roadmap_size())
 
+    # iterative refinement
+    @printf("iterative refinement\n")
     iter_num = 0
     while !timeover()
         iter_num += 1
-        get_sample_nums = gen_get_sample_nums(num_neighbors_init + iter_num)
+        if haskey(req["search"], "max_refine_num") && iter_num > req["search"]["max_refine_num"]
+            break
+        end
+
+        num_neighbors = Int64(floor(num_neighbors * neighbors_growing_rate))
+        get_sample_nums = gen_get_sample_nums(num_neighbors)
+        tl = time_limit - elapsed()
+        if haskey(req["search"], "each_refine_time_limit")
+            tl = min(tl, req["search"]["each_refine_time_limit"])
+        end
         solution_tmp = MRMP.refine!(
             config_init, config_goal, connect, collide, check_goal,
-            solution, roadmaps, h_func, g_func, random_walk, get_sample_nums;
-            TIME_LIMIT=min(time_limit - elapsed(), req["search"]["each_refine_time_limit"]),
+            solution_best, roadmaps, h_func, g_func, random_walk, get_sample_nums;
+            TIME_LIMIT=tl,
             refine_search_params...)
-        if solution_tmp == nothing; continue; end
-        TPG_tmp = MRMP.get_temporal_plan_graph(solution_tmp, collide, connect)
-        cost = MRMP.get_tpg_cost(TPG_tmp)
+        if solution_tmp == nothing;
+            @printf("- %8.4f sec: iter=%4d,  refine timeout, roadmap=%6d\n",
+                    elapsed(), iter_num, get_roadmap_size())
+            continue
+        end
+        TPG, solution, cost = smoothing(solution_tmp, collide, connect)
+
+        # update cost
         if cost < cost_best
-            solution = MRMP.get_greedy_solution(TPG_tmp)
-            cost_best = cost
-            TPG = TPG_tmp
-            @printf("%6.4f sec: update solution, cost=%6.4f\n", elapsed(), cost_best)
+            TPG_best, solution_best, cost_best = TPG, solution, cost
+            @printf("- %8.4f sec: iter=%4d, update solution, cost=%6.4f, roadmap=%6d\n",
+                    elapsed(), iter_num, cost_best, get_roadmap_size())
+        else
+            @printf("- %8.4f sec: iter=%4d,  no improvement, cost=%6.4f, roadmap=%6d\n",
+                    elapsed(), iter_num, cost, get_roadmap_size())
         end
     end
-    @printf("%6.4f sec: final cost=%6.4f\n", elapsed(), cost_best)
+    @printf("\n%8.4f sec: final cost=%6.4f\n", elapsed(), cost_best)
 
     if haskey(req["search"], "save_gif") && req["search"]["save_gif"]
         save = @task begin
             filename = "./local/toio2d/" * string(Dates.now()) * ".gif"
-            plot_anim!(config_init, config_goal, obstacles, rads, solution; filename=filename)
+            plot_anim!(config_init, config_goal, obstacles, rads, solution_best; filename=filename, fps=3)
         end
         schedule(save)
     end
+    MRMP.plot_tpg(TPG_best)
+    MRMP.safe_savefig!("./local/tpg.pdf")
 
     return JSON.json(Dict(
         "status" => :success,
-        "instructions" => get_instructions(TPG, field)
+        "instructions" => get_instructions(TPG_best, field)
     ))
 end
 

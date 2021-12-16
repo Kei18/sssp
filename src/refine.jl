@@ -1,3 +1,5 @@
+import Random: randperm
+
 function refine!(
     # problem instances
     config_init::Vector{State},
@@ -14,7 +16,8 @@ function refine!(
     random_walk::Function,
     get_sample_nums::Function = (k::Int64) -> k + 3;
     # other parameters
-    agents_refine::Vector{Int64}=[rand(1:length(config_init))],
+    NUM_REFINE_AGENTS::Int64=1,
+    agents_refine::Vector{Int64}=randperm(length(config_init))[1:NUM_REFINE_AGENTS],
     MAX_ITER::Int64 = 3,
     MAX_LOOP_CNT::Int64 = 100000,
     VERBOSE::Int64 = 1,
