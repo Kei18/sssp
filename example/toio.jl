@@ -115,7 +115,8 @@ function solve(msg)
         TIME_LIMIT=time_limit - elapsed(),
         init_search_params...)
     if solution == nothing; @fail_to_solve("failed to find initial solution"); end
-    (TPG_best, solution_best, cost_best) = smoothing(solution, collide, connect)
+    (TPG_best, solution_best, cost_best) = smoothing(solution, collide, connect;
+                                                     skip_connection=false)
     solution = solution_best
     if timeover(); @fail_to_solve("failed to find initial solution within time limit"); end
     @printf("- %8.4f sec: get initial solution, cost=%6.4f, roadmap=%d\n",

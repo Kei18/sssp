@@ -255,7 +255,8 @@ function smoothing(
     solution::Vector{Vector{Node{State}}},
     collide::Function,
     connect::Function;
-    cost_fn::Function=sum
+    cost_fn::Function=sum,
+    skip_connection::Bool=true
     )::Tuple{
         Vector{Vector{Action{State}}}, Vector{Vector{Node{State}}}, Float64
     } where State<:AbsState
@@ -263,7 +264,8 @@ function smoothing(
     solution_tmp = solution
     cost_last = 0
     while true
-        TPG = get_temporal_plan_graph(solution_tmp, collide, connect)
+        TPG = get_temporal_plan_graph(solution_tmp, collide, connect;
+                                      skip_connection=skip_connection)
         solution_tmp = get_greedy_solution(TPG)
         cost = get_tpg_cost(TPG, cost_fn)
         if cost_last == cost
