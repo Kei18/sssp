@@ -70,6 +70,14 @@ end
 function solve(msg)
     req = JSON.parse(msg)
 
+    if req["type"] == "commit"
+        println(req)
+        return JSON.json(Dict(
+            "status" => :success,
+            "commit" => req["committed_indexes"]
+        ))
+    end
+
     # timeout utilities
     t_s = MRMP.now()
     time_limit = req["search"]["time_limit"]
@@ -105,8 +113,6 @@ function solve(msg)
     random_walk = gen_random_walk(q, eps)
     get_sample_nums = gen_get_sample_nums(num_neighbors)
 
-    get_roadmap_size() = sum([length(rmp) for rmp in roadmaps])
-
     # get initial solution
     @printf("searching initial solution\n")
     solution, roadmaps = search(
@@ -115,6 +121,7 @@ function solve(msg)
         TIME_LIMIT=time_limit - elapsed(),
         init_search_params...)
     if solution == nothing; @fail_to_solve("failed to find initial solution"); end
+    get_roadmap_size() = sum([length(rmp) for rmp in roadmaps])
     (TPG_best, solution_best, cost_best) = smoothing(solution, collide, connect;
                                                      skip_connection=false)
     solution = solution_best
@@ -161,6 +168,7 @@ function solve(msg)
     end
     @printf("\n%8.4f sec: final cost=%6.4f\n", elapsed(), cost_best)
 
+    # save result
     if haskey(req["search"], "save_gif") && req["search"]["save_gif"]
         save = @task begin
             filename = "./local/toio2d/" * string(Dates.now()) * ".gif"

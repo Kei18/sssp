@@ -202,23 +202,29 @@ function get_descendants(
 end
 
 function get_greedy_solution(
-    TPG::Vector{Vector{Action{State}}}
+    TPG::Vector{Vector{Action{State}}};
+    config_goal::Union{Vector{State}, Nothing}=nothing
     )::Vector{Vector{Node{State}}} where State<:AbsState
     N = length(TPG)
     indexes = [ 1 for i = 1:N ]
-    solution = [[arr[1].from for arr in TPG]]
+    solution = [[ (length(arr) > 0 ? arr[1].from : Node(config_goal[i], 0, Vector{Int64}()))
+                  for (i, arr) in enumerate(TPG) ]]
 
     while !all([k > length(TPG[i]) for (i, k) in enumerate(indexes)])
         config = []
         indexes_last = copy(indexes)
         for i = 1:N
-            action = TPG[i][min(indexes[i], length(TPG[i]))]
-            if all([findfirst(a -> a.id == id, TPG[j]) < indexes_last[j]
-                    for (j, id) in action.predecessors])
-                indexes[i] = min(indexes[i] + 1, length(TPG[i]) + 1)
-                push!(config, action.to)
-            else
-                push!(config, action.from)
+            if length(TPG[i]) > 0
+                action = TPG[i][min(indexes[i], length(TPG[i]))]
+                if all([findfirst(a -> a.id == id, TPG[j]) < indexes_last[j]
+                        for (j, id) in action.predecessors])
+                    indexes[i] = min(indexes[i] + 1, length(TPG[i]) + 1)
+                    push!(config, action.to)
+                else
+                    push!(config, action.from)
+                end
+            elseif config_goal != nothing
+                push!(config, Node(config_goal[i], 0, Vector{Int64}()))
             end
         end
         push!(solution, config)
@@ -245,7 +251,7 @@ function get_tpg_cost(
         return c
     end
 
-    return func([f(i, TPG[i][end].id) for i in 1:N])
+    return func([ (length(TPG[i]) > 0 ? f(i, TPG[i][end].id) : 0) for i in 1:N])
 end
 
 import Dates
@@ -256,7 +262,8 @@ function smoothing(
     collide::Function,
     connect::Function;
     cost_fn::Function=sum,
-    skip_connection::Bool=true
+    skip_connection::Bool=true,
+    config_goal::Union{Nothing, Vector{State}}=nothing
     )::Tuple{
         Vector{Vector{Action{State}}}, Vector{Vector{Node{State}}}, Float64
     } where State<:AbsState
@@ -266,7 +273,7 @@ function smoothing(
     while true
         TPG = get_temporal_plan_graph(solution_tmp, collide, connect;
                                       skip_connection=skip_connection)
-        solution_tmp = get_greedy_solution(TPG)
+        solution_tmp = get_greedy_solution(TPG; config_goal=config_goal)
         cost = get_tpg_cost(TPG, cost_fn)
         if cost_last == cost
             return (TPG, solution_tmp, cost)
