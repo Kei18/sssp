@@ -157,78 +157,53 @@ function plot_anim!(
     return gif(anim, filename, fps=fps)
 end
 
-function plot_tpg!(TPG; filename::Union{Nothing, String}=nothing)
+function plot_tpg!(TPG; init::Bool=true, offset::Int64=0, filename::Union{Nothing, String}=nothing)
     N = length(TPG)
-    plot(size=(200,400), xlim=(0.5,N+0.5), xticks=1:N)
-
-    get_action = (j, id) -> TPG[j][findfirst(a -> a.id == id, TPG[j])]
+    if init; plot(size=(200,400), xlim=(0.5,N+0.5), xticks=1:N); end
+    params = Dict(
+        :label => nothing,
+        :color => :black,
+        :markersize => 5,
+        :markershape => :circle
+    )
     for (i, actions) in enumerate(TPG)
         for a in actions
             for (j, b_id) in a.successors
-                b = get_action(j, b_id)
-                plot!([i, j], [a.t, b.t], label=nothing,
-                      color="black", markersize=5, markershape=:circle)
+                k = findfirst(a -> a.id == b_id, TPG[j])
+                if k != nothing
+                    b = TPG[j][k]
+                    plot!([i, j], [a.t+offset, b.t+offset]; params...)
+                end
             end
-            annotate!(i-0.1, a.t, text(a.id, :black, :right, 3))
+            annotate!(i-0.1, a.t+offset, text(a.id, :black, :right, 3))
         end
-        if length(actions) == 1
-            a = actions[1]
-            plot!([i, i], [a.t, a.t], label=nothing,
-                  color="black", markersize=5, markershape=:circle)
-        end
+        if length(actions) == 1; scatter!([i], [actions[1].t+offset]; params...); end
     end
     safe_savefig!(filename)
     return plot!()
 end
 
 function plot_tpg!(TPG1, TPG2; filename::Union{Nothing, String}=nothing)
-    N = length(TPG1)
-    plot(size=(200,400), xlim=(0.5,N+0.5), xticks=1:N)
-
-    offset = 0
+    # compute offset
+    maxval_tpg1 = (
+        !all(map(e -> isempty(e), TPG1))
+        ? maximum(map(e -> e[end].t, filter(e -> !isempty(e), TPG1)))
+        : 1
+    )
+    minval_tpg2 = (
+        !all(map(e -> isempty(e), TPG2))
+        ? minimum(map(e -> e[1].t, filter(e -> !isempty(e), TPG2)))
+        : 0
+    )
+    offset = maxval_tpg1 - minval_tpg2 + 1
+    plot_tpg!(TPG1)
+    plot_tpg!(TPG2; init=false, offset=offset)
     for (i, actions) in enumerate(TPG1)
-        for a in actions
-            offset = max(offset, a.t)
-            for (j, b_id) in a.successors
-                k = findfirst(a -> a.id == b_id, TPG1[j])
-                if k != nothing
-                    b = TPG1[j][k]
-                    plot!([i, j], [a.t, b.t], label=nothing,
-                          color="black", markersize=5, markershape=:circle)
-                end
+        if !isempty(actions)
+            if !isempty(TPG2[i])
+                plot!([i, i], [TPG1[i][end].t, TPG2[i][1].t+offset]; label=nothing, color=:black)
             end
-            annotate!(i-0.1, a.t, text(a.id, :black, :right, 3))
-        end
-        if length(actions) == 1
-            a = actions[1]
-            plot!([i, i], [a.t, a.t], label=nothing,
-                  color="black", markersize=5, markershape=:circle)
-        end
-        if length(actions) > 0
-            scatter!([i], [TPG1[i][end].t], markersize=5, markershape=:circle, color="red", label=nothing)
-        end
-    end
-    offset += 1
-
-    for (i, actions) in enumerate(TPG2)
-        for a in actions
-            for (j, b_id) in a.successors
-                k = findfirst(a -> a.id == b_id, TPG2[j])
-                if k != nothing
-                    b = TPG2[j][k]
-                    plot!([i, j], [a.t+offset, b.t+offset], label=nothing,
-                          color="black", markersize=5, markershape=:circle)
-                end
-            end
-            annotate!(i-0.1, a.t+offset, text(a.id, :black, :right, 3))
-        end
-        if length(actions) == 1
-            a = actions[1]
-            scatter!([i], [a.t+offset], label=nothing,
-                     color="black", markersize=5, markershape=:circle)
-        end
-        if length(actions) > 0 && length(TPG1[i]) > 0
-            plot!([i, i], [TPG1[i][end].t, TPG2[i][1].t+offset], color="black", label=nothing)
+            scatter!([i], [TPG1[i][end].t]; color=:red, label=nothing, markersize=5, markershape=:circle)
         end
     end
 

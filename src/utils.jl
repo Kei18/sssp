@@ -1,4 +1,5 @@
 using LinearAlgebra: norm, dot, normalize
+import Printf: @sprintf
 
 function direction(p_i::Vector{Float64}, p_j::Vector{Float64}, p_k::Vector{Float64})::Float64
     a = p_k - p_i
@@ -135,18 +136,17 @@ function print_instance(
     obstacles::Vector{CircleObstacle2D}
 )::Nothing
 
-    println("problem instance:")
+    @info "problem instance:"
     for (i, (q_init, q_goal, rad)) in enumerate(zip(config_init, config_goal, rads))
-        @printf("- %02d: (%.4f, %.4f) -> (%.4f, %.4f), rad: %.4f\n",
+        @info @sprintf("\t%02d: (%.4f, %.4f) -> (%.4f, %.4f), rad: %.4f\n",
                 i, q_init.x, q_init.y, q_goal.x, q_goal.y, rad)
     end
     if !isempty(obstacles)
-        println("obstacles:")
+        @info "obstacles:"
         for (i, o) in enumerate(obstacles)
-            @printf("- %02d: (%.4f, %.4f), rad: %.4f\n", i, o.x, o.y, o.r)
+            @info @sprintf("\t%02d: (%.4f, %.4f), rad: %.4f\n", i, o.x, o.y, o.r)
         end
     end
-    println()
 end
 
 function is_valid_instance(
@@ -157,18 +157,18 @@ function is_valid_instance(
 
     for (i, (q1, q2)) in enumerate(zip(config_init, config_goal))
         if any([x < rads[i] || 1-rads[i] < x for x in [q1.x, q1.y, q2.x, q2.y]])
-            @warn("invalid instance, start/goal of agent-", i, " is out of range")
+            @warn @sprintf("invalid instance, start/goal of agent-%d is out of range", i)
             return false
         end
     end
     N = length(config_init)
     for i = 1:N, j = 1+i:N
         if MRMP.dist(config_init[i], config_init[j]) < rads[i] + rads[j]
-            @warn("invalid instance, starts of agent-", i, ", ", j, " is colliding")
+            @warn @sprintf("invalid instance, starts of agent-%d, %d is colliding", i, j)
             return false
         end
         if MRMP.dist(config_goal[i], config_goal[j]) < rads[i] + rads[j]
-            @warn("invalid instance, goals of agent-", i, ", ", j, " is colliding")
+            @warn @sprintf("invalid instance, goals of agent-%d, %d is colliding", i, j)
             return false
         end
     end

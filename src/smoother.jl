@@ -262,17 +262,16 @@ function smoothing(
     collide::Function,
     connect::Function;
     cost_fn::Function=sum,
-    skip_connection::Bool=true,
-    config_goal::Union{Nothing, Vector{State}}=nothing
+    skip_connection::Bool=true
     )::Tuple{
         Vector{Vector{Action{State}}}, Vector{Vector{Node{State}}}, Float64
     } where State<:AbsState
 
     solution_tmp = solution
+    config_goal = map(path -> path[end].q, solution)
     cost_last = 0
     while true
-        TPG = get_temporal_plan_graph(solution_tmp, collide, connect;
-                                      skip_connection=skip_connection)
+        TPG = get_temporal_plan_graph(solution_tmp, collide, connect; skip_connection=skip_connection)
         solution_tmp = get_greedy_solution(TPG; config_goal=config_goal)
         cost = get_tpg_cost(TPG, cost_fn)
         if cost_last == cost
