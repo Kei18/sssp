@@ -14,15 +14,4 @@ config_goal = [
 ]
 obstacles = Vector{CircleObstacle2D}()
 rads = fill(0.25, length(config_init))
-eps = 0.2
-
-# search
-params=Dict(:MAX_ITER => 3, :MAX_LOOP_CNT => 10000)
-seed!(0)
-solution, roadmaps = simple_search(config_init, config_goal, obstacles, rads;
-                                   eps=eps, params=params)
-
-# plot results
-filename = "./local/arm2"
-plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution; filename="$filename.pdf")
-plot_anim!(config_init, config_goal, obstacles, rads, solution; filename="$filename.gif")
+MRMP.demo_get_initial_solution(config_init, config_goal, rads, obstacles; eps=0.2, goal_rad=0.05)

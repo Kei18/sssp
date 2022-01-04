@@ -1,5 +1,7 @@
 using LinearAlgebra: norm, dot, normalize
 import Printf: @sprintf
+import Dates
+using Random: seed!
 
 function direction(p_i::Vector{Float64}, p_j::Vector{Float64}, p_k::Vector{Float64})::Float64
     a = p_k - p_i
@@ -116,8 +118,17 @@ function simple_search(
     g_func = gen_g_func(greedy=true)
     random_walk = gen_random_walk(q, eps)
     get_sample_nums = gen_get_sample_nums(sample_num_init)
-    return search(config_init, config_goal, connect, collide, check_goal,
-                  h_func, g_func, random_walk, get_sample_nums; params...)
+    return search!(
+        config_init,
+        config_goal,
+        connect,
+        collide,
+        check_goal,
+        h_func,
+        g_func,
+        random_walk,
+        get_sample_nums;
+        params...)
 end
 
 function now()
@@ -128,32 +139,31 @@ function elapsed_sec(t_s::UInt64)
     return (now() - t_s) / 1.0e9
 end
 
-# TODO: refactoring
 function print_instance(
-    config_init::Vector{StatePoint2D},
-    config_goal::Vector{StatePoint2D},
+    config_init::Vector{State},
+    config_goal::Vector{State},
     rads::Vector{Float64},
-    obstacles::Vector{CircleObstacle2D}
-)::Nothing
+    obstacles::Vector{Obs} where Obs<:Obstacle,
+    )::Nothing where State<:AbsState
 
     @info "problem instance:"
     for (i, (q_init, q_goal, rad)) in enumerate(zip(config_init, config_goal, rads))
-        @info @sprintf("\t%02d: (%.4f, %.4f) -> (%.4f, %.4f), rad: %.4f\n",
-                i, q_init.x, q_init.y, q_goal.x, q_goal.y, rad)
+        @info @sprintf("\t%02d: %s -> %s, rad: %.4f\n",
+                       i, to_string(q_init), to_string(q_goal), rad)
     end
     if !isempty(obstacles)
         @info "obstacles:"
         for (i, o) in enumerate(obstacles)
-            @info @sprintf("\t%02d: (%.4f, %.4f), rad: %.4f\n", i, o.x, o.y, o.r)
+            @info @sprintf("\t%02d: %s\n", i, to_string(o))
         end
     end
 end
 
 function is_valid_instance(
-    config_init::Vector{StatePoint2D},
-    config_goal::Vector{StatePoint2D},
+    config_init::Vector{State},
+    config_goal::Vector{State},
     rads::Vector{Float64}
-    )::Bool
+    )::Bool where State<:AbsState
 
     for (i, (q1, q2)) in enumerate(zip(config_init, config_goal))
         if any([x < rads[i] || 1-rads[i] < x for x in [q1.x, q1.y, q2.x, q2.y]])
@@ -173,4 +183,32 @@ function is_valid_instance(
         end
     end
     return true
+end
+
+
+function demo_get_initial_solution(
+    config_init::Vector{State},
+    config_goal::Vector{State},
+    rads::Vector{Float64},
+    obstacles::Vector{Obs} where Obs<:Obstacle;
+    eps::Float64=0.1,
+    goal_rad::Float64=0.0,
+    other_params=Dict(),
+    )::Nothing where State<:AbsState
+
+    print_instance(config_init, config_goal, rads, obstacles)
+
+    # search
+    default_params=Dict(:MAX_LOOP_CNT => 10000, :TIME_LIMIT => 10)
+    seed!(0)
+    solution, roadmaps = simple_search(
+        config_init, config_goal, obstacles, rads;
+        eps=eps, goal_rad=goal_rad, params=default_params)
+
+    # plot results
+    filename = "./local/"*string(Dates.now())
+    @async plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution;
+                     filename="$filename.pdf")
+    @async plot_anim!(config_init, config_goal, obstacles, rads, solution; filename="$filename.gif")
+    nothing
 end

@@ -4,6 +4,8 @@ struct StateLine2D <: AbsState
     theta::Float64
 end
 
+to_string(s::StateLine2D) = @sprintf("(%.4f, %.4f, theta: %.4f)", s.x, s.y, s.theta)
+
 function dist(q1::StateLine2D, q2::StateLine2D)::Float64
     return norm([q1.x - q2.x, q1.y - q2.y])
 end

@@ -1,5 +1,4 @@
 using Test
 
 include("dist.jl")
-include("planning.jl")
-include("refinement.jl")
+include("examples.jl")

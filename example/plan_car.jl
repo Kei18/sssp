@@ -16,17 +16,4 @@ obstacles = [
     CircleObstacle2D(0.7, 0.3, 0.05),
 ]
 rads = fill(0.05, length(config_init))
-eps = 0.2
-goal_rad=0.05
-
-# search
-params=Dict(:MAX_ITER => 3, :MAX_LOOP_CNT => 20000)
-seed!(0)
-solution, roadmaps = simple_search(
-    config_init, config_goal, obstacles, rads;
-    eps=eps, goal_rad=goal_rad, sample_num_init=10, params=params)
-
-# plot results
-filename = "./local/car"
-plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution; filename="$filename.pdf")
-plot_anim!(config_init, config_goal, obstacles, rads, solution; filename="$filename.gif")
+MRMP.demo_get_initial_solution(config_init, config_goal, rads, obstacles; eps=0.2, goal_rad=0.05)

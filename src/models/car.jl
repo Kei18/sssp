@@ -4,6 +4,8 @@ struct StateCar <: AbsState
     theta::Float64
 end
 
+to_string(s::StateCar) = @sprintf("(%.4f, %.4f, theta: %.4f)", s.x, s.y, s.theta)
+
 const OMEGA_MAX = 4π
 
 function dist(q1::StateCar, q2::StateCar)::Float64

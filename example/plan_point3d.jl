@@ -10,13 +10,4 @@ obstacles = [
     CircleObstacle3D(0.7, 0.3, 0.5, 0.05),
 ]
 rads = fill(0.1, length(config_init))
-
-# search
-params=Dict(:MAX_ITER => 3, :MAX_LOOP_CNT => 1000)
-seed!(0)
-solution, roadmaps = simple_search(config_init, config_goal, obstacles, rads; params=params)
-
-# plot results
-filename = "./local/point3d"
-plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution; filename="$filename.pdf")
-plot_anim!(config_init, config_goal, obstacles, rads, solution; filename="$filename.gif")
+MRMP.demo_get_initial_solution(config_init, config_goal, rads, obstacles)

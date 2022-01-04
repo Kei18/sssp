@@ -5,6 +5,9 @@ struct StateArm2 <: AbsState
     theta2::Float64
 end
 
+to_string(s::StateArm2) = @sprintf("(x: %.4f, y: %.4f, theta1: %.4f, theta2: %.4f)",
+                                   s.x, s.y, s.theta1, s.theta2)
+
 function dist(q1::StateArm2, q2::StateArm2)
     t1 = abs(mod(q1.theta1, 2π) - mod(q2.theta1, 2π))
     t1 = minimum([t1, 2π - t1])

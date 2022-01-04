@@ -1,5 +1,6 @@
 using MRMP
 using Random: seed!
+import Printf: @printf
 
 # define models
 config_init = [StatePoint2D(0.1, 0.1), StatePoint2D(0.1, 0.9)]
@@ -23,12 +24,14 @@ h_func = gen_h_func(config_goal)
 g_func = gen_g_func(greedy=true)
 random_walk = gen_random_walk(q, eps)
 get_sample_nums = gen_get_sample_nums(3)
-solution_before, roadmaps = search(
+solution_before, roadmaps = search!(
     config_init, config_goal, connect, collide, check_goal,
     h_func, g_func, random_walk, get_sample_nums; params...)
-println("refinement start")
-solution_after = MRMP.smoothing(solution_before, collide, connect)
-
+cost_before = MRMP.get_tpg_cost(
+    MRMP.get_temporal_plan_graph(solution_before, collide, connect; skip_connection=false)
+)
+(TPG, solution_after, cost_after) = smoothing(solution_before, collide, connect)
+@printf("cost: %f -> %f\n", cost_before, cost_after)
 
 # plot results
 filename = "./local/smooth_point2d"

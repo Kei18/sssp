@@ -3,6 +3,8 @@ struct StatePoint2D <:StatePoint
     y::Float64
 end
 
+to_string(s::StatePoint2D) = @sprintf("(%.4f, %.4f)", s.x, s.y)
+
 function dist(q1::StatePoint2D, q2::StatePoint2D)::Float64
     return norm([q1.x - q2.x, q1.y - q2.y])
 end
