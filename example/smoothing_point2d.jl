@@ -14,28 +14,54 @@ rads = fill(0.1, length(config_init))
 eps = 0.2
 
 # search
-params=Dict(:MAX_ITER => 3, :MAX_LOOP_CNT => 1000)
+params = Dict(:MAX_ITER => 3, :MAX_LOOP_CNT => 1000)
 seed!(0)
 q = config_init[1]
 connect = gen_connect(q, rads, obstacles, eps)
 collide = gen_collide(q, rads)
 check_goal = gen_check_goal(config_goal)
 h_func = gen_h_func(config_goal)
-g_func = gen_g_func(greedy=true)
+g_func = gen_g_func(greedy = true)
 random_walk = gen_random_walk(q, eps)
 get_sample_nums = gen_get_sample_nums(3)
 solution_before, roadmaps = search!(
-    config_init, config_goal, connect, collide, check_goal,
-    h_func, g_func, random_walk, get_sample_nums; params...)
+    config_init,
+    config_goal,
+    connect,
+    collide,
+    check_goal,
+    h_func,
+    g_func,
+    random_walk,
+    get_sample_nums;
+    params...,
+)
 cost_before = MRMP.get_tpg_cost(
-    MRMP.get_temporal_plan_graph(solution_before, collide, connect; skip_connection=false)
+    MRMP.get_temporal_plan_graph(
+        solution_before,
+        collide,
+        connect;
+        skip_connection = false,
+    ),
 )
 (TPG, solution_after, cost_after) = smoothing(solution_before, collide, connect)
 @printf("cost: %f -> %f\n", cost_before, cost_after)
 
 # plot results
 filename = "./local/smooth_point2d"
-plot_anim!(config_init, config_goal, obstacles, rads, solution_before;
-           filename="$filename"*"_before.gif")
-plot_anim!(config_init, config_goal, obstacles, rads, solution_after;
-           filename="$filename"*"_after.gif")
+plot_anim!(
+    config_init,
+    config_goal,
+    obstacles,
+    rads,
+    solution_before;
+    filename = "$filename" * "_before.gif",
+)
+plot_anim!(
+    config_init,
+    config_goal,
+    obstacles,
+    rads,
+    solution_after;
+    filename = "$filename" * "_after.gif",
+)

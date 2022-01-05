@@ -15,4 +15,5 @@ struct CircleObstacle3D <: CircleObstacle
 end
 
 to_string(o::CircleObstacle2D) = @sprintf("(%.4f, %.4f), rad: %.4f", o.x, o.y, o.r)
-to_string(o::CircleObstacle3D) = @sprintf("(%.4f, %.4f, %.4f), rad: %.4f", o.x, o.y, o.z, o.r)
+to_string(o::CircleObstacle3D) =
+    @sprintf("(%.4f, %.4f, %.4f), rad: %.4f", o.x, o.y, o.z, o.r)

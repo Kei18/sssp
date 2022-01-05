@@ -34,6 +34,11 @@ julia --project=. -e "using IJulia; jupyterlab()"
 julia --project=. -e 'using Pkg;Pkg.test()'
 ```
 
+#### Format
+```sh
+julia --project=. -e 'using JuliaFormatter;format("./src/");format("./example/")'
+```
+
 
 ## Licence
 This software is released under the MIT License, see [LICENSE.txt](LICENCE.txt).

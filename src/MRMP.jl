@@ -4,12 +4,12 @@ include("search.jl")
 include("smoother.jl")
 include("obstacle.jl")
 include("viz.jl")
+include("utils.jl")
 include("models/point2d.jl")
 include("models/point3d.jl")
 include("models/line2d.jl")
 include("models/arm2.jl")
 include("models/car.jl")
-include("utils.jl")
 
 export StateArm2, StateCar, StateLine2D, StatePoint2D, StatePoint3D
 export CircleObstacle2D, CircleObstacle3D

@@ -24,7 +24,8 @@ function refine!(query, solution, params)
         query.g_func,
         query.random_walk,
         gen_get_sample_nums(query.num_neighbors);
-        params...)
+        params...,
+    )
 end
 
 function find_initial_instructions!(req, query, ws)
@@ -49,19 +50,24 @@ function find_initial_instructions!(req, query, ws)
         query.g_func,
         query.random_walk,
         gen_get_sample_nums(query.num_neighbors);
-        query.params_init...)
-    if solution == nothing; @fail_to_solve("initial solution is not found"); end
+        query.params_init...,
+    )
+    if solution == nothing
+        @fail_to_solve("initial solution is not found")
+    end
 
     # smoothing
     (TPG, solution, cost) = smoothing(solution, query.collide, query.connect)
     @info @sprintf("get initial solution, elapsed: %f sec, cost: %6.4f\n", elapsed(), cost)
 
-    TPG_committed = [Vector{MRMP.Action{StatePoint2D}}() for i=1:N]
+    TPG_committed = [Vector{MRMP.Action{StatePoint2D}}() for i = 1:N]
     committed_indexes = fill(0, N)
     store_new_tpg(query, TPG, TPG_committed, committed_indexes)
 
     # check time constraints
-    if timeover(); @info @sprintf("reach timeout %f sec", query.init_search_time_limit); end
+    if timeover()
+        @info @sprintf("reach timeout %f sec", query.init_search_time_limit)
+    end
 
     # iterative refinement
     if !query.skip_init_refinement
@@ -72,13 +78,21 @@ function find_initial_instructions!(req, query, ws)
             # refinement
             solution_tmp = refine!(query, solution, query.params_refine_init)
             # fail to find solution -> retry
-            if solution_tmp == nothing; continue; end
+            if solution_tmp == nothing
+                continue
+            end
             # smoothing
-            TPG_tmp, solution_tmp, cost_tmp = smoothing(solution_tmp, query.collide, query.connect)
+            TPG_tmp, solution_tmp, cost_tmp =
+                smoothing(solution_tmp, query.collide, query.connect)
             # replace
             if cost_tmp < cost
-                @info @sprintf("\titer=%6d, elapsed: %f sec, cost=%6.4f -> %6.4f\n",
-                               iter_refine, elapsed(), cost, cost_tmp)
+                @info @sprintf(
+                    "\titer=%6d, elapsed: %f sec, cost=%6.4f -> %6.4f\n",
+                    iter_refine,
+                    elapsed(),
+                    cost,
+                    cost_tmp
+                )
                 TPG, solution, cost = TPG_tmp, solution_tmp, cost_tmp
                 store_new_tpg(query, TPG, TPG_committed, committed_indexes)
             end
@@ -86,14 +100,19 @@ function find_initial_instructions!(req, query, ws)
     end
 
     # send initial plan
-    write(ws, JSON.json(Dict(
-        "status" => :success,
-        "plan_id" => length(query.hist_TPG),
-        "instructions" => get_instructions(TPG, query.field)
-    )))
+    write(
+        ws,
+        JSON.json(
+            Dict(
+                "status" => :success,
+                "plan_id" => length(query.hist_TPG),
+                "instructions" => get_instructions(TPG, query.field),
+            ),
+        ),
+    )
 end
 
-function refine_until_new_commit!(req, query, ws; TIME_LIMIT::Real=5)
+function refine_until_new_commit!(req, query, ws; TIME_LIMIT::Real = 5)
     # setup TPG & TPG_committed
     plan_id = req["plan_id"]
     TPG = deepcopy(query.hist_TPG[plan_id])
@@ -105,8 +124,9 @@ function refine_until_new_commit!(req, query, ws; TIME_LIMIT::Real=5)
     @info @sprintf("plan_id: %s, commit: %s, start refinement\n", plan_id, commit_name)
 
     # setup search details
-    config_init = map(e -> (isempty(e[2]) ? query.config_goal[e[1]] : e[2][1].from.q), enumerate(TPG))
-    solution = MRMP.get_greedy_solution(TPG; config_goal=query.config_goal)
+    config_init =
+        map(e -> (isempty(e[2]) ? query.config_goal[e[1]] : e[2][1].from.q), enumerate(TPG))
+    solution = MRMP.get_greedy_solution(TPG; config_goal = query.config_goal)
     cost_original = MRMP.get_tpg_cost(TPG)
 
     # update committed indexes
@@ -114,25 +134,38 @@ function refine_until_new_commit!(req, query, ws; TIME_LIMIT::Real=5)
 
     @async begin
         t_s = MRMP.now()
-        is_not_outdate() = query.committed_indexes == new_committed_indexes && MRMP.elapsed_sec(t_s) < TIME_LIMIT
+        is_not_outdate() =
+            query.committed_indexes == new_committed_indexes &&
+            MRMP.elapsed_sec(t_s) < TIME_LIMIT
 
         while is_not_outdate()
             # to avoid busy loop
             sleep(0.001)
             # refinement
             solution = refine!(query, solution, query.params_refine_online)
-            if solution == nothing; continue; end
+            if solution == nothing
+                continue
+            end
             TPG, solution, cost = smoothing(solution, query.collide, query.connect)
             # better solution is found
             if cost < cost_original && is_not_outdate()
-                @info @sprintf("commit %s: update solution, cost=%6.4f -> %6.4f\n",
-                               commit_name, cost_original, cost)
+                @info @sprintf(
+                    "commit %s: update solution, cost=%6.4f -> %6.4f\n",
+                    commit_name,
+                    cost_original,
+                    cost
+                )
                 store_new_tpg(query, TPG, TPG_committed, new_committed_indexes)
-                write(ws, JSON.json(Dict(
-                    "plan_id" => length(query.hist_TPG),
-                    "committed_indexes" => new_committed_indexes,
-                    "instructions" => get_instructions(TPG, query.field)
-                )))
+                write(
+                    ws,
+                    JSON.json(
+                        Dict(
+                            "plan_id" => length(query.hist_TPG),
+                            "committed_indexes" => new_committed_indexes,
+                            "instructions" => get_instructions(TPG, query.field),
+                        ),
+                    ),
+                )
                 break
             end
         end
@@ -140,11 +173,11 @@ function refine_until_new_commit!(req, query, ws; TIME_LIMIT::Real=5)
     end
 end
 
-function main(;ADDR::String = "127.0.0.1", PORT=UInt16(8081))
+function main(; ADDR::String = "127.0.0.1", PORT = UInt16(8081))
     server = Sockets.listen(Sockets.getaddrinfo(ADDR), PORT)
     @async begin
         req_num = 0
-        HTTP.WebSockets.listen(ADDR, PORT; server=server) do ws
+        HTTP.WebSockets.listen(ADDR, PORT; server = server) do ws
             @info @sprintf("%02d: receive request", req_num)
             req_num += 1
             query = Query()
@@ -162,8 +195,13 @@ function main(;ADDR::String = "127.0.0.1", PORT=UInt16(8081))
                     println(e)
                 end
             end
-            @info @sprintf("\n%02d: finish planning & execution, waiting for drawing tasks\n", req_num)
-            for task in query.drawing_tasks; wait(task); end
+            @info @sprintf(
+                "\n%02d: finish planning & execution, waiting for drawing tasks\n",
+                req_num
+            )
+            for task in query.drawing_tasks
+                wait(task)
+            end
             @info @sprintf("all drawing tasks are completed")
             println("\n")
         end
@@ -171,5 +209,5 @@ function main(;ADDR::String = "127.0.0.1", PORT=UInt16(8081))
     return server
 end
 
-server = main(;ARGS...)
+server = main(; ARGS...)
 Sockets.close() = close(server)

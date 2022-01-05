@@ -1,41 +1,81 @@
 using LinearAlgebra: norm, dot, normalize
 import Printf: @sprintf
-import Dates
 using Random: seed!
 
-function direction(p_i::Vector{Float64}, p_j::Vector{Float64}, p_k::Vector{Float64})::Float64
+macro gen_collide(State, ex)
+    return esc(
+        quote
+            N = length(rads)
+
+            f(
+                q_i_from::$State,
+                q_i_to::$State,
+                q_j_from::$State,
+                q_j_to::$State,
+                i::Int64,
+                j::Int64,
+            ) = begin
+                $ex
+            end
+
+            f(Q_from::Vector{Node{$State}}, Q_to::Vector{Node{$State}}) = begin
+                for i = 1:N, j = i+1:N
+                    if f(Q_from[i].q, Q_to[i].q, Q_from[j].q, Q_to[j].q, i, j)
+                        return true
+                    end
+                end
+                return false
+            end
+
+            return f
+        end,
+    )
+end
+
+function direction(
+    p_i::Vector{Float64},
+    p_j::Vector{Float64},
+    p_k::Vector{Float64},
+)::Float64
     a = p_k - p_i
     b = p_j - p_i
     return a[1] * b[2] - b[1] * a[2]
 end
 
 function segments_intersect(
-    p1::Vector{Float64}, p2::Vector{Float64}, p3::Vector{Float64}, p4::Vector{Float64})::Bool
+    p1::Vector{Float64},
+    p2::Vector{Float64},
+    p3::Vector{Float64},
+    p4::Vector{Float64},
+)::Bool
     return (
-        (direction(p3, p4, p1)*direction(p3, p4, p2) < 0) &&
-        (direction(p1, p2, p3)*direction(p1, p2, p4) < 0)
+        (direction(p3, p4, p1) * direction(p3, p4, p2) < 0) &&
+        (direction(p1, p2, p3) * direction(p1, p2, p4) < 0)
     )
 end
 
 # from line to point
 function dist(a::Vector{Float64}, b::Vector{Float64}, c::Vector{Float64})::Float64
-    df_0 = dot(a-b, b-c)
-    df_1 = dot(a-b, a-c)
+    df_0 = dot(a - b, b - c)
+    df_1 = dot(a - b, a - c)
 
     e = 1
-    if df_0*df_1 < 0
-        e = - dot(a-b, b-c) / dot(a-b, a-b)
+    if df_0 * df_1 < 0
+        e = -dot(a - b, b - c) / dot(a - b, a - b)
     elseif df_0 > 0
         e = 0
     end
 
-    return norm(e*a + (1-e)*b - c)
+    return norm(e * a + (1 - e) * b - c)
 end
 
 # from line to line
 function dist(
-    p1_1::Vector{Float64}, p1_2::Vector{Float64},
-    p2_1::Vector{Float64}, p2_2::Vector{Float64})::Float64
+    p1_1::Vector{Float64},
+    p1_2::Vector{Float64},
+    p2_1::Vector{Float64},
+    p2_2::Vector{Float64},
+)::Float64
 
     # c.f., http://marupeke296.com/COL_3D_No19_LinesDistAndPos.html
     v1 = p1_2 - p1_1
@@ -45,51 +85,58 @@ function dist(
     Dv = dot(v1, v2)
     V1 = dot(v1, v1)
     V2 = dot(v2, v2)
-    D = V1*V2 - Dv*Dv
+    D = V1 * V2 - Dv * Dv
     if D > 0
-        t1 = (D1*V2 - D2*Dv) / D
-        t2 = (D1*Dv - D2*V1) / D
+        t1 = (D1 * V2 - D2 * Dv) / D
+        t2 = (D1 * Dv - D2 * V1) / D
         if 0 <= t1 <= 1 && 0 <= t2 <= 1
-            Q1 = p1_1 + t1*v1
-            Q2 = p2_1 + t2*v2
+            Q1 = p1_1 + t1 * v1
+            Q2 = p2_1 + t2 * v2
             return norm(Q1 - Q2)
         end
     end
 
-    return minimum([dist(p1_1, p1_2, p2_1)
-                    dist(p1_1, p1_2, p2_2)
-                    dist(p2_1, p2_2, p1_1)
-                    dist(p2_1, p2_2, p1_2)])
+    return minimum(
+        [
+            dist(p1_1, p1_2, p2_1)
+            dist(p1_1, p1_2, p2_2)
+            dist(p2_1, p2_2, p1_1)
+            dist(p2_1, p2_2, p1_2)
+        ],
+    )
 end
 
 
 function uniform_ball_sampling(d::Int64)
     f = () -> rand(d) * 2 - fill(1, d)
     s = f()
-    while norm(s) > 1; s = f(); end
+    while norm(s) > 1
+        s = f()
+    end
     return s
 end
 
 
 function gen_check_goal(
     config_goal::Vector{State};
-    goal_rad::Float64=0.0,
-    goal_rads::Vector{Float64}=fill(goal_rad, length(config_goal))
-    )::Function where State<:AbsState
+    goal_rad::Float64 = 0.0,
+    goal_rads::Vector{Float64} = fill(goal_rad, length(config_goal)),
+)::Function where {State<:AbsState}
 
     return (Q::Vector{Node{State}}) -> begin
-        return all([dist(v.q, q) <= goal_rads[i]
-                    for (i, (v, q)) in enumerate(zip(Q, config_goal))])
+        return all([
+            dist(v.q, q) <= goal_rads[i] for (i, (v, q)) in enumerate(zip(Q, config_goal))
+        ])
     end
 end
 
-function gen_h_func(config_goal::Vector{State})::Function where State<:AbsState
+function gen_h_func(config_goal::Vector{State})::Function where {State<:AbsState}
     return (Q::Vector{Node{State}}) -> begin
         return sum([dist(v.q, config_goal[i]) for (i, v) in enumerate(Q)])
     end
 end
 
-function gen_g_func(;greedy::Bool=false)::Function
+function gen_g_func(; greedy::Bool = false)::Function
     return (Q_from, Q_to) -> begin
         return greedy ? 0 : sum([dist(u.q, v.q) for (u, v) in zip(Q_from, Q_to)])
     end
@@ -102,20 +149,20 @@ end
 function simple_search(
     config_init::Vector{State},
     config_goal::Vector{State},
-    obstacles::Vector{Obs} where Obs<:Obstacle,
-    rads::Vector{Float64}=fill(0.1, length(config_init));
-    eps::Float64=0.2,
-    sample_num_init::Int64=3,
-    goal_rad::Float64=0.0,
-    params=Dict()
-    ) where State<:AbsState
+    obstacles::Vector{Obs} where {Obs<:Obstacle},
+    rads::Vector{Float64} = fill(0.1, length(config_init));
+    eps::Float64 = 0.2,
+    sample_num_init::Int64 = 3,
+    goal_rad::Float64 = 0.0,
+    params = Dict(),
+) where {State<:AbsState}
 
     q = config_init[1]
     connect = gen_connect(q, rads, obstacles, eps)
     collide = gen_collide(q, rads)
-    check_goal = gen_check_goal(config_goal, goal_rad=goal_rad)
+    check_goal = gen_check_goal(config_goal, goal_rad = goal_rad)
     h_func = gen_h_func(config_goal)
-    g_func = gen_g_func(greedy=true)
+    g_func = gen_g_func(greedy = true)
     random_walk = gen_random_walk(q, eps)
     get_sample_nums = gen_get_sample_nums(sample_num_init)
     return search!(
@@ -128,7 +175,8 @@ function simple_search(
         g_func,
         random_walk,
         get_sample_nums;
-        params...)
+        params...,
+    )
 end
 
 function now()
@@ -143,13 +191,18 @@ function print_instance(
     config_init::Vector{State},
     config_goal::Vector{State},
     rads::Vector{Float64},
-    obstacles::Vector{Obs} where Obs<:Obstacle,
-    )::Nothing where State<:AbsState
+    obstacles::Vector{Obs} where {Obs<:Obstacle},
+)::Nothing where {State<:AbsState}
 
     @info "problem instance:"
     for (i, (q_init, q_goal, rad)) in enumerate(zip(config_init, config_goal, rads))
-        @info @sprintf("\t%02d: %s -> %s, rad: %.4f\n",
-                       i, to_string(q_init), to_string(q_goal), rad)
+        @info @sprintf(
+            "\t%02d: %s -> %s, rad: %.4f\n",
+            i,
+            to_string(q_init),
+            to_string(q_goal),
+            rad
+        )
     end
     if !isempty(obstacles)
         @info "obstacles:"
@@ -162,22 +215,52 @@ end
 function is_valid_instance(
     config_init::Vector{State},
     config_goal::Vector{State},
-    rads::Vector{Float64}
-    )::Bool where State<:AbsState
+    rads::Vector{Float64},
+    obstacles::Vector{Obs} where {Obs<:Obstacle},
+)::Bool where {State<:AbsState}
 
-    for (i, (q1, q2)) in enumerate(zip(config_init, config_goal))
-        if any([x < rads[i] || 1-rads[i] < x for x in [q1.x, q1.y, q2.x, q2.y]])
-            @warn @sprintf("invalid instance, start/goal of agent-%d is out of range", i)
+    connect = gen_connect(config_init[1], rads, obstacles)
+    collide = gen_collide(config_init[1], rads)
+
+    # check start
+    for (i, q) in enumerate(config_init)
+        if !connect(q, q, i; ignore_eps = true)
+            @warn @sprintf(
+                "invalid instance, start of agent-%d %s is strage",
+                i,
+                to_string(q)
+            )
             return false
         end
     end
+
+    # check goal
+    for (i, q) in enumerate(config_goal)
+        if !connect(q, q, i; ignore_eps = true)
+            @warn @sprintf(
+                "invalid instance, goal of agent-%d %s is strage",
+                i,
+                to_string(q)
+            )
+            return false
+        end
+    end
+
+    # check collisions (start-start or goal-goal) between two agents
     N = length(config_init)
     for i = 1:N, j = 1+i:N
-        if MRMP.dist(config_init[i], config_init[j]) < rads[i] + rads[j]
+        # start-start
+        q_i = config_init[i]
+        q_j = config_init[j]
+        if collide(q_i, q_i, q_j, q_j, i, j)
             @warn @sprintf("invalid instance, starts of agent-%d, %d is colliding", i, j)
             return false
         end
-        if MRMP.dist(config_goal[i], config_goal[j]) < rads[i] + rads[j]
+
+        # goal-goal
+        q_i = config_goal[i]
+        q_j = config_goal[j]
+        if collide(q_i, q_i, q_j, q_j, i, j)
             @warn @sprintf("invalid instance, goals of agent-%d, %d is colliding", i, j)
             return false
         end
@@ -190,25 +273,51 @@ function demo_get_initial_solution(
     config_init::Vector{State},
     config_goal::Vector{State},
     rads::Vector{Float64},
-    obstacles::Vector{Obs} where Obs<:Obstacle;
-    eps::Float64=0.1,
-    goal_rad::Float64=0.0,
-    other_params=Dict(),
-    )::Nothing where State<:AbsState
+    obstacles::Vector{Obs} where {Obs<:Obstacle};
+    eps::Float64 = 0.1,
+    goal_rad::Float64 = 0.0,
+    other_params = Dict(),
+)::Nothing where {State<:AbsState}
 
     print_instance(config_init, config_goal, rads, obstacles)
 
+    # check validity
+    if !is_valid_instance(config_init, config_goal, rads, obstacles)
+        @warn "given instance is invalid"
+        return nothing
+    end
+
     # search
-    default_params=Dict(:MAX_LOOP_CNT => 10000, :TIME_LIMIT => 10)
+    default_params = Dict(:MAX_LOOP_CNT => 100000, :TIME_LIMIT => 10)
     seed!(0)
     solution, roadmaps = simple_search(
-        config_init, config_goal, obstacles, rads;
-        eps=eps, goal_rad=goal_rad, params=default_params)
+        config_init,
+        config_goal,
+        obstacles,
+        rads;
+        eps = eps,
+        goal_rad = goal_rad,
+        params = merge(default_params, other_params),
+    )
 
     # plot results
-    filename = "./local/"*string(Dates.now())
-    @async plot_res!(config_init, config_goal, obstacles, rads, roadmaps, solution;
-                     filename="$filename.pdf")
-    @async plot_anim!(config_init, config_goal, obstacles, rads, solution; filename="$filename.gif")
+    filename = "./local/" * string(now())
+    @async plot_res!(
+        config_init,
+        config_goal,
+        obstacles,
+        rads,
+        roadmaps,
+        solution;
+        filename = "$filename/roadmap.pdf",
+    )
+    @async plot_anim!(
+        config_init,
+        config_goal,
+        obstacles,
+        rads,
+        solution;
+        filename = "$filename/traj.gif",
+    )
     nothing
 end
