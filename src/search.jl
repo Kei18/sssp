@@ -165,7 +165,8 @@ function search!(
                 # initial search or update for refine agents
                 i = AGENTS_REFINE[S.next]
                 j = (
-                    S.next < length(AGENTS_REFINE) ? S.next + 1 : (is_refine ? 0 : 1)  # refinement or initial solution
+                    # refinement or initial solution
+                    S.next < length(AGENTS_REFINE) ? S.next + 1 : (is_refine ? 0 : 1)
                 )
 
                 v = S.Q[i]

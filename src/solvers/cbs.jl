@@ -3,7 +3,7 @@ export conflict_based_search
 
 import ...MRMP: AbsState, Node, to_string
 import ..Solvers:
-    SearchNode, find_timed_path, convert_paths_to_configurations, get_distance_tables
+    SearchNode, find_timed_path, convert_paths_to_configurations, get_distance_tables, PRMs, PRMs!
 import Printf: @sprintf
 import Base: @kwdef
 import DataStructures: PriorityQueue, enqueue!, dequeue!
@@ -31,13 +31,81 @@ end
 end
 
 function conflict_based_search(
+    config_init::Vector{State},
+    config_goal::Vector{State},
+    connect::Function,
+    collide::Function,
+    check_goal::Function,
+    g_func::Function;
+    num_vertices::Int64 = 100,
+    rad::Union{Nothing, Real} = nothing,
+    rads::Union{Vector{Nothing}, Vector{Float64}} = fill(rad, length(config_init)),
+    roadmaps_growing_rate::Union{Nothing, Float64}=nothing,
+    max_makespan::Int64=20,
+    VERBOSE::Int64=0,
+    )::Tuple{
+        Union{Nothing, Vector{Vector{Node{State}}}},  # solution
+        Vector{Vector{Node{State}}},  # roadmaps
+    } where {State<:AbsState}
+
+    roadmaps = PRMs(config_init, config_goal, connect, num_vertices; rads=rads)
+    if VERBOSE > 0
+        @info @sprintf("\tconstruct initial roadmaps: |V|=%d", num_vertices)
+    end
+
+    solution, roadmaps = conflict_based_search(
+        roadmaps, collide, check_goal, g_func; max_makespan=max_makespan, VERBOSE=VERBOSE)
+
+    while solution == nothing && roadmaps_growing_rate != nothing
+        num_vertices = Int64(floor(num_vertices * roadmaps_growing_rate))
+        if VERBOSE > 0
+            @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
+        end
+        roadmaps = PRMs!(roadmaps, connect, num_vertices; rads=rads)
+        solution, roadmaps = conflict_based_search(
+            roadmaps, collide, check_goal, g_func; max_makespan=max_makespan, VERBOSE=VERBOSE)
+    end
+
+    if VERBOSE > 0
+        @info "\tfound solution"
+    end
+    return (solution, roadmaps)
+end
+
+function conflict_based_search(
     roadmaps::Vector{Vector{Node{State}}},
     collide::Function,
     check_goal::Function,
     g_func::Function,
     f_func_highlevel::Function = (paths) -> Float64(get_num_collisions(paths, collide));
+    max_makespan::Int64=20,
     VERBOSE::Int64 = 0,
-)::Union{Nothing,Vector{Vector{Node{State}}}} where {State<:AbsState}
+    )::Tuple{
+        Union{Nothing, Vector{Vector{Node{State}}}},  # solution
+        Vector{Vector{Node{State}}},  # roadmaps
+    } where {State<:AbsState}
+
+    print_constraint!(c::Constraint) = begin
+        if VERBOSE > 1
+            if typeof(c) == VertexConstraint{State}
+                @info @sprintf(
+                    "\t\tadd new child, agent-%d at t=%d, state=%s",
+                    c.agent,
+                    c.t,
+                    to_string(c.v.q)
+                )
+            elseif typeof(c) == EdgeConstraint{State}
+                @info @sprintf(
+                    "\t\tadd new child, agent-%d at t: %d -> %d, state: %s -> %s",
+                    c.agent,
+                    c.t_to - 1,
+                    c.t_to,
+                    to_string(c.v_from.q),
+                    to_string(c.v_to.q)
+                )
+            end
+        end
+    end
 
     # compute distance tables
     distance_tables = get_distance_tables(roadmaps, g_func)
@@ -48,7 +116,9 @@ function conflict_based_search(
     # setup initial node
     init_node =
         get_init_node(roadmaps, check_goal, distance_tables, g_func, f_func_highlevel)
-    enqueue!(OPEN, init_node, init_node.f)
+    if init_node.valid
+        enqueue!(OPEN, init_node, init_node.f)
+    end
 
     # main loop
     while !isempty(OPEN)
@@ -58,7 +128,7 @@ function conflict_based_search(
         # check constraints
         constraints = get_constraints(node.paths, collide)
         if isempty(constraints)
-            return convert_paths_to_configurations(node.paths)
+            return (convert_paths_to_configurations(node.paths), roadmaps)
         end
 
         # create new nodes
@@ -71,34 +141,17 @@ function conflict_based_search(
                 check_goal,
                 distance_tables,
                 g_func,
-                f_func_highlevel,
+                f_func_highlevel;
+                max_makespan=max_makespan,
             )
             if new_node.valid
                 enqueue!(OPEN, new_node, new_node.f)
-                if VERBOSE > 0
-                    if typeof(c) == VertexConstraint{State}
-                        @info @sprintf(
-                            "\tadd new child, agent-%d at t=%d, state=%s",
-                            c.agent,
-                            c.t,
-                            to_string(c.v.q)
-                        )
-                    elseif typeof(c) == EdgeConstraint{State}
-                        @info @sprintf(
-                            "\tadd new child, agent-%d at t: %d -> %d, state: %s -> %s",
-                            c.agent,
-                            c.t_to - 1,
-                            c.t_to,
-                            to_string(c.v_from.q),
-                            to_string(c.v_to.q)
-                        )
-                    end
-                end
+                print_constraint!(c)
             end
         end
     end
 
-    return nothing
+    return (nothing, roadmaps)
 end
 
 function invoke(
@@ -109,7 +162,8 @@ function invoke(
     check_goal::Function,
     distance_tables::Vector{Vector{Float64}},
     g_func::Function,
-    f_func_highlevel::Function,
+    f_func_highlevel::Function;
+    max_makespan::Int64=20,
 )::HighLevelNode{State} where {State<:AbsState}
 
     N = length(roadmaps)
@@ -121,6 +175,11 @@ function invoke(
     # setup search function
     invalid =
         (S_from::SearchNode{State}, S_to::SearchNode{State}) -> begin
+            # avoid infinite search
+            if S_to.t > max_makespan
+                return true
+            end
+
             for c in constraints_i
                 if typeof(c) == VertexConstraint{State}
                     if c.t == S_to.t && c.v == S_to.v
