@@ -76,6 +76,9 @@ function plot_roadmap!(
                 u = V[i][u_id]
                 plot_motion!(v.q, u.q, rads[i], params)
             end
+            if isempty(v.neighbors)
+                plot_motion!(v.q, v.q, rads[i], params)
+            end
         end
     end
 end

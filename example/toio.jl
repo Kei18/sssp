@@ -77,7 +77,8 @@ function find_initial_instructions!(req, query, ws)
         while !timeover()
             iter_refine += 1
             # refinement
-            solution_tmp = refine!(query, query.config_init, solution, query.params_refine_init)
+            solution_tmp =
+                refine!(query, query.config_init, solution, query.params_refine_init)
             # fail to find solution -> retry
             if solution_tmp == nothing
                 continue

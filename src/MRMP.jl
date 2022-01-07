@@ -11,7 +11,7 @@ include("models/line2d.jl")
 include("models/arm2.jl")
 include("models/car.jl")
 
-include("prm.jl")
+include("solvers/solvers.jl")
 
 export StateArm2, StateCar, StateLine2D, StatePoint2D, StatePoint3D
 export CircleObstacle2D, CircleObstacle3D
@@ -21,5 +21,7 @@ export plot_res!, plot_anim!
 export search!, simple_search
 export smoothing
 export print_instance, is_valid_instance
+
+using .Solvers
 
 end

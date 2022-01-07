@@ -13,6 +13,10 @@ function dist(q_from::StatePoint2D, q_to::StatePoint2D, o::CircleObstacle2D)::Fl
     return dist([q_from.x, q_from.y], [q_to.x, q_to.y], [o.x, o.y])
 end
 
+function dist(q::StatePoint2D, o::CircleObstacle2D)::Float64
+    return norm([q.x - o.x, q.y - o.y])
+end
+
 function dist(
     a_from::StatePoint2D,
     a_to::StatePoint2D,
@@ -31,28 +35,35 @@ function gen_connect(
     q::StatePoint2D,  # to identify type
     rads::Vector{Float64},
     obstacles::Vector{CircleObstacle2D},
-    eps::Float64 = 0.2,
-)::Function
+    )::Function
 
-    return (q_from::StatePoint2D, q_to::StatePoint2D, i::Int64; ignore_eps::Bool = false) ->
-        begin
-            # avoid far points
-            if !ignore_eps && dist(q_from, q_to) > eps
-                return false
-            end
-
-            # check: q_to \in C_free
-            if !all([rads[i] <= x <= 1 - rads[i] for x in [q_to.x, q_to.y]])
-                return false
-            end
-
-            # check: collisions with static obstacles
-            if any([dist(q_from, q_to, o) < o.r + rads[i] for o in obstacles])
-                return false
-            end
-
-            return true
+    # check: q \in C_free
+    f(q::StatePoint2D, i::Int64)::Bool = begin
+        if any(x -> (x < rads[i] || 1 -rads[i] < x), [q.x, q.y])
+            return false
         end
+
+        if any([dist(q, o) < o.r + rads[i] for o in obstacles])
+            return false
+        end
+
+        return true
+    end
+
+    f(q_from::StatePoint2D, q_to::StatePoint2D, i::Int64)::Bool = begin
+        if any(x -> (x < rads[i] || 1 -rads[i] < x), [q_to.x, q_to.y])
+            return false
+        end
+
+        # check: collisions with static obstacles
+        if any([dist(q_from, q_to, o) < o.r + rads[i] for o in obstacles])
+            return false
+        end
+
+        return true
+    end
+
+    return f
 end
 
 function gen_collide(q::StatePoint2D, rads::Vector{Float64})::Function

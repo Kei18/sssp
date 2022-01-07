@@ -13,5 +13,11 @@ obstacles = [
 ]
 rads = fill(0.2, length(config_init))
 MRMP.demo_get_initial_solution(
-    config_init, config_goal, rads, obstacles;
-    eps=0.2, goal_rad = 0.05, other_params=Dict(:TIME_LIMIT => 30))
+    config_init,
+    config_goal,
+    rads,
+    obstacles;
+    eps = 0.2,
+    goal_rad = 0.05,
+    other_params = Dict(:TIME_LIMIT => 30),
+)

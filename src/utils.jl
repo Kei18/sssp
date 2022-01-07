@@ -2,7 +2,7 @@ using LinearAlgebra: norm, dot, normalize
 import Printf: @sprintf
 using Random: seed!
 
-macro gen_collide(State, ex1, ex2=nothing)
+macro gen_collide(State, ex1, ex2 = nothing)
     return esc(
         quote
             N = length(rads)
@@ -18,12 +18,7 @@ macro gen_collide(State, ex1, ex2=nothing)
                 $ex1
             end
 
-            f(
-                q_i::$State,
-                q_j::$State,
-                i::Int64,
-                j::Int64,
-            ) = begin
+            f(q_i::$State, q_j::$State, i::Int64, j::Int64) = begin
                 $ex2
             end
 
@@ -158,12 +153,12 @@ function gen_h_func(config_goal::Vector{State})::Function where {State<:AbsState
     return f
 end
 
-function gen_g_func(; greedy::Bool = false, stay_penalty::Float64=0.0)::Function
-    f(Q_from, Q_to) = begin
+function gen_g_func(; greedy::Bool = false, stay_penalty::Float64 = 0.0)::Function
+    f(Q_from::Vector, Q_to::Vector) = begin
         return greedy ? 0 : sum([dist(u.q, v.q) for (u, v) in zip(Q_from, Q_to)])
     end
 
-    f(q_from, q_to, i::Int64=1) = begin
+    f(q_from, q_to, i::Int64 = 1) = begin
         return greedy ? 0 : (dist(q_from, q_to) + (q_from == q_to ? stay_penalty : 0))
     end
 
