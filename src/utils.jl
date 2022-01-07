@@ -163,7 +163,7 @@ function gen_g_func(; greedy::Bool = false, stay_penalty::Float64=0.0)::Function
         return greedy ? 0 : sum([dist(u.q, v.q) for (u, v) in zip(Q_from, Q_to)])
     end
 
-    f(q_from, q_to, i::Int64) = begin
+    f(q_from, q_to, i::Int64=1) = begin
         return greedy ? 0 : (dist(q_from, q_to) + (q_from == q_to ? stay_penalty : 0))
     end
 

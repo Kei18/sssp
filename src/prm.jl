@@ -37,6 +37,53 @@ function construct_PRM(
     return roadmaps
 end
 
+function get_distance_table(
+    roadmap::Vector{Node{State}},
+    g_func::Function,
+    goal_node::Node{State}=roadmap[2],
+    )::Vector{Float64} where State<:AbsState
+    """by Dijkstra"""
+
+    table = fill(10000.0, length(roadmap))
+    OPEN = PriorityQueue{Int64, Float64}()
+
+    # setup initial vertex
+    table[goal_node.id] = 0
+    enqueue!(OPEN, goal_node.id, 0)
+
+    while !isempty(OPEN)
+        # pop
+        v_id = dequeue!(OPEN)
+        v = roadmap[v_id]
+        d = table[v_id]
+
+        # expand
+        for u_id in v.neighbors
+            u = roadmap[u_id]
+            g = g_func(v.q, u.q) + d
+            # update
+            if g < table[u_id]
+                if haskey(OPEN, u_id)
+                    delete!(OPEN, u_id)
+                end
+                table[u_id] = g
+                enqueue!(OPEN, u_id, g)
+            end
+        end
+    end
+
+    return table
+end
+
+function get_distance_tables(
+    roadmaps::Vector{Vector{Node{State}}},
+    g_func::Function,
+    )::Vector{Vector{Float64}} where State<:AbsState
+
+    return map(rmp -> get_distance_table(rmp, g_func), roadmaps)
+end
+
+
 @kwdef struct SearchNode{State<:AbsState}
     v::Node{State}
     t::Int64
@@ -63,7 +110,7 @@ function find_timed_path(
 
     # initial node
     v_init = roadmap[1]
-    S_init = SearchNode(v=v_init, t=1, h=h_func(v_init.q), unique_id=num_generated_nodes)
+    S_init = SearchNode(v=v_init, t=1, h=h_func(v_init), unique_id=num_generated_nodes)
     enqueue!(OPEN, S_init, S_init.f)
 
     # main loop
@@ -93,7 +140,7 @@ function find_timed_path(
                 t=S.t+1,
                 parent_id=S.id,
                 g=S.g+g_func(S.v.q, u.q),
-                h=h_func(u.q),
+                h=h_func(u),
                 unique_id=num_generated_nodes,
             )
             if haskey(CLOSE, S_new.id) || invalid(S, S_new)
@@ -118,9 +165,10 @@ function prioritized_planning(
     roadmaps::Vector{Vector{Node{State}}},
     collide::Function,
     check_goal::Function,
-    h_func::Function,
     g_func::Function
     )::Vector{Vector{Node{State}}} where {State<:AbsState}
+
+    distance_tables = get_distance_tables(roadmaps, g_func)
 
     paths = Vector{Vector{Node{State}}}()
     N = length(roadmaps)
@@ -143,7 +191,7 @@ function prioritized_planning(
         end
 
         check_goal_i = (S::SearchNode{State}) -> check_goal(S.v, i)
-        h_func_i = (q::State) -> h_func(q, i)
+        h_func_i = (v::Node{State}) -> distance_tables[i][v.id]
         g_func_i = (q_from::State, q_to::State) -> g_func(q_from, q_to, i)
 
         path = find_timed_path(roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i)
@@ -185,16 +233,19 @@ function conflict_based_search(
     roadmaps::Vector{Vector{Node{State}}},
     collide::Function,
     check_goal::Function,
-    h_func::Function,
     g_func::Function,
     f_func_highlevel::Function = (paths) -> Float64(get_num_collisions(paths, collide));
     VERBOSE::Int64=0,
     )::Union{Nothing, Vector{Vector{Node{State}}}} where {State<:AbsState}
 
+    # compute distance tables
+    distance_tables = get_distance_tables(roadmaps, g_func)
+
+    # for high-level search
     OPEN = PriorityQueue{HighLevelNode{State}, Float64}()
 
-    # setup init node
-    init_node = get_init_node(roadmaps, check_goal, h_func, g_func, f_func_highlevel)
+    # setup initial node
+    init_node = get_init_node(roadmaps, check_goal, distance_tables, g_func, f_func_highlevel)
     enqueue!(OPEN, init_node, init_node.f)
 
     # main loop
@@ -211,7 +262,7 @@ function conflict_based_search(
         # create new nodes
         for c in constraints
             new_node = invoke(
-                node, c, roadmaps, collide, check_goal, h_func, g_func, f_func_highlevel
+                node, c, roadmaps, collide, check_goal, distance_tables, g_func, f_func_highlevel
             )
             if new_node.valid
                 enqueue!(OPEN, new_node, new_node.f)
@@ -241,7 +292,7 @@ function invoke(
     roadmaps::Vector{Vector{Node{State}}},
     collide::Function,
     check_goal::Function,
-    h_func::Function,
+    distance_tables::Vector{Vector{Float64}},
     g_func::Function,
     f_func_highlevel::Function,
     )::HighLevelNode{State} where {State<:AbsState}
@@ -281,7 +332,7 @@ function invoke(
         return true
     end
 
-    h_func_i = (q::State) -> h_func(q, i)
+    h_func_i = (v::Node{State}) -> distance_tables[i][v.id]
     g_func_i = (q_from::State, q_to::State) -> g_func(q_from, q_to, i)
 
     new_path = find_timed_path(roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i)
@@ -343,7 +394,7 @@ end
 function get_init_node(
     roadmaps::Vector{Vector{Node{State}}},
     check_goal::Function,
-    h_func::Function,
+    distance_tables::Vector{Vector{Float64}},
     g_func::Function,
     f_func_highlevel::Function,
     )::HighLevelNode{State} where State<:AbsState
@@ -353,7 +404,7 @@ function get_init_node(
     paths = Vector{Vector{Node{State}}}()
     for i in 1:length(roadmaps)
         check_goal_i = (S::SearchNode{State}) -> check_goal(S.v, i)
-        h_func_i = (q::State) -> h_func(q, i)
+        h_func_i = (v::Node{State}) -> distance_tables[i][v.id]
         g_func_i = (q_from::State, q_to::State) -> g_func(q_from, q_to, i)
         path = find_timed_path(roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i)
 
