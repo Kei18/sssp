@@ -2,7 +2,7 @@ using LinearAlgebra: norm, dot, normalize
 import Printf: @sprintf
 using Random: seed!
 
-macro gen_collide(State, ex)
+macro gen_collide(State, ex1, ex2=nothing)
     return esc(
         quote
             N = length(rads)
@@ -15,7 +15,16 @@ macro gen_collide(State, ex)
                 i::Int64,
                 j::Int64,
             ) = begin
-                $ex
+                $ex1
+            end
+
+            f(
+                q_i::$State,
+                q_j::$State,
+                i::Int64,
+                j::Int64,
+            ) = begin
+                $ex2
             end
 
             f(Q_from::Vector{Node{$State}}, Q_to::Vector{Node{$State}}) = begin
@@ -123,23 +132,42 @@ function gen_check_goal(
     goal_rads::Vector{Float64} = fill(goal_rad, length(config_goal)),
 )::Function where {State<:AbsState}
 
-    return (Q::Vector{Node{State}}) -> begin
+    f(Q::Vector{Node{State}}) = begin
         return all([
             dist(v.q, q) <= goal_rads[i] for (i, (v, q)) in enumerate(zip(Q, config_goal))
         ])
     end
+
+    f(v::Node{State}, i::Int64) = begin
+        return dist(v.q, config_goal[i]) <= goal_rads[i]
+    end
+
+    return f
 end
 
 function gen_h_func(config_goal::Vector{State})::Function where {State<:AbsState}
-    return (Q::Vector{Node{State}}) -> begin
+
+    f(Q::Vector{Node{State}}) = begin
         return sum([dist(v.q, config_goal[i]) for (i, v) in enumerate(Q)])
     end
+
+    f(q::State, i::Int64) = begin
+        return dist(q, config_goal[i])
+    end
+
+    return f
 end
 
-function gen_g_func(; greedy::Bool = false)::Function
-    return (Q_from, Q_to) -> begin
+function gen_g_func(; greedy::Bool = false, stay_penalty::Float64=0.0)::Function
+    f(Q_from, Q_to) = begin
         return greedy ? 0 : sum([dist(u.q, v.q) for (u, v) in zip(Q_from, Q_to)])
     end
+
+    f(q_from, q_to, i::Int64) = begin
+        return greedy ? 0 : (dist(q_from, q_to) + (q_from == q_to ? stay_penalty : 0))
+    end
+
+    return f
 end
 
 function gen_get_sample_nums(k_init::Int64)::Function

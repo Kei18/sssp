@@ -60,7 +60,10 @@ function gen_collide(q::StatePoint2D, rads::Vector{Float64})::Function
         StatePoint2D,
         begin
             return dist(q_i_from, q_i_to, q_j_from, q_j_to) < rads[i] + rads[j]
-        end
+        end,
+        begin
+            return dist(q_i, q_j) < rads[i] + rads[j]
+        end,
     )
 end
 
@@ -68,6 +71,12 @@ function gen_random_walk(q::StatePoint2D, eps::Float64)::Function
     (q::StatePoint2D) -> begin
         s = uniform_ball_sampling(2) * eps
         return StatePoint2D(q.x + s[1], q.y + s[2])
+    end
+end
+
+function gen_uniform_sampling(q::StatePoint2D)::Function
+    () -> begin
+        return StatePoint2D(rand(2)...)
     end
 end
 

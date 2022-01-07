@@ -24,6 +24,7 @@ end
     neighbors_growing_rate = nothing
     init_search_time_limit = nothing
     skip_init_refinement = false
+    skip_online_refinement = false
     params_init = nothing
     params_refine_init = nothing
     params_refine_online = nothing
@@ -124,6 +125,7 @@ function setup(req, query)
     query.random_walk = gen_random_walk(q, eps)
     query.init_search_time_limit = get(req["search"], "init_search_time_limit", 10)
     query.skip_init_refinement = get(req["search"], "skip_init_refinement", false)
+    query.skip_online_refinement = get(req["search"], "skip_online_refinement", false)
     query.params_init =
         Dict([(Symbol(key), val) for (key, val) in req["search"]["params_init"]])
     query.params_refine_init =
@@ -198,7 +200,7 @@ end
 
 function timed_metafmt(level, _module, group, id, file, line)
     color, prefix, suffix = Logging.default_metafmt(level, _module, group, id, file, line)
-    timestamp = Dates.now()
+    timestamp = MRMP.now()
     return color, "$timestamp $prefix", suffix
 end
 

@@ -8,30 +8,31 @@ import Sockets
 
 include("./toio_util.jl")
 
-function refine!(query, solution, params)
+function refine!(query::Query, config_init, solution, params)
     # update space filling metric
     query.num_neighbors = Int64(floor(query.num_neighbors * query.neighbors_growing_rate))
     # find new one using known solution
-    return MRMP.refine!(
-        query.config_init,
+    solution_refined, roadmaps = search!(
+        config_init,
         query.config_goal,
         query.connect,
         query.collide,
         query.check_goal,
-        solution,
-        query.roadmaps,
         query.h_func,
         query.g_func,
         query.random_walk,
         gen_get_sample_nums(query.num_neighbors);
+        current_solution = solution,
+        roadmaps = query.roadmaps,
         params...,
     )
+    return solution_refined
 end
 
 function find_initial_instructions!(req, query, ws)
     N = length(query.config_goal)
     print_instance(query.config_init, query.config_goal, query.rads, query.obstacles)
-    if !is_valid_instance(query.config_init, query.config_goal, query.rads)
+    if !is_valid_instance(query.config_init, query.config_goal, query.rads, query.obstacles)
         @fail_to_solve("invalid instance")
     end
 
@@ -40,7 +41,7 @@ function find_initial_instructions!(req, query, ws)
 
     # get initial solution
     @info @sprintf("searching initial solution\n")
-    solution, query.roadmaps = search(
+    solution, query.roadmaps = search!(
         query.config_init,
         query.config_goal,
         query.connect,
@@ -76,7 +77,7 @@ function find_initial_instructions!(req, query, ws)
         while !timeover()
             iter_refine += 1
             # refinement
-            solution_tmp = refine!(query, solution, query.params_refine_init)
+            solution_tmp = refine!(query, query.config_init, solution, query.params_refine_init)
             # fail to find solution -> retry
             if solution_tmp == nothing
                 continue
@@ -126,6 +127,7 @@ function refine_until_new_commit!(req, query, ws; TIME_LIMIT::Real = 5)
     # setup search details
     config_init =
         map(e -> (isempty(e[2]) ? query.config_goal[e[1]] : e[2][1].from.q), enumerate(TPG))
+
     solution = MRMP.get_greedy_solution(TPG; config_goal = query.config_goal)
     cost_original = MRMP.get_tpg_cost(TPG)
 
@@ -142,13 +144,14 @@ function refine_until_new_commit!(req, query, ws; TIME_LIMIT::Real = 5)
             # to avoid busy loop
             sleep(0.001)
             # refinement
-            solution = refine!(query, solution, query.params_refine_online)
+            solution = refine!(query, config_init, solution, query.params_refine_online)
             if solution == nothing
                 continue
             end
             TPG, solution, cost = smoothing(solution, query.collide, query.connect)
             # better solution is found
             if cost < cost_original && is_not_outdate()
+
                 @info @sprintf(
                     "commit %s: update solution, cost=%6.4f -> %6.4f\n",
                     commit_name,
@@ -178,7 +181,7 @@ function main(; ADDR::String = "127.0.0.1", PORT = UInt16(8081))
     @async begin
         req_num = 0
         HTTP.WebSockets.listen(ADDR, PORT; server = server) do ws
-            @info @sprintf("%02d: receive request", req_num)
+            @info @sprintf("\n-----\n%02d: receive request", req_num)
             req_num += 1
             query = Query()
 
@@ -188,7 +191,7 @@ function main(; ADDR::String = "127.0.0.1", PORT = UInt16(8081))
                     if req["type"] == "init"
                         setup(req, query)
                         find_initial_instructions!(req, query, ws)
-                    elseif req["type"] == "commit"
+                    elseif req["type"] == "commit" && !query.skip_online_refinement
                         refine_until_new_commit!(req, query, ws)
                     end
                 catch e
@@ -203,7 +206,6 @@ function main(; ADDR::String = "127.0.0.1", PORT = UInt16(8081))
                 wait(task)
             end
             @info @sprintf("all drawing tasks are completed")
-            println("\n")
         end
     end
     return server

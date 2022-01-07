@@ -110,7 +110,7 @@ function search!(
     # ------------------------------
 
     # initial configuration
-    Q_init = [roadmaps[i][1] for i = 1:N]
+    Q_init = is_refine ? current_solution[1] : [roadmaps[i][1] for i = 1:N]
 
     # initial search node
     S_init = SuperNode(

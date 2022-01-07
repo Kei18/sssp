@@ -11,6 +11,8 @@ include("models/line2d.jl")
 include("models/arm2.jl")
 include("models/car.jl")
 
+include("prm.jl")
+
 export StateArm2, StateCar, StateLine2D, StatePoint2D, StatePoint3D
 export CircleObstacle2D, CircleObstacle3D
 export gen_connect, gen_collide, gen_check_goal
