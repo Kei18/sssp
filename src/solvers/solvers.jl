@@ -1,7 +1,7 @@
 module Solvers
 
 using MRMP
-import ..MRMP: AbsState, Node, dist
+import ..MRMP: AbsState, Node, dist, now, elapsed_sec
 import Printf: @sprintf, @printf
 import Base: @kwdef
 import DataStructures: PriorityQueue, enqueue!, dequeue!

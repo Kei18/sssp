@@ -2,8 +2,8 @@ function PRM!(
     roadmap::Vector{Node{State}},
     connect::Function,
     num_vertices::Int64 = 100,
-    rad::Union{Nothing, Float64} = nothing,
-    )::Vector{Node{State}} where {State<:AbsState}
+    rad::Union{Nothing,Float64} = nothing,
+)::Vector{Node{State}} where {State<:AbsState}
     """probabilistic roadmap"""
 
     sampler = MRMP.gen_uniform_sampling(roadmap[1].q)
@@ -28,7 +28,11 @@ function PRM!(
     return roadmap
 end
 
-function PRM(q_init::State, q_goal::State, args...)::Vector{Node{State}} where {State<:AbsState}
+function PRM(
+    q_init::State,
+    q_goal::State,
+    args...,
+)::Vector{Node{State}} where {State<:AbsState}
     return PRM!([Node{State}(q_init, 1, []), Node{State}(q_goal, 2, [])], args...)
 end
 
@@ -37,8 +41,8 @@ function PRMs(
     config_goal::Vector{State},
     connect::Function,
     num_vertices::Int64 = 100;
-    rad::Union{Nothing, Float64} = nothing,
-    rads::Union{Vector{Nothing}, Vector{Float64}} = fill(rad, length(config_init)),
+    rad::Union{Nothing,Float64} = nothing,
+    rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),
 )::Vector{Vector{Node{State}}} where {State<:AbsState}
 
     N = length(config_init)
@@ -50,7 +54,7 @@ function PRMs(
             num_vertices,
             rads[i],
         ),
-        1:N
+        1:N,
     )
 end
 
@@ -58,18 +62,13 @@ function PRMs!(
     roadmaps::Vector{Vector{Node{State}}},
     connect::Function,
     num_vertices::Int64 = 100;
-    rad::Union{Nothing, Float64} = nothing,
-    rads::Union{Vector{Nothing}, Vector{Float64}} = fill(rad, length(roadmaps)),
-    )::Vector{Vector{Node{State}}} where {State<:AbsState}
+    rad::Union{Nothing,Float64} = nothing,
+    rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(roadmaps)),
+)::Vector{Vector{Node{State}}} where {State<:AbsState}
 
     N = length(roadmaps)
     return map(
-        i -> PRM!(
-            roadmaps[i],
-            (args...) -> connect(args..., i),
-            num_vertices,
-            rads[i]
-        ),
-        1:N
+        i -> PRM!(roadmaps[i], (args...) -> connect(args..., i), num_vertices, rads[i]),
+        1:N,
     )
 end

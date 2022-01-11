@@ -14,8 +14,14 @@ function find_timed_path(
     invalid::Function,
     check_goal::Function,
     h_func::Function,
-    g_func::Function,
-)::Union{Nothing, Vector{Node{State}}} where {State<:AbsState}
+    g_func::Function;
+    TIME_LIMIT::Union{Nothing,Float64} = nothing,
+)::Union{Nothing,Vector{Node{State}}} where {State<:AbsState}
+
+    # timeout
+    t_s = now()
+    elapsed() = elapsed_sec(t_s)
+    timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
     CLOSE = Dict{String,SearchNode{State}}()
     OPEN = PriorityQueue{SearchNode{State},Float64}()
@@ -33,7 +39,7 @@ function find_timed_path(
     enqueue!(OPEN, S_init, S_init.f)
 
     # main loop
-    while !isempty(OPEN)
+    while !isempty(OPEN) && !timeover()
 
         # pop
         S = dequeue!(OPEN)
@@ -58,7 +64,7 @@ function find_timed_path(
                 v = u,
                 t = S.t + 1,
                 parent_id = S.id,
-                g = S.g + g_func(S.v.q, u.q),
+                g = g_func(S, u.q),
                 h = h_func(u),
                 unique_id = num_generated_nodes,
             )

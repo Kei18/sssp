@@ -25,3 +25,11 @@ end
 @testset "tpg" begin
     include("../example/smoothing_point2d.jl")
 end
+
+@testset "pp" begin
+    include("../example/pp.jl")
+end
+
+@testset "cbs" begin
+    include("../example/cbs.jl")
+end

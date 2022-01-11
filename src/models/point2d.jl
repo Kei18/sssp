@@ -35,11 +35,11 @@ function gen_connect(
     q::StatePoint2D,  # to identify type
     rads::Vector{Float64},
     obstacles::Vector{CircleObstacle2D},
-    )::Function
+)::Function
 
     # check: q \in C_free
     f(q::StatePoint2D, i::Int64)::Bool = begin
-        if any(x -> (x < rads[i] || 1 -rads[i] < x), [q.x, q.y])
+        if any(x -> (x < rads[i] || 1 - rads[i] < x), [q.x, q.y])
             return false
         end
 
@@ -51,7 +51,7 @@ function gen_connect(
     end
 
     f(q_from::StatePoint2D, q_to::StatePoint2D, i::Int64)::Bool = begin
-        if any(x -> (x < rads[i] || 1 -rads[i] < x), [q_to.x, q_to.y])
+        if any(x -> (x < rads[i] || 1 - rads[i] < x), [q_to.x, q_to.y])
             return false
         end
 
