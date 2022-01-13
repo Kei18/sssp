@@ -325,7 +325,7 @@ function invoke(
         return HighLevelNode{State}(valid = false)
     end
 
-    constraints = vcat(deepcopy(node.constraints), [new_constraint])
+    constraints = vcat(node.constraints, [new_constraint])
     paths = map(e -> e[1] != i ? deepcopy(e[2]) : new_path, enumerate(node.paths))
     return HighLevelNode(
         paths = paths,

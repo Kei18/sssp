@@ -112,12 +112,18 @@ function main(args::Vector{String})
                 return
             end
         end
-        _config[keys_arr[end]] = val
+
+        # parse type
+        val_parsed = tryparse(Int64, val)
+        if isnothing(val_parsed)
+            val_parsed = tryparse(Float64, val)
+        end
+        if isnothing(val_parsed)
+            val_parsed = val
+        end
+
+        _config[keys_arr[end]] = val_parsed
     end
-    println(config)
-
-
-    return
 
     # run once to force compilation
     @info "pre-compilation"

@@ -130,7 +130,11 @@ function prioritized_planning(
     elapsed() = elapsed_sec(t_s)
     timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
-    roadmaps = PRMs(config_init, config_goal, connect, num_vertices; rads = rads)
+    roadmaps = PRMs(
+        config_init, config_goal, connect, num_vertices;
+        rads = rads,
+        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+    )
     if VERBOSE > 0
         @info @sprintf("\tconstruct initial roadmaps: |V|=%d", num_vertices)
     end
@@ -158,7 +162,14 @@ function prioritized_planning(
         if VERBOSE > 0
             @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
         end
-        roadmaps = PRMs!(roadmaps, connect, num_vertices; rads = rads)
+        roadmaps = PRMs!(
+            roadmaps, connect, num_vertices;
+            rads = rads,
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+        )
+        if timeover()
+            break
+        end
         solution, roadmaps = prioritized_planning(
             roadmaps,
             collide,
