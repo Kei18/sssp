@@ -88,7 +88,9 @@ function conflict_based_search(
             @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
         end
         roadmaps = PRMs!(
-            roadmaps, connect, num_vertices;
+            roadmaps,
+            connect,
+            num_vertices;
             rads = rads,
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
@@ -166,9 +168,14 @@ function conflict_based_search(
     OPEN = PriorityQueue{HighLevelNode{State},Float64}()
 
     # setup initial node
-    init_node =
-        get_init_node(roadmaps, check_goal, distance_tables, g_func, f_func_highlevel;
-                      TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()))
+    init_node = get_init_node(
+        roadmaps,
+        check_goal,
+        distance_tables,
+        g_func,
+        f_func_highlevel;
+        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+    )
     if init_node.valid
         enqueue!(OPEN, init_node, init_node.f)
     end
@@ -228,7 +235,7 @@ function invoke(
     f_func_highlevel::Function;
     max_makespan::Int64 = 20,
     collision_weight::Float64 = 0,
-    TIME_LIMIT::Union{Nothing, Float64} = nothing,
+    TIME_LIMIT::Union{Nothing,Float64} = nothing,
 )::HighLevelNode{State} where {State<:AbsState}
 
     N = length(roadmaps)
@@ -317,7 +324,12 @@ function invoke(
             return cost_to_come_q + num_collsions * collision_weight
         end
     new_path = find_timed_path(
-        roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i; TIME_LIMIT=TIME_LIMIT
+        roadmaps[i],
+        invalid,
+        check_goal_i,
+        h_func_i,
+        g_func_i;
+        TIME_LIMIT = TIME_LIMIT,
     )
 
     # failed
@@ -384,7 +396,7 @@ function get_init_node(
     distance_tables::Vector{Vector{Float64}},
     g_func::Function,
     f_func_highlevel::Function;
-    TIME_LIMIT::Union{Nothing, Float64} = nothing,
+    TIME_LIMIT::Union{Nothing,Float64} = nothing,
 )::HighLevelNode{State} where {State<:AbsState}
 
     t_s = now()
@@ -398,7 +410,11 @@ function get_init_node(
         h_func_i = (v::Node{State}) -> distance_tables[i][v.id]
         g_func_i = (S::SearchNode{State}, q::State) -> S.g + g_func(S.v.q, q, i)
         path = find_timed_path(
-            roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i;
+            roadmaps[i],
+            invalid,
+            check_goal_i,
+            h_func_i,
+            g_func_i;
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
         # failure

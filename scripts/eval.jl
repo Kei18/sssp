@@ -8,13 +8,13 @@ import ProgressBars: ProgressBar, set_description
 import Logging
 import Dates
 
-function main(config::Dict; pre_compile::Bool=false)
+function main(config::Dict; pre_compile::Bool = false)
 
     # create result directory
     date_str = string(Dates.now())
     root_dir = joinpath(
         get(config, "root", joinpath(@__DIR__, "..", "..", "data", "exp")),
-        date_str
+        date_str,
     )
     if !pre_compile
         @info @sprintf("result will be saved in %s", root_dir)
@@ -25,10 +25,7 @@ function main(config::Dict; pre_compile::Bool=false)
             "git_hash" => read(`git log -1 --pretty=format:"%H"`, String),
             "date" => date_str,
         )
-        YAML.write_file(
-            joinpath(root_dir, "config.yaml"),
-            merge(config, additional_info)
-        )
+        YAML.write_file(joinpath(root_dir, "config.yaml"), merge(config, additional_info))
     end
 
     # instance generation
@@ -39,21 +36,28 @@ function main(config::Dict; pre_compile::Bool=false)
         params = Dict([(Symbol(key), val) for (key, val) in config["instance"]])
         delete!(params, Symbol("_target_"))
         target = Meta.parse(config["instance"]["_target_"])
-        map(e -> begin; seed!(e + seed_offset); eval(target)(; params...); end, 1:num_instances)
+        map(e -> begin
+            seed!(e + seed_offset)
+            eval(target)(; params...)
+        end, 1:num_instances)
     end
     if !pre_compile && get(config, "save_instance_images", false)
         @info "saving instance images"
-        map(k -> plot_instance!(
-            instances[k]...; filename = joinpath(root_dir, @sprintf("%04d_ins.png", k))
-        ), 1:num_instances)
+        map(
+            k -> plot_instance!(
+                instances[k]...;
+                filename = joinpath(root_dir, @sprintf("%04d_ins.png", k)),
+            ),
+            1:num_instances,
+        )
     end
 
     # will be saved as CSV
     result = DataFrame(
-        instance=Int64[],
-        solver=String[],
-        elapsed_sec=Float64[],
-        solved=Int64[]
+        instance = Int64[],
+        solver = String[],
+        elapsed_sec = Float64[],
+        solved = Int64[],
     )
 
     @info "start solving"
@@ -78,7 +82,14 @@ function main(config::Dict; pre_compile::Bool=false)
             seed!(k + seed_offset)
             t = @elapsed begin
                 solution, roadmaps = eval(target)(
-                    config_init, config_goal, connect, collide, check_goal, g_func; params...)
+                    config_init,
+                    config_goal,
+                    connect,
+                    collide,
+                    check_goal,
+                    g_func;
+                    params...,
+                )
             end
             push!(result, (k, solver_name, t, !isnothing(solution)))
         end
@@ -100,7 +111,7 @@ function main(args::Vector{String})
     config = YAML.load_file(config_file)
 
     # parse arguments
-    for k in 2:length(args)
+    for k = 2:length(args)
         keys, val = split(args[k], "=")
         _config = config
         keys_arr = split(keys, ".")
@@ -108,7 +119,11 @@ function main(args::Vector{String})
             if haskey(_config, key)
                 _config = _config[key]
             else
-                @error @sprintf("%s does not have key %s", config_file, join(keys_arr[1:end-1], "."))
+                @error @sprintf(
+                    "%s does not have key %s",
+                    config_file,
+                    join(keys_arr[1:end-1], ".")
+                )
                 return
             end
         end
@@ -128,7 +143,7 @@ function main(args::Vector{String})
     # run once to force compilation
     @info "pre-compilation"
     Logging.with_logger(Logging.SimpleLogger(stdout, Logging.Error)) do
-        main(merge(config, Dict("num_instances" => 1)); pre_compile=true)
+        main(merge(config, Dict("num_instances" => 1)); pre_compile = true)
     end
 
     # start experiment

@@ -4,7 +4,7 @@ function prioritized_planning(
     check_goal::Function,
     g_func::Function;
     max_makespan::Int64 = 20,
-    order_randomize::Bool=true,
+    order_randomize::Bool = true,
     TIME_LIMIT::Union{Nothing,Real} = nothing,
     VERBOSE::Int64 = 0,
 )::Tuple{
@@ -118,7 +118,7 @@ function prioritized_planning(
     rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),
     roadmaps_growing_rate::Union{Nothing,Float64} = nothing,
     max_makespan::Int64 = 20,
-    order_randomize::Bool=true,
+    order_randomize::Bool = true,
     TIME_LIMIT::Union{Nothing,Real} = nothing,
     VERBOSE::Int64 = 0,
 )::Tuple{
@@ -131,7 +131,10 @@ function prioritized_planning(
     timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
     roadmaps = PRMs(
-        config_init, config_goal, connect, num_vertices;
+        config_init,
+        config_goal,
+        connect,
+        num_vertices;
         rads = rads,
         TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
     )
@@ -152,7 +155,7 @@ function prioritized_planning(
         check_goal,
         g_func;
         max_makespan = max_makespan,
-        order_randomize=order_randomize,
+        order_randomize = order_randomize,
         VERBOSE = VERBOSE,
         TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
     )
@@ -163,7 +166,9 @@ function prioritized_planning(
             @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
         end
         roadmaps = PRMs!(
-            roadmaps, connect, num_vertices;
+            roadmaps,
+            connect,
+            num_vertices;
             rads = rads,
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
@@ -176,7 +181,7 @@ function prioritized_planning(
             check_goal,
             g_func;
             max_makespan = max_makespan,
-            order_randomize=order_randomize,
+            order_randomize = order_randomize,
             VERBOSE = VERBOSE,
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )

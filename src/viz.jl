@@ -153,7 +153,7 @@ function plot_instance!(
     obstacles::Vector{Obs} where {Obs<:Obstacle},
     rads::Vector{Float64};
     filename::Union{Nothing,String} = nothing,
-    ) where {State<:AbsState}
+) where {State<:AbsState}
 
     plot_init!(State)
     plot_obs!(obstacles)

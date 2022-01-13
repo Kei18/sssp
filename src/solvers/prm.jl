@@ -42,9 +42,13 @@ function PRM(
     q_init::State,
     q_goal::State,
     args...;
-    kwargs...
+    kwargs...,
 )::Vector{Node{State}} where {State<:AbsState}
-    return PRM!([Node{State}(q_init, 1, []), Node{State}(q_goal, 2, [])], args...; kwargs...)
+    return PRM!(
+        [Node{State}(q_init, 1, []), Node{State}(q_goal, 2, [])],
+        args...;
+        kwargs...,
+    )
 end
 
 function PRMs(
@@ -89,7 +93,10 @@ function PRMs!(
     N = length(roadmaps)
     return map(
         i -> PRM!(
-            roadmaps[i], (args...) -> connect(args..., i), num_vertices, rads[i];
+            roadmaps[i],
+            (args...) -> connect(args..., i),
+            num_vertices,
+            rads[i];
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         ),
         1:N,
