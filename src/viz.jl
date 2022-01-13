@@ -2,6 +2,10 @@ using Plots
 
 COLORS = ["royalblue", "orange", "lime", "gray", "coral", "brown4", "aquamarine4"]
 
+function get_color(i::Int64)::String
+    return COLORS[mod1(i, length(COLORS))]
+end
+
 function plot_circle!(
     x::Float64,
     y::Float64,
@@ -68,8 +72,8 @@ function plot_roadmap!(
             :markersize => 2,
             :markershape => :circle,
             :legend => nothing,
-            :color => COLORS[i],
-            :markerstrokecolor => COLORS[i],
+            :color => get_color(i),
+            :markerstrokecolor => get_color(i),
         )
         for v in V[i]
             for u_id in v.neighbors
@@ -94,7 +98,7 @@ function plot_start_goal!(
             :seriestype => :scatter,
             :markersize => 5,
             :label => nothing,
-            :color => COLORS[i],
+            :color => get_color(i),
         )
         plot_start_goal!(q_init, q_goal, rads[i], params)
     end
@@ -113,7 +117,7 @@ function plot_traj!(
     for (t, Q_to) in enumerate(solution[2:end])
         Q_from = solution[t]
         for i = 1:N
-            params = Dict(:color => COLORS[i], :lw => lw, :label => nothing)
+            params = Dict(:color => get_color(i), :lw => lw, :label => nothing)
             plot_motion!(Q_from[i].q, Q_to[i].q, rads[i], params)
         end
     end
@@ -141,6 +145,24 @@ function safe_savefig!(filename::Union{Nothing,String} = nothing)
         end
         savefig(filename)
     end
+end
+
+function plot_instance!(
+    config_init::Vector{State},
+    config_goal::Vector{State},
+    obstacles::Vector{Obs} where {Obs<:Obstacle},
+    rads::Vector{Float64};
+    filename::Union{Nothing,String} = nothing,
+    ) where {State<:AbsState}
+
+    plot_init!(State)
+    plot_obs!(obstacles)
+    for (i, q) in enumerate(config_init)
+        plot_agent!(q, rads[i], get_color(i))
+    end
+    plot_start_goal!(config_init, config_goal, rads)
+    safe_savefig!(filename)
+    return plot!()
 end
 
 function plot_res!(
@@ -183,7 +205,7 @@ function plot_anim!(
         plot_traj!(solution, rads; lw = 1.0)
         plot_start_goal!(config_init, config_goal, rads)
         for (i, v) in enumerate(Q)
-            plot_agent!(v.q, rads[i], COLORS[i])
+            plot_agent!(v.q, rads[i], get_color(i))
         end
     end
 

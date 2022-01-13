@@ -79,15 +79,22 @@ function conflict_based_search(
         max_makespan = max_makespan,
         collision_weight = collision_weight,
         VERBOSE = VERBOSE,
-        TIME_LIMIT = (TIME_LIMIT == nothing ? nothing : TIME_LIMIT - elapsed()),
+        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
     )
 
-    while solution == nothing && roadmaps_growing_rate != nothing
+    while isnothing(solution) && !isnothing(roadmaps_growing_rate) && !timeover()
         num_vertices = Int64(floor(num_vertices * roadmaps_growing_rate))
         if VERBOSE > 0
             @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
         end
-        roadmaps = PRMs!(roadmaps, connect, num_vertices; rads = rads)
+        roadmaps = PRMs!(
+            roadmaps, connect, num_vertices;
+            rads = rads,
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+        )
+        if timeover()
+            break
+        end
         solution, roadmaps = conflict_based_search(
             roadmaps,
             collide,
@@ -96,12 +103,12 @@ function conflict_based_search(
             max_makespan = max_makespan,
             collision_weight = collision_weight,
             VERBOSE = VERBOSE,
-            TIME_LIMIT = (TIME_LIMIT == nothing ? nothing : TIME_LIMIT - elapsed()),
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
     end
 
     if VERBOSE > 0
-        if solution != nothing
+        if !isnothing(solution)
             @info "\tfound solution"
         else
             @info "\tfail to find solution"
@@ -160,21 +167,15 @@ function conflict_based_search(
 
     # setup initial node
     init_node =
-        get_init_node(roadmaps, check_goal, distance_tables, g_func, f_func_highlevel)
+        get_init_node(roadmaps, check_goal, distance_tables, g_func, f_func_highlevel;
+                      TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()))
     if init_node.valid
         enqueue!(OPEN, init_node, init_node.f)
     end
 
     # main loop
     iter = 0
-    while !isempty(OPEN)
-
-        if timeover()
-            if VERBOSE > 1
-                @info @sprintf("\treaching time limit")
-            end
-            return (nothing, roadmaps)
-        end
+    while !isempty(OPEN) && !timeover()
 
         iter += 1
 
@@ -204,6 +205,7 @@ function conflict_based_search(
                 f_func_highlevel;
                 max_makespan = max_makespan,
                 collision_weight = collision_weight,
+                TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
             )
             if new_node.valid
                 enqueue!(OPEN, new_node, new_node.f)
@@ -226,6 +228,7 @@ function invoke(
     f_func_highlevel::Function;
     max_makespan::Int64 = 20,
     collision_weight::Float64 = 0,
+    TIME_LIMIT::Union{Nothing, Float64} = nothing,
 )::HighLevelNode{State} where {State<:AbsState}
 
     N = length(roadmaps)
@@ -313,11 +316,13 @@ function invoke(
             )
             return cost_to_come_q + num_collsions * collision_weight
         end
-    new_path = find_timed_path(roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i)
+    new_path = find_timed_path(
+        roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i; TIME_LIMIT=TIME_LIMIT
+    )
 
     # failed
-    if new_path == nothing
-        return HighLevelNode(valid = false)
+    if isnothing(new_path)
+        return HighLevelNode{State}(valid = false)
     end
 
     constraints = vcat(deepcopy(node.constraints), [new_constraint])
@@ -378,8 +383,12 @@ function get_init_node(
     check_goal::Function,
     distance_tables::Vector{Vector{Float64}},
     g_func::Function,
-    f_func_highlevel::Function,
+    f_func_highlevel::Function;
+    TIME_LIMIT::Union{Nothing, Float64} = nothing,
 )::HighLevelNode{State} where {State<:AbsState}
+
+    t_s = now()
+    elapsed() = elapsed_sec(t_s)
 
     invalid = (S_from::SearchNode{State}, S_to::SearchNode{State}) -> false
 
@@ -388,10 +397,12 @@ function get_init_node(
         check_goal_i = (S::SearchNode{State}) -> check_goal(S.v, i)
         h_func_i = (v::Node{State}) -> distance_tables[i][v.id]
         g_func_i = (S::SearchNode{State}, q::State) -> S.g + g_func(S.v.q, q, i)
-        path = find_timed_path(roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i)
-
+        path = find_timed_path(
+            roadmaps[i], invalid, check_goal_i, h_func_i, g_func_i;
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+        )
         # failure
-        if path == nothing
+        if isnothing(path)
             return HighLevelNode{State}(valid = false)
         end
 

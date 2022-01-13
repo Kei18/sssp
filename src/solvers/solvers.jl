@@ -5,6 +5,7 @@ import ..MRMP: AbsState, Node, dist, now, elapsed_sec
 import Printf: @sprintf, @printf
 import Base: @kwdef
 import DataStructures: PriorityQueue, enqueue!, dequeue!
+import Random: randperm
 
 include("utils.jl")
 include("prm.jl")

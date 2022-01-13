@@ -1,0 +1,29 @@
+root: ../data/exp/point2d
+seed_offset: 0
+
+num_instances: 1
+save_instance_images: false
+instance:
+  _target_: MRMP.gen_random_instance_StatePoint2D
+  N_min: 2
+  N_max: 8
+  rad_min: 0.025
+  rad_max: 0.1
+  num_obs_min: 0
+  num_obs_max: 10
+  rad_obs_min: 0.05
+  rad_obs_max: 0.10
+
+solvers:
+  - _target_: MRMP.prioritized_planning
+    num_vertices: 10
+    roadmaps_growing_rate: 2.0
+    max_makespan: 20
+    TIME_LIMIT: 10
+  - _target_: MRMP.conflict_based_search
+    num_vertices: 10
+    roadmaps_growing_rate: 2.0
+    max_makespan: 20
+    collision_weight: 0.5
+    TIME_LIMIT: 2
+    VERBOSE: 0

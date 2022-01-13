@@ -4,6 +4,7 @@ function prioritized_planning(
     check_goal::Function,
     g_func::Function;
     max_makespan::Int64 = 20,
+    order_randomize::Bool=true,
     TIME_LIMIT::Union{Nothing,Real} = nothing,
     VERBOSE::Int64 = 0,
 )::Tuple{
@@ -16,12 +17,11 @@ function prioritized_planning(
     elapsed() = elapsed_sec(t_s)
     timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
-    distance_tables = get_distance_tables(roadmaps, g_func)
-
-    paths = Vector{Vector{Node{State}}}()
-    costs_table = Vector{Float64}([0.0])
     N = length(roadmaps)
-    for i = 1:N
+    distance_tables = get_distance_tables(roadmaps, g_func)
+    paths = map(i -> Vector{Node{State}}(), 1:N)
+    costs_table = Vector{Float64}([0.0])
+    for i in (order_randomize ? randperm(N) : (1:N))
         if timeover()
             return (nothing, roadmaps)
         end
@@ -41,7 +41,10 @@ function prioritized_planning(
                 end
 
                 # check collisions
-                for j = 1:i-1
+                for j = 1:N
+                    if j == i || isempty(paths[j])
+                        continue
+                    end
                     l = length(paths[j])
                     q_j_from = paths[j][min(t - 1, l)].q
                     q_j_to = paths[j][min(t, l)].q
@@ -73,15 +76,18 @@ function prioritized_planning(
             check_goal_i,
             h_func_i,
             g_func_i;
-            TIME_LIMIT = (TIME_LIMIT == nothing ? nothing : TIME_LIMIT - elapsed()),
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
 
         # case failure
-        if path == nothing
+        if isnothing(path)
+            if VERBOSE > 1
+                @info @sprintf("\t\tfailed planning for agent-%d", i)
+            end
             return (nothing, roadmaps)
         end
 
-        push!(paths, path)
+        paths[i] = path
 
         # update costs table
         for t = 2:length(path)
@@ -112,6 +118,7 @@ function prioritized_planning(
     rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),
     roadmaps_growing_rate::Union{Nothing,Float64} = nothing,
     max_makespan::Int64 = 20,
+    order_randomize::Bool=true,
     TIME_LIMIT::Union{Nothing,Real} = nothing,
     VERBOSE::Int64 = 0,
 )::Tuple{
@@ -141,11 +148,12 @@ function prioritized_planning(
         check_goal,
         g_func;
         max_makespan = max_makespan,
+        order_randomize=order_randomize,
         VERBOSE = VERBOSE,
-        TIME_LIMIT = (TIME_LIMIT == nothing ? nothing : TIME_LIMIT - elapsed()),
+        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
     )
 
-    while solution == nothing && roadmaps_growing_rate != nothing
+    while isnothing(solution) && !isnothing(roadmaps_growing_rate) && !timeover()
         num_vertices = Int64(floor(num_vertices * roadmaps_growing_rate))
         if VERBOSE > 0
             @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
@@ -157,13 +165,18 @@ function prioritized_planning(
             check_goal,
             g_func;
             max_makespan = max_makespan,
+            order_randomize=order_randomize,
             VERBOSE = VERBOSE,
-            TIME_LIMIT = (TIME_LIMIT == nothing ? nothing : TIME_LIMIT - elapsed()),
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
     end
 
     if VERBOSE > 0
-        @info "\tfound solution"
+        if isnothing(solution)
+            @info "\tfailed to find solution"
+        else
+            @info "\tfound solution"
+        end
     end
     return (solution, roadmaps)
 end
