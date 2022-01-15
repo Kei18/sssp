@@ -71,29 +71,28 @@ function main(config::Dict; pre_compile::Bool = false)
 
         # solve
         for (l, solver_info) in enumerate(config["solvers"])
-            params = Dict([(Symbol(key), val) for (key, val) in solver_info])
-            delete!(params, Symbol("_target_"))
             target = Meta.parse(solver_info["_target_"])
             solver_name = string(target)
+            params = Dict([(Symbol(key), val) for (key, val) in solver_info])
+            delete!(params, Symbol("_target_"))
             seed!(k + seed_offset)
-            t = @elapsed begin
-                solution, roadmaps = eval(target)(
-                    config_init,
-                    config_goal,
-                    connect,
-                    collide,
-                    check_goal,
-                    g_func;
-                    params...,
-                )
-            end
+            t_s = MRMP.now()
+            solution, roadmaps = eval(target)(
+                config_init,
+                config_goal,
+                connect,
+                collide,
+                check_goal,
+                g_func;
+                params...,
+            )
             result[num_solvers*(k-1)+l] = (
                 instance = k,
                 N = length(config_init),
                 num_obs = length(obstacles),
                 solver = solver_name,
                 solver_index = l,
-                elapsed_sec = t,
+                elapsed_sec = MRMP.elapsed_sec(t_s),
                 solved = !isnothing(solution),
             )
             Threads.atomic_add!(cnt_fin, 1)
