@@ -17,7 +17,7 @@ instance:
 solvers_common: &solvers_common
   num_vertices: 30
   max_makespan: 20
-  TIME_LIMIT: 2
+  TIME_LIMIT: 30
   # roadmaps_growing_rate: 2.0
 
 solvers:

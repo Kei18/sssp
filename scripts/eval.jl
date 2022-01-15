@@ -7,8 +7,52 @@ import DataFrames: DataFrame
 import Logging
 import Dates
 import Base.Threads
-import Base.Threads: @threads
 
+function run!(
+    k::Int64, 
+    instance::Tuple, 
+    solvers::Vector{Dict{Any, Any}}, 
+    result::Vector{Any}; 
+    seed::Int64=0)
+
+    config_init, config_goal, obstacles, rads = instance
+
+    # setup search details
+    q = config_init[1]
+    connect = gen_connect(q, rads, obstacles)
+    collide = gen_collide(q, rads)
+    check_goal = MRMP.gen_check_goal(config_goal)
+    g_func = MRMP.gen_g_func(stay_penalty = 0.1)
+
+    # solve
+    for (l, solver_info) in enumerate(solvers)
+        solver = Meta.parse(solver_info["_target_"])
+        params =  Dict([
+            (Symbol(key), val) for (key, val) in filter(e -> e[1] != "_target_", solver_info)
+        ])
+        seed!(seed)
+        t = @elapsed begin
+            solution, roadmaps = eval(solver)(
+                config_init,
+                config_goal,
+                connect,
+                collide,
+                check_goal,
+                g_func;
+                params...,
+            )
+        end
+        result[length(solvers)*(k-1)+l] = (
+            instance = k,
+            N = length(config_init),
+            num_obs = length(obstacles),
+            solver = solver_info["_target_"],
+            solver_index = l,
+            elapsed_sec = t,
+            solved = !isnothing(solution),
+        )
+    end
+end
 
 function main(config::Dict; pre_compile::Bool = false)
 
@@ -59,45 +103,9 @@ function main(config::Dict; pre_compile::Bool = false)
     cnt_fin = Threads.Atomic{Int}(0)
     result = Array{Any}(undef, num_total_tasks)
     @info @sprintf("start solving with %d threads", Threads.nthreads())
-    @threads for k = 1:num_instances
-        config_init, config_goal, obstacles, rads = instances[k]
-
-        # setup search details
-        q = config_init[1]
-        connect = gen_connect(q, rads, obstacles)
-        collide = gen_collide(q, rads)
-        check_goal = MRMP.gen_check_goal(config_goal)
-        g_func = MRMP.gen_g_func(stay_penalty = 0.1)
-
-        # solve
-        for (l, solver_info) in enumerate(config["solvers"])
-            target = Meta.parse(solver_info["_target_"])
-            solver_name = string(target)
-            params = Dict([(Symbol(key), val) for (key, val) in solver_info])
-            delete!(params, Symbol("_target_"))
-            seed!(k + seed_offset)
-            t_s = MRMP.now()
-            solution, roadmaps = eval(target)(
-                config_init,
-                config_goal,
-                connect,
-                collide,
-                check_goal,
-                g_func;
-                params...,
-            )
-            result[num_solvers*(k-1)+l] = (
-                instance = k,
-                N = length(config_init),
-                num_obs = length(obstacles),
-                solver = solver_name,
-                solver_index = l,
-                elapsed_sec = MRMP.elapsed_sec(t_s),
-                solved = !isnothing(solution),
-            )
-            Threads.atomic_add!(cnt_fin, 1)
-        end
-
+    Threads.@threads for k = 1:num_instances
+        run!(k, instances[k], config["solvers"], result; seed=seed_offset)
+        Threads.atomic_add!(cnt_fin, num_solvers)
         @printf("\r%04d/%04d tasks have been finished", cnt_fin[], num_total_tasks)
     end
     println()
