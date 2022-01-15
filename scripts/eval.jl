@@ -56,7 +56,7 @@ function main(config::Dict; pre_compile::Bool = false)
 
     num_total_tasks = num_instances * length(config["solvers"])
     cnt_fin = Threads.Atomic{Int}(0)
-    result_vec = fill((0, "", 0.0, false), num_total_tasks)
+    result = Array{Any}(undef, num_total_tasks)
     @info @sprintf("start solving with %d threads", Threads.nthreads())
     @threads for k = 1:num_instances
         config_init, config_goal, obstacles, rads = instances[k]
@@ -86,7 +86,15 @@ function main(config::Dict; pre_compile::Bool = false)
                     params...,
                 )
             end
-            result_vec[2(k-1)+l] = (k, solver_name, t, !isnothing(solution))
+            result[2(k-1)+l] = (
+                instance = k,
+                N = length(config_init),
+                num_obs = length(obstacles),
+                solver = solver_name,
+                solver_index = l,
+                elapsed_sec = t,
+                solved = !isnothing(solution),
+            )
             Threads.atomic_add!(cnt_fin, 1)
         end
 
@@ -97,13 +105,6 @@ function main(config::Dict; pre_compile::Bool = false)
     # save result
     if !pre_compile
         @info("save result")
-        result = DataFrame(
-            instance = Int64[],
-            solver = String[],
-            elapsed_sec = Float64[],
-            solved = Int64[],
-        )
-        map(row -> push!(result, row), result_vec)
         CSV.write(joinpath(root_dir, "result.csv"), result)
     end
 end
