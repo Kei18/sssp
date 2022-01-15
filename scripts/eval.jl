@@ -4,9 +4,11 @@ import CSV
 import YAML
 import Printf: @printf, @sprintf
 import DataFrames: DataFrame
-import ProgressBars: ProgressBar, set_description
 import Logging
 import Dates
+import Base.Threads
+import Base.Threads: @threads
+
 
 function main(config::Dict; pre_compile::Bool = false)
 
@@ -52,18 +54,12 @@ function main(config::Dict; pre_compile::Bool = false)
         )
     end
 
-    # will be saved as CSV
-    result = DataFrame(
-        instance = Int64[],
-        solver = String[],
-        elapsed_sec = Float64[],
-        solved = Int64[],
-    )
-
-    @info "start solving"
-    iter = ProgressBar(enumerate(instances))
-    for (k, ins) in iter
-        config_init, config_goal, obstacles, rads = ins
+    num_total_tasks = num_instances * length(config["solvers"])
+    cnt_fin = Threads.Atomic{Int}(0)
+    result_vec = fill((0, "", 0.0, false), num_total_tasks)
+    @info @sprintf("start solving with %d threads", Threads.nthreads())
+    @threads for k = 1:num_instances
+        config_init, config_goal, obstacles, rads = instances[k]
 
         # setup search details
         q = config_init[1]
@@ -73,12 +69,11 @@ function main(config::Dict; pre_compile::Bool = false)
         g_func = MRMP.gen_g_func(stay_penalty = 0.1)
 
         # solve
-        for solver_info in config["solvers"]
+        for (l, solver_info) in enumerate(config["solvers"])
             params = Dict([(Symbol(key), val) for (key, val) in solver_info])
             delete!(params, Symbol("_target_"))
             target = Meta.parse(solver_info["_target_"])
             solver_name = string(target)
-            set_description(iter, @sprintf("%30s is solving instance-%04d", solver_name, k))
             seed!(k + seed_offset)
             t = @elapsed begin
                 solution, roadmaps = eval(target)(
@@ -91,12 +86,24 @@ function main(config::Dict; pre_compile::Bool = false)
                     params...,
                 )
             end
-            push!(result, (k, solver_name, t, !isnothing(solution)))
+            result_vec[2(k-1)+l] = (k, solver_name, t, !isnothing(solution))
+            Threads.atomic_add!(cnt_fin, 1)
         end
+
+        @printf("\r%04d/%04d tasks have been finished", cnt_fin[], num_total_tasks)
     end
+    println()
 
     # save result
     if !pre_compile
+        @info("save result")
+        result = DataFrame(
+            instance = Int64[],
+            solver = String[],
+            elapsed_sec = Float64[],
+            solved = Int64[],
+        )
+        map(row -> push!(result, row), result_vec)
         CSV.write(joinpath(root_dir, "result.csv"), result)
     end
 end
