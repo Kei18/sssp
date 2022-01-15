@@ -54,7 +54,8 @@ function main(config::Dict; pre_compile::Bool = false)
         )
     end
 
-    num_total_tasks = num_instances * length(config["solvers"])
+    num_solvers = length(config["solvers"])
+    num_total_tasks = num_instances * num_solvers
     cnt_fin = Threads.Atomic{Int}(0)
     result = Array{Any}(undef, num_total_tasks)
     @info @sprintf("start solving with %d threads", Threads.nthreads())
@@ -86,7 +87,7 @@ function main(config::Dict; pre_compile::Bool = false)
                     params...,
                 )
             end
-            result[2(k-1)+l] = (
+            result[num_solvers*(k-1)+l] = (
                 instance = k,
                 N = length(config_init),
                 num_obs = length(obstacles),

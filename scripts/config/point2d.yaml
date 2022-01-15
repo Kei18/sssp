@@ -15,17 +15,23 @@ instance:
   rad_obs_max: 0.10
 
 solvers_common: &solvers_common
+  num_vertices: 30
+  max_makespan: 20
   TIME_LIMIT: 2
+  # roadmaps_growing_rate: 2.0
 
 solvers:
   - _target_: MRMP.prioritized_planning
-    num_vertices: 10
-    roadmaps_growing_rate: 2.0
-    max_makespan: 20
     <<: *solvers_common
   - _target_: MRMP.conflict_based_search
-    num_vertices: 10
-    roadmaps_growing_rate: 2.0
-    max_makespan: 20
+    collision_weight: 0.0
+    <<: *solvers_common
+  - _target_: MRMP.conflict_based_search
     collision_weight: 0.5
+    <<: *solvers_common
+  - _target_: MRMP.conflict_based_search
+    collision_weight: 1.0
+    <<: *solvers_common
+  - _target_: MRMP.conflict_based_search
+    collision_weight: 1.5
     <<: *solvers_common
