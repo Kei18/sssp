@@ -40,6 +40,10 @@ function run!(
                 params...,
             )
         end
+        if !MRMP.validate(config_init, connect, collide, check_goal, solution)
+            @error @sprintf("%s yields invalid solution", solver_info["_target_"])
+        end
+
         result[length(solvers)*(k-1)+l] = (
             instance = k,
             N = length(config_init),
@@ -87,13 +91,12 @@ function main(config::Dict; pre_compile::Bool = false)
     end
     if !pre_compile && get(config, "save_instance_images", false)
         @info "saving instance images"
-        map(
-            k -> plot_instance!(
+        Threads.@threads for k in 1:num_instances
+            plot_instance!(
                 instances[k]...;
                 filename = joinpath(root_dir, @sprintf("%04d_ins.png", k)),
-            ),
-            1:num_instances,
-        )
+            )
+        end
     end
 
     num_solvers = length(config["solvers"])

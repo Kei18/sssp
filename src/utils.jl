@@ -291,6 +291,49 @@ function is_valid_instance(
     return true
 end
 
+function validate(
+    config_init::Vector{State},
+    connect::Function,
+    collide::Function,
+    check_goal::Function,
+    solution::Union{Nothing, Vector{Vector{Node{State}}}},
+    )::Bool where {State<:AbsState}
+
+    if isnothing(solution)
+        return true
+    end
+
+    N = length(config_init)
+    T = length(solution)
+
+    # check initial condition
+    if !all(i -> solution[1][i].q == config_init[i], 1:N)
+        @warn @sprintf("invalid: initial configuration")
+        return false
+    end
+
+    # check goal
+    if !check_goal(last(solution))
+        @warn @sprintf("invalid: last configuration")
+        return false
+    end
+
+    for t = 2:T
+        # check connectivity
+        if !all(i -> connect(solution[t-1][i].q, solution[t][i].q, i), 1:N)
+            @warn @sprintf("invalid: not connected")
+            return false
+        end
+
+        # check collision
+        if collide(solution[t-1], solution[t])
+            @warn @sprintf("invalid: colliding")
+            return false
+        end
+    end
+
+    return true
+end
 
 function demo_get_initial_solution(
     config_init::Vector{State},
