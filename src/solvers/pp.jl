@@ -111,8 +111,8 @@ function prioritized_planning(
     config_goal::Vector{State},
     connect::Function,
     collide::Function,
-    check_goal::Function,
-    g_func::Function;
+    check_goal::Function;
+    g_func::Function = gen_g_func(stay_penalty = 0.1),
     num_vertices::Int64 = 100,
     rad::Union{Nothing,Real} = nothing,
     rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),

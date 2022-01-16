@@ -9,10 +9,10 @@ import Dates
 import Base.Threads
 
 function run!(
-    k::Int64, 
-    instance::Tuple, 
-    solvers::Vector{Dict{Any, Any}}, 
-    result::Vector{Any}; 
+    k::Int64,
+    instance::Tuple,
+    solvers::Vector{Dict{Any, Any}},
+    result::Vector{Any};
     seed::Int64=0)
 
     config_init, config_goal, obstacles, rads = instance
@@ -22,7 +22,6 @@ function run!(
     connect = gen_connect(q, rads, obstacles)
     collide = gen_collide(q, rads)
     check_goal = MRMP.gen_check_goal(config_goal)
-    g_func = MRMP.gen_g_func(stay_penalty = 0.1)
 
     # solve
     for (l, solver_info) in enumerate(solvers)
@@ -37,8 +36,7 @@ function run!(
                 config_goal,
                 connect,
                 collide,
-                check_goal,
-                g_func;
+                check_goal;
                 params...,
             )
         end

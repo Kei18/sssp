@@ -5,6 +5,10 @@ end
 
 to_string(s::StatePoint2D) = @sprintf("(%.4f, %.4f)", s.x, s.y)
 
+function get_mid_status(p::StatePoint2D, q::StatePoint2D)::StatePoint2D
+    return StatePoint2D((p.x + q.x)/2, (p.y + q.y)/2)
+end
+
 function dist(q1::StatePoint2D, q2::StatePoint2D)::Float64
     return norm([q1.x - q2.x, q1.y - q2.y])
 end
