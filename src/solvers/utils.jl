@@ -43,6 +43,9 @@ function find_timed_path(
 
         # pop
         S = dequeue!(OPEN)
+        if haskey(CLOSE, S.id)
+            continue
+        end
         CLOSE[S.id] = S
 
         # check goal condition

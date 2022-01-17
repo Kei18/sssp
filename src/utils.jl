@@ -327,7 +327,7 @@ function validate(
 
         # check collision
         if collide(solution[t-1], solution[t])
-            @warn @sprintf("invalid: colliding")
+            @warn @sprintf("invalid: colliding at t= %d -> %d", t-1, t)
             return false
         end
     end

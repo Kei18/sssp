@@ -56,7 +56,26 @@ function prioritized_planning(
                 return false
             end
 
-        check_goal_i = (S::SearchNode{State}) -> check_goal(S.v, i)
+        check_goal_i = (S::SearchNode{State}) -> begin
+            if !check_goal(S.v, i)
+                return false
+            end
+
+            # check additional constraints
+            for j = 1:N
+                if j == i || isempty(paths[j])
+                    continue
+                end
+
+                for t = S.t+1:length(paths[j])
+                    if collide(S.v.q, S.v.q, paths[j][t-1].q, paths[j][t].q, i, j)
+                        return false
+                    end
+                end
+            end
+
+            return true
+        end
         h_func_i = (v::Node{State}) -> distance_tables[i][v.id]
 
         # accurate cost calculation

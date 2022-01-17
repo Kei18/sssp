@@ -6,12 +6,20 @@ end
 
 to_string(s::StatePoint3D) = @sprintf("(%.4f, %.4f, %.4f)", s.x, s.y, s.z)
 
+function get_mid_status(p::StatePoint3D, q::StatePoint3D)::StatePoint3D
+    return StatePoint3D((p.x + q.x)/2, (p.y + q.y)/2, (p.z + q.z)/2)
+end
+
 function dist(q1::StatePoint3D, q2::StatePoint3D)::Float64
     return norm([q1.x - q2.x, q1.y - q2.y, q1.z - q2.z])
 end
 
 function dist(q_from::StatePoint3D, q_to::StatePoint3D, o::CircleObstacle3D)::Float64
     return dist([q_from.x, q_from.y, q_from.z], [q_to.x, q_to.y, q_to.z], [o.x, o.y, o.z])
+end
+
+function dist(q::StatePoint3D, o::CircleObstacle3D)::Float64
+    return norm([q.x - o.x, q.y - o.y, q.z - o.z])
 end
 
 function dist(
@@ -24,7 +32,7 @@ function dist(
         [a_from.x, a_from.y, a_from.z],
         [a_to.x, a_to.y, a_to.z],
         [b_from.x, b_from.y, b_from.z],
-        [b_to.x, b_to.y, b_from.z],
+        [b_to.x, b_to.y, b_to.z],
     )
 end
 
@@ -33,27 +41,34 @@ function gen_connect(
     rads::Vector{Float64},
     obstacles::Vector{CircleObstacle3D},
     eps::Float64 = 0.2,
-)::Function
+    )::Function
 
-    return (q_from::StatePoint3D, q_to::StatePoint3D, i::Int64; ignore_eps::Bool = false) ->
-        begin
-            # avoid fur points
-            if !ignore_eps && dist(q_from, q_to) > eps
-                return false
-            end
-
-            # check: q_to \in C_free
-            if !all([rads[i] <= x <= 1 - rads[i] for x in [q_to.x, q_to.y, q_to.z]])
-                return false
-            end
-
-            # check: collisions with static obstacles
-            if any([dist(q_from, q_to, o) < o.r + rads[i] for o in obstacles])
-                return false
-            end
-
-            return true
+    # check: q \in C_free
+    f(q::StatePoint3D, i::Int64)::Bool = begin
+        if any(x -> (x < rads[i] || 1 - rads[i] < x), [q.x, q.y, q.z])
+            return false
         end
+
+        if any([dist(q, o) < o.r + rads[i] for o in obstacles])
+            return false
+        end
+
+        return true
+    end
+
+    f(q_from::StatePoint3D, q_to::StatePoint3D, i::Int64) = begin
+        if any(x -> (x < rads[i] || 1 - rads[i] < x), [q_to.x, q_to.y, q_to.z])
+            return false
+        end
+
+        # check: collisions with static obstacles
+        if any([dist(q_from, q_to, o) < o.r + rads[i] for o in obstacles])
+            return false
+        end
+
+        return true
+    end
+
     return f
 end
 
@@ -62,14 +77,16 @@ function gen_collide(q::StatePoint3D, rads::Vector{Float64})::Function
         StatePoint3D,
         begin
             return dist(q_i_from, q_i_to, q_j_from, q_j_to) < rads[i] + rads[j]
-        end
+        end,
+        begin
+            return dist(q_i, q_j) < rads[i] + rads[j]
+        end,
     )
 end
 
-function gen_random_walk(q::StatePoint3D, eps::Float64)::Function
-    return (q::StatePoint3D) -> begin
-        s = uniform_ball_sampling(3) * eps
-        return StatePoint3D(q.x + s[1], q.y + s[2], q.z + s[3])
+function gen_uniform_sampling(q::StatePoint3D)::Function
+    () -> begin
+        return StatePoint3D(rand(3)...)
     end
 end
 
@@ -84,4 +101,67 @@ end
 
 function plot_agent!(q::StatePoint3D, rad::Float64, color::String)
     plot_sphere!(q.x, q.y, q.z, rad, color)
+end
+
+function gen_random_instance_StatePoint3D(;
+    N_min::Int64 = 2,
+    N_max::Int64 = 8,
+    N::Int64 = rand(N_min:N_max),
+    num_obs_min::Int64 = 0,
+    num_obs_max::Int64 = 10,
+    num_obs::Int64 = rand(num_obs_min:num_obs_max),
+    rad::Float64 = 0.025,
+    rad_obs::Float64 = 0.05,
+    rad_min::Float64 = rad,
+    rad_max::Float64 = rad,
+    rad_obs_min::Float64 = rad_obs,
+    rad_obs_max::Float64 = rad_obs,
+)
+
+    # generate obstacles
+    obstacles = map(
+        k -> CircleObstacle3D(
+            rand(3)...,
+            rand() * (rad_obs_max - rad_obs_min) + rad_obs_min,
+        ),
+        1:num_obs,
+    )
+
+    # determine rads
+    rads = map(e -> rand() * (rad_max - rad_min) + rad_min, 1:N)
+
+    # generate
+    q = StatePoint3D(0.0, 0.0, 0.0)
+    connect = gen_connect(q, rads, obstacles)
+    collide = gen_collide(q, rads)
+    sampler = gen_uniform_sampling(q)
+    config_init = Vector{StatePoint3D}()
+    config_goal = Vector{StatePoint3D}()
+    for i = 1:N
+        # add start
+        isvalid_init =
+            (q::StatePoint3D) -> (
+                connect(q, i) &&
+                all(e -> !collide(q, e[2], i, e[1]), enumerate(config_init))
+            )
+        q_init = sampler()
+        while !isvalid_init(q_init)
+            q_init = sampler()
+        end
+        push!(config_init, q_init)
+
+        # add goal
+        isvalid_goal =
+            (q::StatePoint3D) -> (
+                connect(q, i) &&
+                all(e -> !collide(q, e[2], i, e[1]), enumerate(config_goal))
+            )
+        q_goal = sampler()
+        while !isvalid_goal(q_goal)
+            q_goal = sampler()
+        end
+        push!(config_goal, q_goal)
+    end
+
+    return (config_init, config_goal, obstacles, rads)
 end
