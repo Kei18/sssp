@@ -109,10 +109,8 @@ function main(args::Vector{String})
     if !isfile(config["instance"])
         @warn @sprintf("%s does not exists", config["instance"])
     end
-    config = merge(
-        config,
-        Dict("instance" => YAML.load_file(config["instance"])["instance"])
-    )
+    config =
+        merge(config, Dict("instance" => YAML.load_file(config["instance"])["instance"]))
 
     # run once to force compilation
     @info "pre-compilation"

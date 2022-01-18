@@ -1,6 +1,11 @@
 MRMP
 ===
 
+## TODO
+- [ ] Line2d, visualization
+
+---
+
 [![Run test](https://github.com/Kei18/mrmp/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/Kei18/mrmp/actions/workflows/test.yml)
 
 A private research repo for multi-robot motion planning (MRMP), written in Julia (≥v1.6), tested on MacOS-10.15.

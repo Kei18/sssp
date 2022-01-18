@@ -1,33 +1,34 @@
-root: ../data/exp/point3d
+root: ../data/exp/line2d
 seed_offset: 0
 
-num_instances: 1
-save_instance_images: false
+num_instances: 5
+save_instance_images: true
+save_animation: true
 instance:
-  _target_: MRMP.gen_random_instance_StatePoint3D
+  _target_: MRMP.gen_random_instance_StateLine2D
   N_min: 2
-  N_max: 8
+  N_max: 5
   rad_min: 0.1
-  rad_max: 0.15
+  rad_max: 0.2
   num_obs_min: 0
   num_obs_max: 10
-  rad_obs_min: 0.1
-  rad_obs_max: 0.15
+  rad_obs_min: 0.05
+  rad_obs_max: 0.10
 
 solvers_common: &solvers_common
   max_makespan: 20
-  TIME_LIMIT: 10
+  TIME_LIMIT: 3
 
 solvers:
   # - _target_: MRMP.prioritized_planning
   #   <<: *solvers_common
   #   num_vertices: 30
-  #   roadmaps_growing_rate: 2.0
+    # roadmaps_growing_rate: 2.0
   # - _target_: MRMP.conflict_based_search
   #   <<: *solvers_common
   #   collision_weight: 0.5
   #   num_vertices: 30
-  #   roadmaps_growing_rate: 2.0
+  #   # roadmaps_growing_rate: 2.0
   - _target_: MRMP.Solvers.planner1
     <<: *solvers_common
     num_vertex_expansion: 10

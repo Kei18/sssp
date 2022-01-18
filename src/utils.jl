@@ -47,10 +47,10 @@ function direction(
 end
 
 function segments_intersect(
-    p1::Vector{Float64},
-    p2::Vector{Float64},
-    p3::Vector{Float64},
-    p4::Vector{Float64},
+    p1::Vector{Float64},  # root, line1
+    p2::Vector{Float64},  # tip,  line1
+    p3::Vector{Float64},  # root, line2
+    p4::Vector{Float64},  # tip,  line2
 )::Bool
     return (
         (direction(p3, p4, p1) * direction(p3, p4, p2) < 0) &&
@@ -110,19 +110,17 @@ function dist(
     )
 end
 
+function diff_angles(t1::Float64, t2::Float64)
+    atan(sin(t1 - t2), cos(t1 - t2))
+end
+
 function gen_collide(q::State, rads::Vector{Float64})::Function where {State<:StatePoint}
     N = length(rads)
 
-    f(
-        q_i_from::State,
-        q_i_to::State,
-        q_j_from::State,
-        q_j_to::State,
-        i::Int64,
-        j::Int64,
-    ) = begin
-        return dist(q_i_from, q_i_to, q_j_from, q_j_to) < rads[i] + rads[j]
-    end
+    f(q_i_from::State, q_i_to::State, q_j_from::State, q_j_to::State, i::Int64, j::Int64) =
+        begin
+            return dist(q_i_from, q_i_to, q_j_from, q_j_to) < rads[i] + rads[j]
+        end
 
     f(q_i::State, q_j::State, i::Int64, j::Int64) = begin
         return dist(q_i, q_j) < rads[i] + rads[j]
@@ -148,6 +146,95 @@ function gen_collide(q::State, rads::Vector{Float64})::Function where {State<:St
     end
 
     return f
+end
+
+function gen_random_instance(
+    _q::State;
+    N_min::Int64 = 2,
+    N_max::Int64 = 8,
+    N::Int64 = rand(N_min:N_max),
+    num_obs_min::Int64 = 0,
+    num_obs_max::Int64 = 10,
+    num_obs::Int64 = rand(num_obs_min:num_obs_max),
+    rad::Float64 = 0.025,
+    rad_obs::Float64 = 0.05,
+    rad_min::Float64 = rad,
+    rad_max::Float64 = rad,
+    rad_obs_min::Float64 = rad_obs,
+    rad_obs_max::Float64 = rad_obs,
+    TIME_LIMIT::Float64 = 0.5,
+)::Tuple{
+    Vector{State},
+    Vector{State},
+    Vector{Obs} where {Obs<:Obstacle},
+    Vector{Float64},
+} where {State<:AbsState}
+
+    while true
+        t_s = now()
+        timeover() = elapsed_sec(t_s) > TIME_LIMIT
+
+        # generate obstacles
+        obstacles = map(
+            k -> (
+                State == StatePoint3D ?
+                CircleObstacle3D(
+                    rand(3)...,
+                    rand() * (rad_obs_max - rad_obs_min) + rad_obs_min,
+                ) :
+                CircleObstacle2D(
+                    rand(2)...,
+                    rand() * (rad_obs_max - rad_obs_min) + rad_obs_min,
+                )
+            ),
+            1:num_obs,
+        )
+
+        # determine rads
+        rads = map(e -> rand() * (rad_max - rad_min) + rad_min, 1:N)
+
+        # generate
+        connect = gen_connect(_q, rads, obstacles)
+        collide = gen_collide(_q, rads)
+        sampler = gen_uniform_sampling(_q)
+        config_init = Vector{State}()
+        config_goal = Vector{State}()
+        for i = 1:N
+            # add start
+            isvalid_init =
+                (q::State) -> (
+                    connect(q, i) &&
+                    all(e -> !collide(q, e[2], i, e[1]), enumerate(config_init))
+                )
+            q_init = sampler()
+            while !timeover() && !isvalid_init(q_init)
+                q_init = sampler()
+            end
+            push!(config_init, q_init)
+
+            # add goal
+            isvalid_goal =
+                (q::State) -> (
+                    connect(q, i) &&
+                    all(e -> !collide(q, e[2], i, e[1]), enumerate(config_goal))
+                )
+            q_goal = sampler()
+            while !timeover() && !isvalid_goal(q_goal)
+                q_goal = sampler()
+            end
+            push!(config_goal, q_goal)
+
+            if timeover()
+                break
+            end
+        end
+
+        if timeover()
+            continue
+        end
+
+        return (config_init, config_goal, obstacles, rads)
+    end
 end
 
 function uniform_ball_sampling(d::Int64)

@@ -22,7 +22,7 @@ function dist(q_from::StatePoint3D, q_to::StatePoint3D, q_static::StatePoint3D):
     return dist(
         [q_from.x, q_from.y, q_from.z],
         [q_to.x, q_to.y, q_to.z],
-        [q_static.x, q_static.y, q_static.z]
+        [q_static.x, q_static.y, q_static.z],
     )
 end
 
@@ -99,65 +99,6 @@ function plot_agent!(q::StatePoint3D, rad::Float64, color::String)
     plot_sphere!(q.x, q.y, q.z, rad, color)
 end
 
-function gen_random_instance_StatePoint3D(;
-    N_min::Int64 = 2,
-    N_max::Int64 = 8,
-    N::Int64 = rand(N_min:N_max),
-    num_obs_min::Int64 = 0,
-    num_obs_max::Int64 = 10,
-    num_obs::Int64 = rand(num_obs_min:num_obs_max),
-    rad::Float64 = 0.025,
-    rad_obs::Float64 = 0.05,
-    rad_min::Float64 = rad,
-    rad_max::Float64 = rad,
-    rad_obs_min::Float64 = rad_obs,
-    rad_obs_max::Float64 = rad_obs,
-)
-
-    # generate obstacles
-    obstacles = map(
-        k -> CircleObstacle3D(
-            rand(3)...,
-            rand() * (rad_obs_max - rad_obs_min) + rad_obs_min,
-        ),
-        1:num_obs,
-    )
-
-    # determine rads
-    rads = map(e -> rand() * (rad_max - rad_min) + rad_min, 1:N)
-
-    # generate
-    q = StatePoint3D(0.0, 0.0, 0.0)
-    connect = gen_connect(q, rads, obstacles)
-    collide = gen_collide(q, rads)
-    sampler = gen_uniform_sampling(q)
-    config_init = Vector{StatePoint3D}()
-    config_goal = Vector{StatePoint3D}()
-    for i = 1:N
-        # add start
-        isvalid_init =
-            (q::StatePoint3D) -> (
-                connect(q, i) &&
-                all(e -> !collide(q, e[2], i, e[1]), enumerate(config_init))
-            )
-        q_init = sampler()
-        while !isvalid_init(q_init)
-            q_init = sampler()
-        end
-        push!(config_init, q_init)
-
-        # add goal
-        isvalid_goal =
-            (q::StatePoint3D) -> (
-                connect(q, i) &&
-                all(e -> !collide(q, e[2], i, e[1]), enumerate(config_goal))
-            )
-        q_goal = sampler()
-        while !isvalid_goal(q_goal)
-            q_goal = sampler()
-        end
-        push!(config_goal, q_goal)
-    end
-
-    return (config_init, config_goal, obstacles, rads)
+function gen_random_instance_StatePoint3D(; params...)
+    return gen_random_instance(StatePoint3D(0, 0, 0); params...)
 end
