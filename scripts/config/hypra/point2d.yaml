@@ -1,0 +1,49 @@
+root: ../data/exp/hypra_point2d
+seed_offset: 0
+num_instances: 100
+num_search_times: 500
+time_limit: 10
+
+instance:
+  _target_: MRMP.gen_random_instance_StatePoint2D
+  N_min: 2
+  N_max: 8
+  rad_min: 0.025
+  rad_max: 0.1
+  num_obs_min: 0
+  num_obs_max: 10
+  rad_obs_min: 0.05
+  rad_obs_max: 0.10
+
+solvers_common: &solvers_common
+  num_vertices:
+    - 30
+    - 50
+    - 70
+    - 90
+  rad:
+    - null
+    - 0.05
+    - 0.1
+    - 0.3
+    - 0.5
+  max_makespan:
+    - 10
+    - 20
+  roadmaps_growing_rate:
+    - null
+    - 1.0
+    - 1.1
+    - 1.5
+    - 2.0
+
+solvers:
+  - _target_: MRMP.prioritized_planning
+    <<: *solvers_common
+  - _target_: MRMP.conflict_based_search
+    <<: *solvers_common
+    collision_weight:
+      - 0.0
+      - 0.1
+      - 0.5
+      - 1.0

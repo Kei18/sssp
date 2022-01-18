@@ -20,7 +20,7 @@ function get_Q_id(
     Q::Vector{Node{State}},
     t::Int64,
     next::Int64,
-    )::String where {State<:AbsState}
+)::String where {State<:AbsState}
     return @sprintf("%s_%d_%d", join([v.id for v in Q], "-"), t, next)
 end
 
@@ -31,13 +31,13 @@ function planner1(
     connect::Function,
     collide::Function,
     check_goal::Function;
-    g_func::Function = gen_g_func(greedy=true),
-    max_iteration::Union{Nothing, Int64} = nothing,
+    g_func::Function = gen_g_func(greedy = true),
+    max_iteration::Union{Nothing,Int64} = nothing,
     num_vertex_expansion::Int64 = 10,
     init_min_dist_thread::Float64 = 0.1,
     decreasing_rate_min_dist_thread::Float64 = 0.99,
     steering_depth::Int64 = 2,
-    max_makespan::Union{Nothing, Int64} = nothing,
+    max_makespan::Union{Nothing,Int64} = nothing,
     TIME_LIMIT::Union{Nothing,Real} = 30,
     VERBOSE::Int64 = 0,
 )::Tuple{
@@ -54,10 +54,10 @@ function planner1(
     N = length(config_init)
 
     roadmaps = map(
-        i -> [ Node{State}(config_init[i], 1, []), Node{State}(config_goal[i], 2, []) ],
+        i -> [Node{State}(config_init[i], 1, []), Node{State}(config_goal[i], 2, [])],
         1:N,
     )
-    for i in 1:N
+    for i = 1:N
         if connect(config_init[i], config_goal[i], i)
             push!(roadmaps[i][1].neighbors, 2)
             push!(roadmaps[i][2].neighbors, 1)
@@ -84,18 +84,15 @@ function planner1(
             )
         end
 
-    h_func(Q::Vector{Node{State}}) = sum([dist(v.q, config_goal[i]) for (i, v) in enumerate(Q)])
+    h_func(Q::Vector{Node{State}}) =
+        sum([dist(v.q, config_goal[i]) for (i, v) in enumerate(Q)])
 
     # initial configuration
     Q_init = [roadmaps[i][1] for i = 1:N]
 
     # initial search node
-    S_init = SuperNode(
-        Q = Q_init,
-        next = 1,
-        id = get_Q_id(Q_init, 1, 0),
-        h = h_func(Q_init),
-    )
+    S_init =
+        SuperNode(Q = Q_init, next = 1, id = get_Q_id(Q_init, 1, 0), h = h_func(Q_init))
 
     # iteration
     k = 0
@@ -109,9 +106,9 @@ function planner1(
         VISITED = Dict{String,SuperNode{State}}()
 
         # already expanded in this iteration
-        EXPANDED = [Dict{Int64, Bool}() for i in 1:N]
+        EXPANDED = [Dict{Int64,Bool}() for i = 1:N]
 
-        min_dist_thread = init_min_dist_thread*(decreasing_rate_min_dist_thread^(k-1))
+        min_dist_thread = init_min_dist_thread * (decreasing_rate_min_dist_thread^(k - 1))
 
         # setup initail node
         enqueue!(OPEN, S_init, S_init.f)
@@ -136,7 +133,7 @@ function planner1(
             if S.next > 0
                 # initial search or update for refine agents
                 i = S.next
-                j = mod1(S.next+1, N)
+                j = mod1(S.next + 1, N)
 
                 v = S.Q[i]
 
@@ -144,12 +141,12 @@ function planner1(
                 if !get(EXPANDED[i], v.id, false)
                     EXPANDED[i][v.id] = true
 
-                    for _ in 1:num_vertex_expansion
+                    for _ = 1:num_vertex_expansion
                         # steering
                         q_l = v.q
                         q_h = sampler()
                         if !connect(q_l, q_h, i)
-                            for _ in 1:steering_depth
+                            for _ = 1:steering_depth
                                 q = MRMP.get_mid_status(q_l, q_h)
                                 if connect(v.q, q, i)
                                     q_l = q

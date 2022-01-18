@@ -11,9 +11,10 @@ import Base.Threads
 function run!(
     k::Int64,
     instance::Tuple,
-    solvers::Vector{Dict{Any, Any}},
+    solvers::Vector{Dict{Any,Any}},
     result::Vector{Any};
-    seed::Int64=0)
+    seed::Int64 = 0,
+)
 
     config_init, config_goal, obstacles, rads = instance
 
@@ -26,8 +27,9 @@ function run!(
     # solve
     for (l, solver_info) in enumerate(solvers)
         solver = Meta.parse(solver_info["_target_"])
-        params =  Dict([
-            (Symbol(key), val) for (key, val) in filter(e -> e[1] != "_target_", solver_info)
+        params = Dict([
+            (Symbol(key), val) for
+            (key, val) in filter(e -> e[1] != "_target_", solver_info)
         ])
         seed!(seed)
         t = @elapsed begin
@@ -41,8 +43,12 @@ function run!(
             )
         end
         if !MRMP.validate(config_init, connect, collide, check_goal, solution)
-            @error @sprintf("%s yields invalid solution for instance-%d, seed=%d",
-                            solver_info["_target_"], k, seed)
+            @error @sprintf(
+                "%s yields invalid solution for instance-%d, seed=%d",
+                solver_info["_target_"],
+                k,
+                seed
+            )
         end
 
         result[length(solvers)*(k-1)+l] = (
@@ -92,7 +98,7 @@ function main(config::Dict; pre_compile::Bool = false)
     end
     if !pre_compile && get(config, "save_instance_images", false)
         @info "saving instance images"
-        for k in 1:num_instances
+        for k = 1:num_instances
             plot_instance!(
                 instances[k]...;
                 filename = joinpath(root_dir, @sprintf("%04d_ins.png", k)),
@@ -106,7 +112,7 @@ function main(config::Dict; pre_compile::Bool = false)
     result = Array{Any}(undef, num_total_tasks)
     @info @sprintf("start solving with %d threads", Threads.nthreads())
     Threads.@threads for k = 1:num_instances
-        run!(k, instances[k], config["solvers"], result; seed=seed_offset)
+        run!(k, instances[k], config["solvers"], result; seed = seed_offset)
         Threads.atomic_add!(cnt_fin, num_solvers)
         @printf("\r%04d/%04d tasks have been finished", cnt_fin[], num_total_tasks)
     end

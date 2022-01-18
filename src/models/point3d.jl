@@ -7,7 +7,7 @@ end
 to_string(s::StatePoint3D) = @sprintf("(%.4f, %.4f, %.4f)", s.x, s.y, s.z)
 
 function get_mid_status(p::StatePoint3D, q::StatePoint3D)::StatePoint3D
-    return StatePoint3D((p.x + q.x)/2, (p.y + q.y)/2, (p.z + q.z)/2)
+    return StatePoint3D((p.x + q.x) / 2, (p.y + q.y) / 2, (p.z + q.z) / 2)
 end
 
 function dist(q1::StatePoint3D, q2::StatePoint3D)::Float64
@@ -41,7 +41,7 @@ function gen_connect(
     rads::Vector{Float64},
     obstacles::Vector{CircleObstacle3D},
     eps::Float64 = 0.2,
-    )::Function
+)::Function
 
     # check: q \in C_free
     f(q::StatePoint3D, i::Int64)::Bool = begin
@@ -96,7 +96,7 @@ end
 
 function plot_start_goal!(q_init::StatePoint3D, q_goal::StatePoint3D, rad::Float64, params)
     plot!([q_init.x], [q_init.y], [q_init.z]; markershape = :hex, params...)
-    plot!([q_goal.x], [q_goal.y], [q_init.z]; markershape = :star, params...)
+    plot!([q_goal.x], [q_goal.y], [q_goal.z]; markershape = :star, params...)
 end
 
 function plot_agent!(q::StatePoint3D, rad::Float64, color::String)

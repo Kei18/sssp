@@ -133,7 +133,7 @@ function plot_init!(State::DataType)
             yflip = true,
         )
     else
-        plot3d(xlim = (0, 1), ylim = (0, 1), zlim = (0, 1))
+        plot3d(size = (400, 400), xlim = (0, 1), ylim = (0, 1), zlim = (0, 1))
     end
 end
 
