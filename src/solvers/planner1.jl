@@ -184,7 +184,7 @@ function planner1(
 
                     # check duplication and collision
                     Q_id = get_Q_id(Q, S.t, j)
-                    if haskey(VISITED, Q_id) || collide(S.Q, Q)
+                    if haskey(VISITED, Q_id) || collide(S.Q, p.q, i)
                         continue
                     end
 

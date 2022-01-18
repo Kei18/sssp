@@ -18,6 +18,14 @@ function dist(q_from::StatePoint3D, q_to::StatePoint3D, o::CircleObstacle3D)::Fl
     return dist([q_from.x, q_from.y, q_from.z], [q_to.x, q_to.y, q_to.z], [o.x, o.y, o.z])
 end
 
+function dist(q_from::StatePoint3D, q_to::StatePoint3D, q_static::StatePoint3D)::Float64
+    return dist(
+        [q_from.x, q_from.y, q_from.z],
+        [q_to.x, q_to.y, q_to.z],
+        [q_static.x, q_static.y, q_static.z]
+    )
+end
+
 function dist(q::StatePoint3D, o::CircleObstacle3D)::Float64
     return norm([q.x - o.x, q.y - o.y, q.z - o.z])
 end
@@ -70,18 +78,6 @@ function gen_connect(
     end
 
     return f
-end
-
-function gen_collide(q::StatePoint3D, rads::Vector{Float64})::Function
-    @gen_collide(
-        StatePoint3D,
-        begin
-            return dist(q_i_from, q_i_to, q_j_from, q_j_to) < rads[i] + rads[j]
-        end,
-        begin
-            return dist(q_i, q_j) < rads[i] + rads[j]
-        end,
-    )
 end
 
 function gen_uniform_sampling(q::StatePoint3D)::Function

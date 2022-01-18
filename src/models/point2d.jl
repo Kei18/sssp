@@ -17,6 +17,10 @@ function dist(q_from::StatePoint2D, q_to::StatePoint2D, o::CircleObstacle2D)::Fl
     return dist([q_from.x, q_from.y], [q_to.x, q_to.y], [o.x, o.y])
 end
 
+function dist(q_from::StatePoint2D, q_to::StatePoint2D, q_static::StatePoint2D)::Float64
+    return dist([q_from.x, q_from.y], [q_to.x, q_to.y], [q_static.x, q_static.y])
+end
+
 function dist(q::StatePoint2D, o::CircleObstacle2D)::Float64
     return norm([q.x - o.x, q.y - o.y])
 end
@@ -68,18 +72,6 @@ function gen_connect(
     end
 
     return f
-end
-
-function gen_collide(q::StatePoint2D, rads::Vector{Float64})::Function
-    @gen_collide(
-        StatePoint2D,
-        begin
-            return dist(q_i_from, q_i_to, q_j_from, q_j_to) < rads[i] + rads[j]
-        end,
-        begin
-            return dist(q_i, q_j) < rads[i] + rads[j]
-        end,
-    )
 end
 
 function gen_uniform_sampling(q::StatePoint2D)::Function
