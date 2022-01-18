@@ -2,7 +2,7 @@ root: ../data/exp/point3d
 seed_offset: 0
 
 num_instances: 1
-save_instance_images: true
+save_instance_images: false
 instance:
   _target_: MRMP.gen_random_instance_StatePoint3D
   N_min: 2
@@ -22,14 +22,14 @@ solvers:
   - _target_: MRMP.prioritized_planning
     <<: *solvers_common
     num_vertices: 30
-    # roadmaps_growing_rate: 2.0
-  # - _target_: MRMP.conflict_based_search
-  #   <<: *solvers_common
-  #   collision_weight: 0.5
-  #   num_vertices: 30
-    # roadmaps_growing_rate: 2.0
-  # - _target_: MRMP.Solvers.planner1
-  #   <<: *solvers_common
-  #   num_vertex_expansion: 10
-  #   init_min_dist_thread: 0.1
-  #   decreasing_rate_min_dist_thread: 0.99
+    roadmaps_growing_rate: 2.0
+  - _target_: MRMP.conflict_based_search
+    <<: *solvers_common
+    collision_weight: 0.5
+    num_vertices: 30
+    roadmaps_growing_rate: 2.0
+  - _target_: MRMP.Solvers.planner1
+    <<: *solvers_common
+    num_vertex_expansion: 10
+    init_min_dist_thread: 0.1
+    decreasing_rate_min_dist_thread: 0.99
