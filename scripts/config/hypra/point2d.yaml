@@ -1,19 +1,10 @@
 root: ../data/exp/hypra_point2d
-seed_offset: 0
-num_instances: 100
+seed_offset: 10000
+num_instances: 50
 num_search_times: 500
 time_limit: 10
 
-instance:
-  _target_: MRMP.gen_random_instance_StatePoint2D
-  N_min: 2
-  N_max: 8
-  rad_min: 0.025
-  rad_max: 0.1
-  num_obs_min: 0
-  num_obs_max: 10
-  rad_obs_min: 0.05
-  rad_obs_max: 0.10
+instance: ./scripts/config/eval/point2d.yaml
 
 solvers_common: &solvers_common
   num_vertices:
