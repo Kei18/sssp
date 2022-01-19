@@ -12,7 +12,7 @@ function get_mid_status(p::StateLine2D, q::StateLine2D)::StateLine2D
     return StateLine2D(
         (p.x + q.x) / 2,
         (p.y + q.y) / 2,
-        diff_angles(p.theta, q.theta) / 2 + p.theta,
+        diff_angles(q.theta, p.theta) / 2 + p.theta,
     )
 end
 

@@ -192,6 +192,7 @@ function plot_anim!(
     solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing;
     filename::String = "tmp.gif",
     fps::Int64 = 10,
+    interpolate_depth::Union{Nothing, Int64}=nothing,
 ) where {State<:AbsState}
 
     if solution == nothing
@@ -199,13 +200,39 @@ function plot_anim!(
         return
     end
 
-    anim = @animate for Q in solution
+    T = length(solution)
+    anim = @animate for (t, Q) in enumerate(vcat(solution, [solution[end]]))
         plot_init!(State)
         plot_obs!(obstacles)
         plot_traj!(solution, rads; lw = 1.0)
         plot_start_goal!(config_init, config_goal, rads)
-        for (i, v) in enumerate(Q)
-            plot_agent!(v.q, rads[i], get_color(i))
+
+        if !isnothing(interpolate_depth) && interpolate_depth > 0 && 1 < t <= T
+            C_arr = Array{Any}(undef, 2 + sum(map(k->2^k, 0:interpolate_depth-1)))
+            add_mid_config(d, ind1, ind2) = begin
+                if d > 0
+                    C1 = C_arr[ind1]
+                    C2 = C_arr[ind2]
+                    C = map(e -> get_mid_status(e...), zip(C1, C2))
+                    ind = Int64((ind1+ind2)/2)
+                    C_arr[ind] = C
+                    add_mid_config(d-1, ind1, ind)
+                    add_mid_config(d-1, ind, ind2)
+                end
+            end
+
+            C_arr[1] = map(v -> v.q, solution[t-1])
+            C_arr[end] = map(v -> v.q, solution[t])
+            add_mid_config(interpolate_depth, 1, length(C_arr))
+            for Q_tmp in C_arr
+                for (i, q) in enumerate(Q_tmp)
+                    plot_agent!(q, rads[i], get_color(i))
+                end
+            end
+        else
+            for (i, v) in enumerate(Q)
+                plot_agent!(v.q, rads[i], get_color(i))
+            end
         end
     end
 
