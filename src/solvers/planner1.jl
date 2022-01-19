@@ -189,7 +189,7 @@ function planner1(
                     end
 
                     # check max makespan
-                    if isnothing(max_makespan) && max_makespan * N < S.depth + 1
+                    if !isnothing(max_makespan) && max_makespan * N < S.depth + 1
                         continue
                     end
 

@@ -66,7 +66,7 @@ function dist(a::Vector{Float64}, b::Vector{Float64}, c::Vector{Float64})::Float
     e = 1
     if df_0 * df_1 < 0
         e = -dot(a - b, b - c) / dot(a - b, a - b)
-    elseif df_0 > 0
+    elseif df_0 >= 0
         e = 0
     end
 
@@ -447,7 +447,7 @@ function validate(
     for t = 2:T
         # check connectivity
         if !all(i -> connect(solution[t-1][i].q, solution[t][i].q, i), 1:N)
-            @warn @sprintf("invalid: not connected")
+            @warn @sprintf("invalid: not connected at t= %d -> %d", t - 1, t)
             return false
         end
 
