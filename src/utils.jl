@@ -58,6 +58,10 @@ function segments_intersect(
     )
 end
 
+function dist(C1::Vector{State}, C2::Vector{State})::Float64 where {State<:AbsState}
+    sum(e -> dist(e...), zip(C1, C2))
+end
+
 # from line to point
 function dist(a::Vector{Float64}, b::Vector{Float64}, c::Vector{Float64})::Float64
     df_0 = dot(a - b, b - c)
@@ -253,10 +257,14 @@ function gen_check_goal(
     goal_rads::Vector{Float64} = fill(goal_rad, length(config_goal)),
 )::Function where {State<:AbsState}
 
+    N = length(config_goal)
+
+    f(C::Vector{State}) = begin
+        all(i -> dist(C[i], config_goal[i]) <= goal_rads[i], 1:N)
+    end
+
     f(Q::Vector{Node{State}}) = begin
-        return all([
-            dist(v.q, q) <= goal_rads[i] for (i, (v, q)) in enumerate(zip(Q, config_goal))
-        ])
+        all(i -> dist(Q[i].q, config_goal[i]) <= goal_rads[i], 1:N)
     end
 
     f(v::Node{State}, i::Int64) = begin

@@ -9,10 +9,11 @@ import Random: randperm
 
 include("utils.jl")
 include("prm.jl")
+include("rrt.jl")
 include("pp.jl")
 include("cbs.jl")
 include("planner1.jl")
 
 using .CBS
-export PRMs, PRMs!, prioritized_planning, conflict_based_search, planner1
+export PRMs, PRMs!, RRT, prioritized_planning, conflict_based_search, planner1
 end
