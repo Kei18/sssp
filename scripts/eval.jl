@@ -16,6 +16,7 @@ function run!(
     seed::Int64 = 0,
     root_dir::String = "",
     save_animation::Bool = false,
+    anim_plot_params::Dict = Dict(),
 )::Nothing
 
     config_init, config_goal, obstacles, rads = instance
@@ -73,6 +74,7 @@ function run!(
                 rads,
                 solution;
                 filename = "$(root_dir)/res_$(solver_name)_$(k).gif",
+                anim_plot_params...
             )
     end
 end
@@ -122,6 +124,9 @@ function main(config::Dict; pre_compile::Bool = false)
     num_total_tasks = num_instances * num_solvers
     cnt_fin = Threads.Atomic{Int}(0)
     result = Array{Any}(undef, num_total_tasks)
+    save_animation = !pre_compile && get(config, "save_animation", false)
+    anim_plot_params = Dict(Symbol(key) => val for (key, val) in get(config, "anim_plot_params", Dict()))
+
     @info @sprintf("start solving with %d threads", Threads.nthreads())
     Threads.@threads for k = 1:num_instances
         run!(
@@ -131,7 +136,8 @@ function main(config::Dict; pre_compile::Bool = false)
             result;
             seed = seed_offset,
             root_dir = root_dir,
-            save_animation = !pre_compile && get(config, "save_animation", false),
+            save_animation = save_animation,
+            anim_plot_params = anim_plot_params,
         )
         Threads.atomic_add!(cnt_fin, num_solvers)
         @printf("\r%04d/%04d tasks have been finished", cnt_fin[], num_total_tasks)
