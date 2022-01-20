@@ -1,4 +1,4 @@
-function RRT(
+function RRT_connect(
     config_init::Vector{State},
     config_goal::Vector{State},
     connect::Function,
@@ -35,59 +35,16 @@ function RRT(
         end
     end
 
-    get_roadmaps() = begin
-        roadmaps = map(i -> Vector{Node{State}}(), 1:N)
-        for (k, C) in enumerate(V)
-            for (i, q) in enumerate(C)
-                push!(roadmaps[i], Node{State}(q, k, k == 1 ? [] : [P[k]]))
-            end
-        end
-        roadmaps
-    end
-
-    backtrack() = begin
-        solution = Vector{Vector{Node{State}}}()
-        ind = length(V)
-        while ind != -1
-            pushfirst!(solution, map(q -> Node{State}(q, ind, []), V[ind]))
-            ind = P[ind]
-        end
-        solution
-    end
-
-    # store all samples
-    V = [config_init]
-    # parents index
-    P = [-1]
-
-    # special case
-    if connect_C(config_init, config_goal)
-        return (
-            [
-                map(q -> Node{State}(q, 1, []), config_init),
-                map(q -> Node{State}(q, 1, []), config_goal),
-            ],
-            get_roadmaps(),
-        )
-    end
-
-    iter = 0
-    while !timeover()
-        iter += 1
-
-        VERBOSE > 1 &&
-            iter % 100 == 0 &&
-            @printf("\r\t%6.4f sec, iteration: %02d", elapsed(), iter)
-
-        # new sample
-        C_h = sampler()
-        # find parent
-        _, ind_near = findmin(C -> dist(C, C_h), V)
+    extend!(C_rand, V, P) = begin
+        ind_near = findmin(C -> dist(C, C_rand), V)[end]
         C_near = V[ind_near]
+        flg = :reached
 
         # steering
         C_l = C_near  # safe sample
+        C_h = C_rand
         if !connect_C(C_l, C_h)
+            flg = :advanced
             for _ = 1:steering_depth
                 C = map(e -> MRMP.get_mid_status(e...), zip(C_l, C_h))
                 if connect_C(C_near, C)
@@ -103,22 +60,93 @@ function RRT(
         push!(V, C_h)
         push!(P, ind_near)
 
-        # try to connect goal
-        if connect_C(C_h, config_goal)
-            push!(V, config_goal)
-            push!(P, length(V) - 1)
-            C_h = config_goal
+        return (flg, C_h)
+    end
+
+    get_roadmaps() = begin
+        roadmaps = map(i -> Vector{Node{State}}(), 1:N)
+        for (k, C) in enumerate(V1)
+            for (i, q) in enumerate(C)
+                push!(roadmaps[i], Node{State}(q, k, P1[k] == -1 ? [] : [P1[k]]))
+            end
+        end
+        K = length(V1)
+        for (k, C) in enumerate(V2)
+            for (i, q) in enumerate(C)
+                push!(roadmaps[i], Node{State}(q, k, P2[k] == -1 ? [] : [P2[k] + K]))
+            end
+        end
+        roadmaps
+    end
+
+    backtrack!() = begin
+        # create solution
+        solution = Vector{Vector{Node{State}}}()
+
+        # fix tree
+        if V1[1] == config_goal
+            V1, V2 = V2, V1
+            P1, P2 = P2, P1
         end
 
-        # goal connection check
-        if check_goal(C_h)
+        ind = length(V1)
+        while ind != -1
+            pushfirst!(solution, map(q -> Node{State}(q, ind, []), V1[ind]))
+            ind = P1[ind]
+        end
+        solution = solution[1:end-1]
+        ind = length(V2)
+        while ind != -1
+            push!(solution, map(q -> Node{State}(q, ind, []), V2[ind]))
+            ind = P2[ind]
+        end
+
+        return solution
+    end
+
+    # store all samples
+    V1 = [config_init]
+    V2 = [config_goal]
+    # parents index
+    P1 = [-1]
+    P2 = [-1]
+
+    V = V1
+    P = P1
+
+    # special case
+    if connect_C(config_init, config_goal)
+        return (
+            [
+                map(q -> Node{State}(q, 1, []), config_init),
+                map(q -> Node{State}(q, 1, []), config_goal),
+            ],
+            get_roadmaps(),
+        )
+    end
+
+    # main loop
+    iter = 0
+    while !timeover()
+        iter += 1
+
+        VERBOSE > 1 &&
+            iter % 100 == 0 &&
+            @printf("\r\t%6.4f sec, iteration: %02d", elapsed(), iter)
+
+        C_new = extend!(sampler(), V1, P1)[end]
+        if extend!(C_new, V2, P2)[1] == :reached
             VERBOSE > 1 && @printf("\r\t%6.4f sec, iteration: %02d", elapsed(), iter)
             VERBOSE > 0 && @printf("\t%6.4f sec: found solution\n", elapsed())
-            return (backtrack(), get_roadmaps())
+            return (backtrack!(), get_roadmaps())
         end
 
+        # swap tree
+        V1, V2 = V2, V1
+        P1, P2 = P2, P1
     end
 
     VERBOSE > 0 && @printf("\t%6.4f sec: failed to find solution\n", elapsed())
+
     return (nothing, get_roadmaps())
 end

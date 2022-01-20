@@ -74,7 +74,7 @@ function run!(
                 rads,
                 solution;
                 filename = "$(root_dir)/res_$(solver_name)_$(k).gif",
-                anim_plot_params...
+                anim_plot_params...,
             )
     end
 end
@@ -125,7 +125,8 @@ function main(config::Dict; pre_compile::Bool = false)
     cnt_fin = Threads.Atomic{Int}(0)
     result = Array{Any}(undef, num_total_tasks)
     save_animation = !pre_compile && get(config, "save_animation", false)
-    anim_plot_params = Dict(Symbol(key) => val for (key, val) in get(config, "anim_plot_params", Dict()))
+    anim_plot_params =
+        Dict(Symbol(key) => val for (key, val) in get(config, "anim_plot_params", Dict()))
 
     @info @sprintf("start solving with %d threads", Threads.nthreads())
     Threads.@threads for k = 1:num_instances
