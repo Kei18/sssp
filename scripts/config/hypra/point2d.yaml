@@ -29,12 +29,27 @@ solvers_common: &solvers_common
     - 2.0
 
 solvers:
-  - _target_: MRMP.prioritized_planning
-    <<: *solvers_common
-  - _target_: MRMP.conflict_based_search
-    <<: *solvers_common
-    collision_weight:
-      - 0.0
+  # - _target_: MRMP.prioritized_planning
+  #   <<: *solvers_common
+  # - _target_: MRMP.conflict_based_search
+  #   <<: *solvers_common
+  #   collision_weight:
+  #     - 0.0
+  #     - 0.1
+  #     - 0.5
+  #     - 1.0
+  - _target_: MRMP.RRT
+    steering_depth:
+      - 0
+      - 1
+      - 2
+      - 4
+      - 8
+      - 16
+    epsilon:
+      - null
       - 0.1
+      - 0.2
       - 0.5
       - 1.0
+      - 2.0
