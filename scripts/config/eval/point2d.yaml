@@ -31,6 +31,10 @@ solvers:
     rad: 0.3
     roadmaps_growing_rate: 1.0
     collision_weight: 1.0
+  - _target_: MRMP.RRT
+    <<: *solvers_common
+    steering_depth: 4
+    epsilon: null
   - _target_: MRMP.Solvers.planner1
     <<: *solvers_common
     num_vertex_expansion: 10
