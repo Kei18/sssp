@@ -1,3 +1,142 @@
+function PRM_direct(
+    config_init::Vector{State},
+    config_goal::Vector{State},
+    connect::Function,
+    collide::Function,
+    check_goal::Function;
+    epsilon::Union{Float64,Nothing} = 0.2,
+    TIME_LIMIT::Union{Nothing,Real} = nothing,
+    VERBOSE::Int64 = 0,
+)::Tuple{
+    Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+    Vector{Vector{Node{State}}},  # roadmaps
+} where {State<:AbsState}
+    """solve the problem directly"""
+
+    t_s = now()
+    elapsed() = elapsed_sec(t_s)
+    timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
+
+    N = length(config_init)
+
+    # define utilities
+    _sampler = MRMP.gen_uniform_sampling(config_init[1])
+    sampler() = map(i -> _sampler(), 1:N)
+    connect_C(C_from::Vector{State}, C_to::Vector{State}) = begin
+        (isnothing(epsilon) || dist(C_from, C_to) <= epsilon) &&
+        all(i -> connect(C_from[i], C_to[i], i), 1:N) &&
+        begin
+            for i = 1:N, j = i+1:N
+                if collide(C_from[i], C_to[i], C_from[j], C_to[j], i, j)
+                    return false
+                end
+            end
+            return true
+        end
+    end
+
+    get_roadmaps() = begin
+        roadmaps = map(i -> Vector{Node{State}}(), 1:N)
+        for (k, C) in enumerate(V)
+            for (i, q) in enumerate(C)
+                push!(roadmaps[i], Node{State}(q, k, E[k]))
+            end
+        end
+        roadmaps
+    end
+
+    # vertices
+    V = [config_init, config_goal]
+
+    # edges
+    E = [[], []]
+
+    # distance
+    D = [0.0, nothing]
+
+    # special case
+    if connect_C(config_init, config_goal)
+        push!(E[1], 2)
+        push!(E[2], 1)
+        return (
+            [
+                map(q -> Node{State}(q, 1, []), config_init),
+                map(q -> Node{State}(q, 1, []), config_goal),
+            ],
+            get_roadmaps(),
+        )
+    end
+
+    iter = 0
+    while !timeover()
+        iter += 1
+
+        VERBOSE > 1 &&
+            iter % 100 == 0 &&
+            @printf("\r\t%6.4f sec, iteration: %02d", elapsed(), iter)
+
+        # sampling
+        C = sampler()
+        while !timeover() && any(i -> !connect(C[i], i), 1:N)
+            C = sampler()
+        end
+        timeover() && break
+
+        # update graph
+        push!(V, C)
+        neigh = collect(filter(k -> connect_C(C, V[k]), 1:length(V)-1))
+        L = length(V)
+        push!(E, neigh)
+        foreach(k -> push!(E[k], L), neigh)
+        push!(D, nothing)
+
+        isempty(neigh) && continue
+
+        # Dijkstra method
+        # setup open list
+        OPEN = PriorityQueue{Int64,Float64}()
+        enqueue!(OPEN, 1, D[1])
+
+        # parent
+        P = fill(0, L)
+
+        while !isempty(OPEN)
+            # pop
+            k = dequeue!(OPEN)
+
+            # check goal
+            if check_goal(V[k])
+                # backtrack
+                solution = Vector{Vector{Node{State}}}()
+                l = k
+                while l != 0
+                    pushfirst!(solution, map(q -> Node{State}(q, l, []), V[l]))
+                    l = P[l]
+                end
+                VERBOSE > 1 && @printf("\r\t%6.4f sec, iteration: %02d", elapsed(), iter)
+                VERBOSE > 0 && @printf("\t%6.4f sec: found solution\n", elapsed())
+                return (solution, get_roadmaps())
+            end
+
+            # expand
+            for l in E[k]
+                d = D[k] + dist(V[k], V[l])
+                if isnothing(D[l]) || d < D[l]
+                    # update connection
+                    D[l] = d
+                    P[l] = k
+                    haskey(OPEN, l) && delete!(OPEN, l)
+                    enqueue!(OPEN, l, d)
+                end
+            end
+        end
+    end
+
+    VERBOSE > 0 && @printf("\n\t%6.4f sec: failed to find solution\n", elapsed())
+    return (nothing, get_roadmaps())
+end
+
+
 function PRM!(
     roadmap::Vector{Node{State}},
     connect::Function,

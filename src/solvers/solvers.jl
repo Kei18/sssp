@@ -16,5 +16,6 @@ include("cbs.jl")
 include("planner1.jl")
 
 using .CBS
-export PRMs, PRMs!, RRT, RRT_connect, prioritized_planning, conflict_based_search, planner1
+export PRM_direct,
+    PRMs, PRMs!, RRT, RRT_connect, prioritized_planning, conflict_based_search, planner1
 end

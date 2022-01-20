@@ -110,9 +110,8 @@ function plot_traj!(
     lw::Float64 = 3.0,
 ) where {State<:AbsState}
 
-    if solution == nothing
-        return
-    end
+    isnothing(solution) && return
+
     N = length(solution[1])
     for (t, Q_to) in enumerate(solution[2:end])
         Q_from = solution[t]
@@ -131,6 +130,7 @@ function plot_init!(State::DataType)
             ylim = (0, 1),
             framestyle = :box,
             yflip = true,
+            xmirror = true,
         )
     else
         plot3d(size = (400, 400), xlim = (0, 1), ylim = (0, 1), zlim = (0, 1))
@@ -138,13 +138,10 @@ function plot_init!(State::DataType)
 end
 
 function safe_savefig!(filename::Union{Nothing,String} = nothing)
-    if filename != nothing
-        dirname = join(split(filename, "/")[1:end-1], "/")
-        if !isdir(dirname)
-            mkpath(dirname)
-        end
-        savefig(filename)
-    end
+    isnothing(filename) && return
+    dirname = join(split(filename, "/")[1:end-1], "/")
+    !isdir(dirname) && mkpath(dirname)
+    savefig(filename)
 end
 
 function plot_instance!(
@@ -195,7 +192,7 @@ function plot_anim!(
     interpolate_depth::Union{Nothing,Int64} = nothing,
 ) where {State<:AbsState}
 
-    if solution == nothing
+    if isnothing(solution)
         @warn "solution has not computed yet!"
         return
     end
@@ -237,9 +234,7 @@ function plot_anim!(
     end
 
     dirname = join(split(filename, "/")[1:end-1], "/")
-    if !isdir(dirname)
-        mkpath(dirname)
-    end
+    !isdir(dirname) && mkpath(dirname)
 
     return gif(anim, filename, fps = fps)
 end
