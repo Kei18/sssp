@@ -5,6 +5,7 @@ function RRT(
     collide::Function,
     check_goal::Function;
     steering_depth::Int64 = 4,
+    epsilon::Union{Float64, Nothing} = 0.2,
     TIME_LIMIT::Union{Nothing,Real} = nothing,
     VERBOSE::Int64 = 0,
 )::Tuple{
@@ -22,14 +23,16 @@ function RRT(
     _sampler = MRMP.gen_uniform_sampling(config_init[1])
     sampler() = map(i -> _sampler(), 1:N)
     connect_C(C_from::Vector{State}, C_to::Vector{State}) = begin
-        all(i -> connect(C_from[i], C_to[i], i), 1:N) && begin
+        (isnothing(epsilon) || dist(C_from, C_to) <= epsilon) &&
+            all(i -> connect(C_from[i], C_to[i], i), 1:N) &&
+            begin
             for i = 1:N, j = i+1:N
                 if collide(C_from[i], C_to[i], C_from[j], C_to[j], i, j)
                     return false
                 end
             end
-            return true
-        end
+                return true
+            end
     end
 
     get_roadmaps() = begin
