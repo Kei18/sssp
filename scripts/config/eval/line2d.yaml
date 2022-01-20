@@ -1,34 +1,41 @@
 root: ../data/exp/line2d
 seed_offset: 0
 
-num_instances: 5
-save_instance_images: true
-save_animation: true
+num_instances: 100
+save_instance_images: false
+save_animation: false
+anim_plot_params:
+  interpolate_depth: 3
+  fps: 3
+
 instance:
   _target_: MRMP.gen_random_instance_StateLine2D
-  N_min: 2
-  N_max: 5
-  rad_min: 0.1
+  N_min: 1
+  N_max: 1
+  rad_min: 0.2
   rad_max: 0.2
-  num_obs_min: 0
-  num_obs_max: 10
+  num_obs_min: 20
+  num_obs_max: 30
   rad_obs_min: 0.05
   rad_obs_max: 0.10
 
 solvers_common: &solvers_common
-  max_makespan: 20
-  TIME_LIMIT: 3
+  TIME_LIMIT: 30
 
 solvers:
-  # - _target_: MRMP.prioritized_planning
-  #   <<: *solvers_common
-  #   num_vertices: 30
+  - _target_: MRMP.prioritized_planning
+    <<: *solvers_common
+    num_vertices: 50
+    max_makespan: 20
     # roadmaps_growing_rate: 2.0
-  # - _target_: MRMP.conflict_based_search
-  #   <<: *solvers_common
-  #   collision_weight: 0.5
-  #   num_vertices: 30
-  #   # roadmaps_growing_rate: 2.0
+
+  - _target_: MRMP.conflict_based_search
+    <<: *solvers_common
+    collision_weight: 1.0
+    num_vertices: 50
+    max_makespan: 20
+    # roadmaps_growing_rate: 2.0
+
   - _target_: MRMP.Solvers.planner1
     <<: *solvers_common
     num_vertex_expansion: 10
