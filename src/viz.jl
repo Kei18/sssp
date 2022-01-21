@@ -64,7 +64,7 @@ end
 
 function plot_roadmap!(
     V::Vector{Vector{Node{State}}},
-    rads::Vector{Float64},
+    ins_params...,
 ) where {State<:AbsState}
     for i = 1:length(V)
         params = Dict(
@@ -78,10 +78,10 @@ function plot_roadmap!(
         for v in V[i]
             for u_id in v.neighbors
                 u = V[i][u_id]
-                plot_motion!(v.q, u.q, rads[i], params)
+                plot_motion!(v.q, u.q, map(arr -> arr[i], ins_params)..., params)
             end
             if isempty(v.neighbors)
-                plot_motion!(v.q, v.q, rads[i], params)
+                plot_motion!(v.q, v.q, map(arr -> arr[i], ins_params)..., params)
             end
         end
     end
@@ -90,7 +90,7 @@ end
 function plot_start_goal!(
     config_init::Vector{State},
     config_goal::Vector{State},
-    rads::Vector{Float64};
+    ins_params...;
 ) where {State<:AbsState}
 
     for (i, (q_init, q_goal)) in enumerate(zip(config_init, config_goal))
@@ -100,13 +100,13 @@ function plot_start_goal!(
             :label => nothing,
             :color => get_color(i),
         )
-        plot_start_goal!(q_init, q_goal, rads[i], params)
+        plot_start_goal!(q_init, q_goal, map(arr -> arr[i], ins_params)..., params)
     end
 end
 
 function plot_traj!(
     solution::Union{Nothing,Vector{Vector{Node{State}}}},
-    rads = Vector{Float64};
+    ins_params...;
     lw::Float64 = 3.0,
 ) where {State<:AbsState}
 
@@ -117,7 +117,7 @@ function plot_traj!(
         Q_from = solution[t]
         for i = 1:N
             params = Dict(:color => get_color(i), :lw => lw, :label => nothing)
-            plot_motion!(Q_from[i].q, Q_to[i].q, rads[i], params)
+            plot_motion!(Q_from[i].q, Q_to[i].q, map(arr -> arr[i], ins_params)..., params)
         end
     end
 end
@@ -148,16 +148,18 @@ function plot_instance!(
     config_init::Vector{State},
     config_goal::Vector{State},
     obstacles::Vector{Obs} where {Obs<:Obstacle},
-    rads::Vector{Float64};
+    ins_params...;
     filename::Union{Nothing,String} = nothing,
 ) where {State<:AbsState}
 
+    N = length(config_init)
     plot_init!(State)
     plot_obs!(obstacles)
-    for (i, q) in enumerate(config_init)
-        plot_agent!(q, rads[i], get_color(i))
-    end
-    plot_start_goal!(config_init, config_goal, rads)
+    foreach(
+        i -> plot_agent!(config_init[i], map(arr -> arr[i], ins_params)..., get_color(i)),
+        1:N,
+    )
+    plot_start_goal!(config_init, config_goal, ins_params...)
     safe_savefig!(filename)
     return plot!()
 end
@@ -166,17 +168,17 @@ function plot_res!(
     config_init::Vector{State},
     config_goal::Vector{State},
     obstacles::Vector{Obs} where {Obs<:Obstacle},
-    rads::Vector{Float64},
-    roadmaps::Vector{Vector{Node{State}}},
-    solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing;
+    ins_params...;
+    roadmaps::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
+    solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
     filename::Union{Nothing,String} = nothing,
 ) where {State<:AbsState}
 
     plot_init!(State)
     plot_obs!(obstacles)
-    plot_roadmap!(roadmaps, rads)
-    plot_traj!(solution, rads)
-    plot_start_goal!(config_init, config_goal, rads)
+    plot_roadmap!(roadmaps, ins_params...)
+    plot_traj!(solution, ins_params...)
+    plot_start_goal!(config_init, config_goal, ins_params...)
     safe_savefig!(filename)
     return plot!()
 end
@@ -185,8 +187,8 @@ function plot_anim!(
     config_init::Vector{State},
     config_goal::Vector{State},
     obstacles::Vector{Obs} where {Obs<:Obstacle},
-    rads::Vector{Float64},
-    solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing;
+    ins_params...;
+    solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
     filename::String = "tmp.gif",
     fps::Int64 = 10,
     interpolate_depth::Union{Nothing,Int64} = nothing,
@@ -201,8 +203,8 @@ function plot_anim!(
     anim = @animate for (t, Q) in enumerate(vcat(solution, [solution[end]]))
         plot_init!(State)
         plot_obs!(obstacles)
-        plot_traj!(solution, rads; lw = 1.0)
-        plot_start_goal!(config_init, config_goal, rads)
+        plot_traj!(solution, ins_params...; lw = 1.0)
+        plot_start_goal!(config_init, config_goal, ins_params...)
 
         if !isnothing(interpolate_depth) && interpolate_depth > 0 && 1 < t <= T
             C_arr = Array{Any}(undef, 2 + sum(map(k -> 2^k, 0:interpolate_depth-1)))
@@ -223,12 +225,12 @@ function plot_anim!(
             add_mid_config(interpolate_depth, 1, length(C_arr))
             for Q_tmp in C_arr
                 for (i, q) in enumerate(Q_tmp)
-                    plot_agent!(q, rads[i], get_color(i))
+                    plot_agent!(q, map(arr -> arr[i], ins_params)..., get_color(i))
                 end
             end
         else
             for (i, v) in enumerate(Q)
-                plot_agent!(v.q, rads[i], get_color(i))
+                plot_agent!(v.q, map(arr -> arr[i], ins_params)..., get_color(i))
             end
         end
     end

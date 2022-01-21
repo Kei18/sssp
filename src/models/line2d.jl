@@ -4,7 +4,7 @@ struct StateLine2D <: AbsState
     theta::Float64
 end
 
-STEP_DIST_LINE2D = 0.01
+const STEP_DIST_LINE2D = 0.01
 
 to_string(s::StateLine2D) = @sprintf("(%.4f, %.4f, theta: %.4f)", s.x, s.y, s.theta)
 
@@ -47,9 +47,7 @@ function gen_connect(
 
     f(q_from::StateLine2D, q_to::StateLine2D, i::Int64)::Bool = begin
         D = dist(q_from, q_to)
-        if !isnothing(max_dist) && D > max_dist
-            return false
-        end
+        !isnothing(max_dist) && D > max_dist && return false
 
         dt = diff_angles(q_to.theta, q_from.theta)
         for e in vcat(collect(0:step_dist:D) / D, 1.0)
@@ -61,14 +59,10 @@ function gen_connect(
             b = a + rads[i] * [cos(t), sin(t)]
 
             # outside
-            if any(x -> (x < 0 || 1 < x), vcat(a, b))
-                return false
-            end
+            any(x -> (x < 0 || 1 < x), vcat(a, b)) && return false
 
             # obstacles
-            if any(o -> dist(a, b, [o.x, o.y]) < o.r, obstacles)
-                return false
-            end
+            any(o -> dist(a, b, [o.x, o.y]) < o.r, obstacles) && return false
         end
 
         return true

@@ -152,6 +152,59 @@ function gen_collide(q::State, rads::Vector{Float64})::Function where {State<:St
     return f
 end
 
+function gen_obstacles(
+    d::Int64,  # dimension
+    num_obs::Int64,
+    rad_obs_min::Float64,
+    rad_obs_max::Float64,
+)::Vector{CircleObstacle2D}
+    r() = rand() * (rad_obs_max - rad_obs_min) + rad_obs_min
+    map(k -> CircleObstacle2D(rand(d)..., r()), 1:num_obs)
+end
+
+function gen_config_init_goal(
+    q::State,
+    N::Int64,
+    connect::Function,
+    collide::Function,
+    timeover::Function,
+)::Tuple{Vector{State},Vector{State}} where {State<:AbsState}
+
+    sampler = gen_uniform_sampling(q)
+    config_init = Vector{State}()
+    config_goal = Vector{State}()
+
+    for i = 1:N
+        # add start
+        isvalid_init =
+            (q::State) -> (
+                connect(q, i) &&
+                all(e -> !collide(q, e[2], i, e[1]), enumerate(config_init))
+            )
+        q_init = sampler()
+        while !timeover() && !isvalid_init(q_init)
+            q_init = sampler()
+        end
+        push!(config_init, q_init)
+
+        # add goal
+        isvalid_goal =
+            (q::State) -> (
+                connect(q, i) &&
+                all(e -> !collide(q, e[2], i, e[1]), enumerate(config_goal))
+            )
+        q_goal = sampler()
+        while !timeover() && !isvalid_goal(q_goal)
+            q_goal = sampler()
+        end
+        push!(config_goal, q_goal)
+
+        timeover() && break
+    end
+
+    return (config_init, config_goal)
+end
+
 function gen_random_instance(
     _q::State;
     N_min::Int64 = 2,
@@ -179,64 +232,18 @@ function gen_random_instance(
         timeover() = elapsed_sec(t_s) > TIME_LIMIT
 
         # generate obstacles
-        obstacles = map(
-            k -> (
-                State == StatePoint3D ?
-                CircleObstacle3D(
-                    rand(3)...,
-                    rand() * (rad_obs_max - rad_obs_min) + rad_obs_min,
-                ) :
-                CircleObstacle2D(
-                    rand(2)...,
-                    rand() * (rad_obs_max - rad_obs_min) + rad_obs_min,
-                )
-            ),
-            1:num_obs,
-        )
+        obstacles =
+            gen_obstacles(State == StatePoint3D ? 3 : 2, num_obs, rad_obs_min, rad_obs_max)
 
         # determine rads
         rads = map(e -> rand() * (rad_max - rad_min) + rad_min, 1:N)
 
-        # generate
+        # generate starts & goals
         connect = gen_connect(_q, rads, obstacles)
         collide = gen_collide(_q, rads)
-        sampler = gen_uniform_sampling(_q)
-        config_init = Vector{State}()
-        config_goal = Vector{State}()
-        for i = 1:N
-            # add start
-            isvalid_init =
-                (q::State) -> (
-                    connect(q, i) &&
-                    all(e -> !collide(q, e[2], i, e[1]), enumerate(config_init))
-                )
-            q_init = sampler()
-            while !timeover() && !isvalid_init(q_init)
-                q_init = sampler()
-            end
-            push!(config_init, q_init)
+        config_init, config_goal = gen_config_init_goal(_q, N, connect, collide, timeover)
 
-            # add goal
-            isvalid_goal =
-                (q::State) -> (
-                    connect(q, i) &&
-                    all(e -> !collide(q, e[2], i, e[1]), enumerate(config_goal))
-                )
-            q_goal = sampler()
-            while !timeover() && !isvalid_goal(q_goal)
-                q_goal = sampler()
-            end
-            push!(config_goal, q_goal)
-
-            if timeover()
-                break
-            end
-        end
-
-        if timeover()
-            continue
-        end
-
+        timeover() && continue
         return (config_init, config_goal, obstacles, rads)
     end
 end
