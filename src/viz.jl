@@ -123,7 +123,9 @@ function plot_traj!(
 end
 
 function plot_init!(State::DataType)
-    if State != StatePoint3D
+    if State in [StatePoint3D, StateArm33]
+        plot3d(size = (400, 400), xlim = (0, 1), ylim = (0, 1), zlim = (0, 1))
+    else
         plot(
             size = (400, 400),
             xlim = (0, 1),
@@ -132,8 +134,6 @@ function plot_init!(State::DataType)
             yflip = true,
             xmirror = true,
         )
-    else
-        plot3d(size = (400, 400), xlim = (0, 1), ylim = (0, 1), zlim = (0, 1))
     end
 end
 

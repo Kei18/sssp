@@ -157,9 +157,12 @@ function gen_obstacles(
     num_obs::Int64,
     rad_obs_min::Float64,
     rad_obs_max::Float64,
-)::Vector{CircleObstacle2D}
+)::Union{Vector{CircleObstacle2D},Vector{CircleObstacle3D}}
     r() = rand() * (rad_obs_max - rad_obs_min) + rad_obs_min
-    map(k -> CircleObstacle2D(rand(d)..., r()), 1:num_obs)
+    return (
+        d == 2 ? map(k -> CircleObstacle2D(rand(d)..., r()), 1:num_obs) :
+        map(k -> CircleObstacle3D(rand(d)..., r()), 1:num_obs)
+    )
 end
 
 function gen_config_init_goal(

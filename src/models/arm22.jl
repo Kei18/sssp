@@ -1,28 +1,27 @@
-struct StateArm2 <: AbsState
+struct StateArm22 <: AbsState
     theta1::Float64
     theta2::Float64
 end
 
-const STEP_DIST_ARM2 = 0.01
+const STEP_DIST_ARM22 = 0.01
 
-to_string(s::StateArm2) =
-    @sprintf("(x: %.4f, y: %.4f, theta1: %.4f, theta2: %.4f)", s.theta1, s.theta2)
+to_string(s::StateArm22) = @sprintf("(theta1: %.4f, theta2: %.4f)", s.theta1, s.theta2)
 
-function get_mid_status(p::StateArm2, q::StateArm2)::StateArm2
-    return StateArm2(
+function get_mid_status(p::StateArm22, q::StateArm22)::StateArm22
+    return StateArm22(
         diff_angles(q.theta1, p.theta1) / 2 + p.theta1,
         diff_angles(q.theta2, p.theta2) / 2 + p.theta2,
     )
 end
 
-function dist(q1::StateArm2, q2::StateArm2)
+function dist(q1::StateArm22, q2::StateArm22)
     return norm([
         diff_angles(q1.theta1, q2.theta1) / π,
         diff_angles(q1.theta2, q2.theta2) / π,
     ])
 end
 
-function get_arm2_positions(q::StateArm2, pos::Vector{Float64}, rad::Float64)
+function get_arm22_positions(q::StateArm22, pos::Vector{Float64}, rad::Float64)
     a = pos
     b = a + [cos(q.theta1), sin(q.theta1)] * rad
     c = b + [cos(q.theta2), sin(q.theta2)] * rad
@@ -30,17 +29,18 @@ function get_arm2_positions(q::StateArm2, pos::Vector{Float64}, rad::Float64)
 end
 
 function gen_connect(
-    q::StateArm2,
+    q::StateArm22,
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64},
     obstacles::Vector{CircleObstacle2D};
-    step_dist::Float64 = STEP_DIST_ARM2,
+    step_dist::Float64 = STEP_DIST_ARM22,
     max_dist::Union{Nothing,Float64} = nothing,
+    safety_dist::Float64 = 0.01,
 )::Function
 
     # check: q \in C_free
-    f(q::StateArm2, i::Int64)::Bool = begin
-        a, b, c = get_arm2_positions(q, positions[i], rads[i])
+    f(q::StateArm22, i::Int64)::Bool = begin
+        a, b, c = get_arm22_positions(q, positions[i], rads[i])
 
         any(x -> (x < 0 || 1 < x), vcat(a, b, c)) && return false
 
@@ -49,10 +49,13 @@ function gen_connect(
             obstacles,
         ) && return false
 
+        # self collision
+        dist(a, b, c) < safety_dist && return false
+
         return true
     end
 
-    f(q_from::StateArm2, q_to::StateArm2, i::Int64)::Bool = begin
+    f(q_from::StateArm22, q_to::StateArm22, i::Int64)::Bool = begin
         D = dist(q_from, q_to)
         !isnothing(max_dist) && D > max_dist && return false
 
@@ -76,6 +79,9 @@ function gen_connect(
                 o -> (dist(a, b, [o.x, o.y]) < o.r || dist(b, c, [o.x, o.y]) < o.r),
                 obstacles,
             ) && return false
+
+            # self collision
+            dist(a, b, c) < safety_dist && return false
         end
 
         return true
@@ -84,20 +90,20 @@ function gen_connect(
 end
 
 function gen_collide(
-    q::StateArm2,
+    q::StateArm22,
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_ARM2,
+    step_dist::Float64 = STEP_DIST_ARM22,
     safety_dist::Float64 = 0.01,
 )::Function
 
     N = length(rads)
 
     f(
-        q_i_from::StateArm2,
-        q_i_to::StateArm2,
-        q_j_from::StateArm2,
-        q_j_to::StateArm2,
+        q_i_from::StateArm22,
+        q_i_to::StateArm22,
+        q_j_from::StateArm22,
+        q_j_to::StateArm22,
         i::Int64,
         j::Int64,
     ) = begin
@@ -141,9 +147,9 @@ function gen_collide(
         return false
     end
 
-    f(q_i::StateArm2, q_j::StateArm2, i::Int64, j::Int64) = begin
-        a_i, b_i, c_i = get_arm2_positions(q_i, positions[i], rads[i])
-        a_j, b_j, c_j = get_arm2_positions(q_j, positions[j], rads[j])
+    f(q_i::StateArm22, q_j::StateArm22, i::Int64, j::Int64) = begin
+        a_i, b_i, c_i = get_arm22_positions(q_i, positions[i], rads[i])
+        a_j, b_j, c_j = get_arm22_positions(q_j, positions[j], rads[j])
 
         # check_collision
         return any(
@@ -157,7 +163,7 @@ function gen_collide(
         )
     end
 
-    f(Q_from::Vector{Node{StateArm2}}, Q_to::Vector{Node{StateArm2}}) = begin
+    f(Q_from::Vector{Node{StateArm22}}, Q_to::Vector{Node{StateArm22}}) = begin
         for i = 1:N, j = i+1:N
             if f(Q_from[i].q, Q_to[i].q, Q_from[j].q, Q_to[j].q, i, j)
                 return true
@@ -166,7 +172,7 @@ function gen_collide(
         return false
     end
 
-    f(Q::Vector{Node{StateArm2}}, q_i_to::StateArm2, i::Int64) = begin
+    f(Q::Vector{Node{StateArm22}}, q_i_to::StateArm22, i::Int64) = begin
         q_i_from = Q[i].q
         D_i = dist(q_i_from, q_i_to)
 
@@ -182,7 +188,7 @@ function gen_collide(
             c_i = rads[i] * [cos(t2_i), sin(t2_i)] + b_i
 
             for j in filter(k -> k != i, 1:N)
-                a_j, b_j, c_j = get_arm2_positions(Q[j].q, positions[j], rads[j])
+                a_j, b_j, c_j = get_arm22_positions(Q[j].q, positions[j], rads[j])
 
                 # check collision
                 any(
@@ -203,39 +209,39 @@ function gen_collide(
     return f
 end
 
-function gen_uniform_sampling(q::StateArm2)::Function
+function gen_uniform_sampling(q::StateArm22)::Function
     () -> begin
-        return StateArm2((rand(2) * 2π)...)
+        return StateArm22((rand(2) * 2π)...)
     end
 end
 
 function plot_motion!(
-    q_from::StateArm2,
-    q_to::StateArm2,
+    q_from::StateArm22,
+    q_to::StateArm22,
     pos::Vector{Float64},
     rad::Float64,
     params,
 )
-    p1 = get_arm2_positions(q_from, pos, rad)[end]
-    p2 = get_arm2_positions(q_to, pos, rad)[end]
+    p1 = get_arm22_positions(q_from, pos, rad)[end]
+    p2 = get_arm22_positions(q_to, pos, rad)[end]
     plot!([p1[1], p2[1]], [p1[2], p2[2]]; params...)
 end
 
 function plot_start_goal!(
-    q_init::StateArm2,
-    q_goal::StateArm2,
+    q_init::StateArm22,
+    q_goal::StateArm22,
     pos::Vector{Float64},
     rad::Float64,
     params,
 )
-    pos_init = get_arm2_positions(q_init, pos, rad)[end]
-    pos_goal = get_arm2_positions(q_goal, pos, rad)[end]
+    pos_init = get_arm22_positions(q_init, pos, rad)[end]
+    pos_goal = get_arm22_positions(q_goal, pos, rad)[end]
     plot!([pos_init[1]], [pos_init[2]]; markershape = :hex, params...)
     plot!([pos_goal[1]], [pos_goal[2]]; markershape = :star, params...)
 end
 
-function plot_agent!(q::StateArm2, pos::Vector{Float64}, rad::Float64, color::String)
-    _, pos1, pos2 = get_arm2_positions(q, pos, rad)
+function plot_agent!(q::StateArm22, pos::Vector{Float64}, rad::Float64, color::String)
+    _, pos1, pos2 = get_arm22_positions(q, pos, rad)
     plot!(
         [pos[1], pos1[1], pos2[1]],
         [pos[2], pos1[2], pos2[2]],
@@ -255,7 +261,7 @@ function plot_agent!(q::StateArm2, pos::Vector{Float64}, rad::Float64, color::St
     )
 end
 
-function gen_random_instance_StateArm2(;
+function gen_random_instance_StateArm22(;
     N_min::Int64 = 2,
     N_max::Int64 = 8,
     N::Int64 = rand(N_min:N_max),
@@ -270,8 +276,8 @@ function gen_random_instance_StateArm2(;
     rad_obs_max::Float64 = rad_obs,
     TIME_LIMIT::Float64 = 0.5,
 )::Tuple{
-    Vector{StateArm2},  # initial configuration
-    Vector{StateArm2},  # goal configuration
+    Vector{StateArm22},  # initial configuration
+    Vector{StateArm22},  # goal configuration
     Vector{CircleObstacle2D},
     Vector{Vector{Float64}},  # positions
     Vector{Float64},  # radius
@@ -291,7 +297,7 @@ function gen_random_instance_StateArm2(;
         rads = map(e -> rand() * (rad_max - rad_min) + rad_min, 1:N)
 
         # generate starts & goals
-        _q = StateArm2(0, 0)
+        _q = StateArm22(0, 0)
         connect = gen_connect(_q, positions, rads, obstacles)
         collide = gen_collide(_q, positions, rads)
         config_init, config_goal = gen_config_init_goal(_q, N, connect, collide, timeover)
