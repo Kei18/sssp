@@ -51,7 +51,7 @@ function PRM_direct(
     # edges
     E = [[], []]
 
-    # distance
+    # distance, used with Dijkstra method
     D = [0.0, nothing]
 
     # special case
@@ -82,15 +82,17 @@ function PRM_direct(
         end
         timeover() && break
 
-        # update graph
+        # insert new vertex
         push!(V, C)
-        neigh = collect(filter(k -> connect_C(C, V[k]), 1:length(V)-1))
-        L = length(V)
-        push!(E, neigh)
-        foreach(k -> push!(E[k], L), neigh)
         push!(D, nothing)
+        L = length(V)
+        # update neighbors
+        neigh_from_C = collect(filter(k -> connect_C(C, V[k]), 1:L-1))
+        neigh_to_C = collect(filter(k -> connect_C(V[k], C), 1:L-1))
+        push!(E, neigh_from_C)
+        foreach(k -> push!(E[k], L), neigh_to_C)
 
-        isempty(neigh) && continue
+        isempty(neigh_from_C) && isempty(neigh_to_C) && continue
 
         # Dijkstra method
         # setup open list
@@ -163,10 +165,8 @@ function PRM!(
 
     # identify neighbors
     for j = 1:num_vertices, k = 1:num_vertices
-        if timeover()
-            break
-        end
-
+        timeover() && break
+        j == k && continue
         q_from = roadmap[j].q
         q_to = roadmap[k].q
         if (isnothing(rad) || dist(q_from, q_to) <= rad) && connect(q_from, q_to)

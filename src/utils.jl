@@ -2,60 +2,8 @@ using LinearAlgebra: norm, dot, normalize
 import Printf: @sprintf
 using Random: seed!
 
-macro gen_collide(State, ex1, ex2 = nothing)
-    return esc(
-        quote
-            N = length(rads)
-
-            f(
-                q_i_from::$State,
-                q_i_to::$State,
-                q_j_from::$State,
-                q_j_to::$State,
-                i::Int64,
-                j::Int64,
-            ) = begin
-                $ex1
-            end
-
-            f(q_i::$State, q_j::$State, i::Int64, j::Int64) = begin
-                $ex2
-            end
-
-            f(Q_from::Vector{Node{$State}}, Q_to::Vector{Node{$State}}) = begin
-                for i = 1:N, j = i+1:N
-                    if f(Q_from[i].q, Q_to[i].q, Q_from[j].q, Q_to[j].q, i, j)
-                        return true
-                    end
-                end
-                return false
-            end
-
-            return f
-        end,
-    )
-end
-
-function direction(
-    p_i::Vector{Float64},
-    p_j::Vector{Float64},
-    p_k::Vector{Float64},
-)::Float64
-    a = p_k - p_i
-    b = p_j - p_i
-    return a[1] * b[2] - b[1] * a[2]
-end
-
-function segments_intersect(
-    p1::Vector{Float64},  # root, line1
-    p2::Vector{Float64},  # tip,  line1
-    p3::Vector{Float64},  # root, line2
-    p4::Vector{Float64},  # tip,  line2
-)::Bool
-    return (
-        (direction(p3, p4, p1) * direction(p3, p4, p2) < 0) &&
-        (direction(p1, p2, p3) * direction(p1, p2, p4) < 0)
-    )
+function dist(a::Vector{Float64}, b::Vector{Float64})::Float64
+    norm(a - b)
 end
 
 function dist(C1::Vector{State}, C2::Vector{State})::Float64 where {State<:AbsState}
@@ -116,6 +64,30 @@ end
 
 function diff_angles(t1::Float64, t2::Float64)
     atan(sin(t1 - t2), cos(t1 - t2))
+end
+
+function steering(
+    q_near::State,
+    q_rand::State,
+    connect::Function,
+    i::Int64,
+    steering_depth::Int64
+    )::State where {State<:AbsState}
+
+    q_h = q_rand  # might be unsafe
+    if !connect(q_near, q_h, i)
+        q_l = q_near  # safe
+        for _ = 1:steering_depth
+            q = get_mid_status(q_l, q_h)
+            if connect(q_near, q, i)
+                q_l = q
+            else
+                q_h = q
+            end
+        end
+        q_h = q_l
+    end
+    return q_h
 end
 
 function gen_collide(q::State, rads::Vector{Float64})::Function where {State<:StatePoint}

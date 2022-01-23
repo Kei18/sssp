@@ -11,11 +11,11 @@ include("models/line2d.jl")
 include("models/arm22.jl")
 include("models/arm33.jl")
 include("models/snake2d.jl")
-include("models/car.jl")
+include("models/dubins2d.jl")
 
 include("solvers/solvers.jl")
 
-export StateArm22, StateCar, StateLine2D, StatePoint2D, StatePoint3D
+export StateArm22, StateDubins, StateLine2D, StatePoint2D, StatePoint3D
 export CircleObstacle2D, CircleObstacle3D
 export gen_connect, gen_collide, gen_check_goal
 export gen_random_walk, gen_h_func, gen_g_func, gen_get_sample_nums

@@ -35,19 +35,24 @@ function RRT_connect(
         end
     end
 
-    extend!(C_rand, V, P) = begin
-        ind_near = findmin(C -> dist(C, C_rand), V)[end]
+    extend!(C_rand, V, P, from_start::Bool) = begin
+        ind_near = (
+            from_start
+            ? findmin(C -> dist(C, C_rand), V)[end]
+            : findmin(C -> dist(C_rand, C), V)[end]
+        )
         C_near = V[ind_near]
         flg = :reached
 
-        # steering
         C_l = C_near  # safe sample
         C_h = C_rand
-        if !connect_C(C_l, C_h)
+
+        # steering
+        if from_start ? !connect_C(C_near, C_h) : !connect_C(C_h, C_near)
             flg = :advanced
             for _ = 1:steering_depth
-                C = map(e -> MRMP.get_mid_status(e...), zip(C_l, C_h))
-                if connect_C(C_near, C)
+                C = map(e -> MRMP.get_mid_status(e...), from_start ? zip(C_l, C_h) : zip(C_h, C_l))
+                if from_start ? connect_C(C_near, C) : connect_C(C, C_near)
                     C_l = C
                 else
                     C_h = C
@@ -64,10 +69,17 @@ function RRT_connect(
     end
 
     get_roadmaps() = begin
+        # fix tree
+        if V1[1] == config_goal
+            V1, V2 = V2, V1
+            P1, P2 = P2, P1
+        end
+
         roadmaps = map(i -> Vector{Node{State}}(), 1:N)
         for (k, C) in enumerate(V1)
             for (i, q) in enumerate(C)
-                push!(roadmaps[i], Node{State}(q, k, P1[k] == -1 ? [] : [P1[k]]))
+                push!(roadmaps[i], Node{State}(q, k, []))
+                P1[k] > 0 && push!(roadmaps[i][P1[k]].neighbors, k)
             end
         end
         K = length(V1)
@@ -127,15 +139,17 @@ function RRT_connect(
 
     # main loop
     iter = 0
+    from_start = false
     while !timeover()
         iter += 1
+        from_start = !from_start
 
         VERBOSE > 1 &&
             iter % 100 == 0 &&
             @printf("\r\t%6.4f sec, iteration: %02d", elapsed(), iter)
 
-        C_new = extend!(sampler(), V1, P1)[end]
-        if extend!(C_new, V2, P2)[1] == :reached
+        C_new = extend!(sampler(), V1, P1, from_start)[end]
+        if extend!(C_new, V2, P2, !from_start)[1] == :reached
             VERBOSE > 1 && @printf("\r\t%6.4f sec, iteration: %02d", elapsed(), iter)
             VERBOSE > 0 && @printf("\t%6.4f sec: found solution\n", elapsed())
             return (backtrack!(), get_roadmaps())

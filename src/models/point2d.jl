@@ -47,13 +47,11 @@ function gen_connect(
 
     # check: q \in C_free
     f(q::StatePoint2D, i::Int64)::Bool = begin
-        if any(x -> (x < rads[i] || 1 - rads[i] < x), [q.x, q.y])
-            return false
-        end
+        # within field
+        any(x -> (x < rads[i] || 1 - rads[i] < x), [q.x, q.y]) && return false
 
-        if any([dist(q, o) < o.r + rads[i] for o in obstacles])
-            return false
-        end
+        # obstacles
+        any([dist(q, o) < o.r + rads[i] for o in obstacles]) && return false
 
         return true
     end

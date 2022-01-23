@@ -39,7 +39,8 @@ function RRT(
         roadmaps = map(i -> Vector{Node{State}}(), 1:N)
         for (k, C) in enumerate(V)
             for (i, q) in enumerate(C)
-                push!(roadmaps[i], Node{State}(q, k, k == 1 ? [] : [P[k]]))
+                push!(roadmaps[i], Node{State}(q, k, []))
+                P[k] > 0 && push!(roadmaps[i][P[k]].neighbors, k)
             end
         end
         roadmaps

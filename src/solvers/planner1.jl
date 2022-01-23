@@ -69,9 +69,7 @@ function planner1(
     # verbose
     print_progress! =
         (S::SuperNode{State}, k::Int64, loop_cnt::Int64; force::Bool = false) -> begin
-            if VERBOSE == 0 || (!force && (loop_cnt % 100 != 0))
-                return
-            end
+            (VERBOSE == 0 || (!force && (loop_cnt % 100 != 0))) && return
             @printf(
                 "\r\t%6.4f sec, iteration: %02d, explored node: %08d, f: %.2f, g: %.2f, h: %.2f, depth: %04d",
                 elapsed(),
@@ -124,9 +122,7 @@ function planner1(
             # check goal
             if check_goal(S.Q)
                 print_progress!(S, k, loop_cnt, force = true)
-                if VERBOSE > 0
-                    @printf("\n\t%6.4f sec: found solution\n", elapsed())
-                end
+                VERBOSE > 0 && @printf("\n\t%6.4f sec: found solution\n", elapsed())
                 return (backtrack(S, VISITED), roadmaps)
             end
 
@@ -143,33 +139,20 @@ function planner1(
 
                     for _ = 1:num_vertex_expansion
                         # steering
-                        q_l = v.q
-                        q_h = sampler()
-                        if !connect(q_l, q_h, i)
-                            for _ = 1:steering_depth
-                                q = MRMP.get_mid_status(q_l, q_h)
-                                if connect(v.q, q, i)
-                                    q_l = q
-                                else
-                                    q_h = q
-                                end
-                            end
-                            q_h = q_l
-                        end
-                        q_new = q_h
+                        q_new = MRMP.steering(v.q, sampler(), connect, i, steering_depth)
 
                         # identify neighbors
-                        C = filter(v -> connect(v.q, q_new, i), roadmaps[i])
+                        C_v_u = filter(v -> connect(v.q, q_new, i), roadmaps[i])
+                        C_u_v = filter(v -> connect(q_new, v.q, i), roadmaps[i])
 
                         # check space-filling metric
-                        if minimum(map(v -> dist(v.q, q_new), C)) > min_dist_thread
+                        if minimum(map(v -> dist(v.q, q_new), C_v_u)) > min_dist_thread
                             # add vertex and edges
                             u = Node(q_new, length(roadmaps[i]) + 1, Vector{Int64}())
                             push!(roadmaps[i], u)
-                            for v in C
-                                push!(v.neighbors, u.id)
-                                push!(u.neighbors, v.id)
-                            end
+                            # update neighbors
+                            foreach(v -> push!(v.neighbors, u.id), C_v_u)
+                            foreach(v -> push!(u.neighbors, v.id), C_u_v)
                         end
                     end
                 end
@@ -189,9 +172,7 @@ function planner1(
                     end
 
                     # check max makespan
-                    if !isnothing(max_makespan) && max_makespan * N < S.depth + 1
-                        continue
-                    end
+                    !isnothing(max_makespan) && max_makespan * N < S.depth + 1 && continue
 
                     # create new search node
                     S_new = SuperNode(
@@ -214,14 +195,10 @@ function planner1(
             print_progress!(S, k, loop_cnt, force = isempty(OPEN))
         end
 
-        if VERBOSE > 0
-            println()
-        end
+        VERBOSE > 0 && println()
     end
 
-    if VERBOSE > 0
-        @printf("\n\t%6.4f sec: failed to find solution\n", elapsed())
-    end
+    VERBOSE > 0 && @printf("\n\t%6.4f sec: failed to find solution\n", elapsed())
     return (nothing, roadmaps)
 end
 
