@@ -46,9 +46,8 @@ end
 
 function gen_connect(
     q::StatePoint3D,  # to identify type
-    rads::Vector{Float64},
     obstacles::Vector{CircleObstacle3D},
-    eps::Float64 = 0.2,
+    rads::Vector{Float64},
 )::Function
 
     # check: q \in C_free

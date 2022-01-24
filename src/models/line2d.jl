@@ -4,8 +4,6 @@ struct StateLine2D <: AbsState
     theta::Float64
 end
 
-const STEP_DIST_LINE2D = 0.01
-
 to_string(s::StateLine2D) = @sprintf("(%.4f, %.4f, theta: %.4f)", s.x, s.y, s.theta)
 
 function get_mid_status(p::StateLine2D, q::StateLine2D)::StateLine2D
@@ -23,9 +21,9 @@ end
 
 function gen_connect(
     q::StateLine2D,  # to identify type
-    rads::Vector{Float64},
-    obstacles::Vector{CircleObstacle2D};
-    step_dist::Float64 = STEP_DIST_LINE2D,
+    obstacles::Vector{CircleObstacle2D},
+    rads::Vector{Float64};
+    step_dist::Float64 = STEP_DIST,
     max_dist::Union{Nothing,Float64} = nothing,
 )::Function
 
@@ -75,8 +73,8 @@ end
 function gen_collide(
     q::StateLine2D,
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_LINE2D,
-    safety_dist::Float64 = 0.01,
+    step_dist::Float64 = STEP_DIST,
+    safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
     N = length(rads)

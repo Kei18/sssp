@@ -82,8 +82,7 @@ function planner1(
             )
         end
 
-    h_func(Q::Vector{Node{State}}) =
-        sum([dist(v.q, config_goal[i]) for (i, v) in enumerate(Q)])
+    h_func(Q::Vector{Node{State}}) = sum(map(i -> dist(Q[i].q, config_goal[i]), 1:N)) / N
 
     # initial configuration
     Q_init = [roadmaps[i][1] for i = 1:N]
@@ -146,7 +145,8 @@ function planner1(
                         C_u_v = filter(v -> connect(q_new, v.q, i), roadmaps[i])
 
                         # check space-filling metric
-                        if minimum(map(v -> dist(v.q, q_new), C_v_u)) > min_dist_thread
+                        if isempty(C_v_u) ||
+                           minimum(map(v -> dist(v.q, q_new), C_v_u)) > min_dist_thread
                             # add vertex and edges
                             u = Node(q_new, length(roadmaps[i]) + 1, Vector{Int64}())
                             push!(roadmaps[i], u)

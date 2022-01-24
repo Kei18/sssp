@@ -9,6 +9,18 @@
     unique_id::Int64 = 1
 end
 
+function gen_g_func(; greedy::Bool = false, stay_penalty::Float64 = 0.0)::Function
+    f(Q_from::Vector, Q_to::Vector)::Float64 = begin
+        greedy ? 0 : dist(Q_from, Q_to)
+    end
+
+    f(q_from, q_to, i::Int64 = 1)::Float64 = begin
+        greedy ? 0 : (dist(q_from, q_to) + (q_from == q_to ? stay_penalty : 0))
+    end
+
+    return f
+end
+
 function find_timed_path(
     roadmap::Vector{Node{State}},
     invalid::Function,

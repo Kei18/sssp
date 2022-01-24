@@ -1,7 +1,5 @@
 using Dubins
 
-const DUBINS_TURN_RADIUS = 0.05
-
 struct StateDubins <: AbsState
     x::Float64
     y::Float64
@@ -11,13 +9,7 @@ end
 to_string(s::StateDubins) = @sprintf("(x: %.4f, y: %.4f, θ: %.4f)", s.x, s.y, s.θ)
 
 function get_mid_status(p::StateDubins, q::StateDubins)::StateDubins
-    errcode, path = dubins_shortest_path([p.x, p.y, p.θ], [q.x, q.y, q.θ], DUBINS_TURN_RADIUS)
-    errcode != 0 && return StateDubins(
-        (p.x + q.x) / 2,
-        (p.y + q.y) / 2,
-        diff_angles(q.θ, p.θ) / 2 + p.θ,
-    )
-    StateDubins(dubins_path_sample(path, dubins_path_length(path) / 2)[end]...)
+    return StateDubins((p.x + q.x) / 2, (p.y + q.y) / 2, diff_angles(q.θ, p.θ) / 2 + p.θ)
 end
 
 function dist(q1::StateDubins, q2::StateDubins)::Float64
@@ -26,9 +18,9 @@ end
 
 function gen_connect(
     q::StateDubins,  # to identify type
-    rads::Vector{Float64},
-    obstacles::Vector{CircleObstacle2D};
-    step_dist::Float64 = 0.01,
+    obstacles::Vector{CircleObstacle2D},
+    rads::Vector{Float64};
+    step_dist::Float64 = STEP_DIST,
     max_dist::Union{Nothing,Float64} = nothing,
 )::Function
 
@@ -50,20 +42,23 @@ function gen_connect(
         errcode, path = dubins_shortest_path(
             [q_from.x, q_from.y, q_from.θ],
             [q_to.x, q_to.y, q_to.θ],
-            DUBINS_TURN_RADIUS,
+            DUBINS_TURN_RADIUS * rads[i],
         )
         errcode != 0 && return false
         points = dubins_path_sample_many(path, step_dist)[end]
-        if !isnothing(points)
-            for (x, y, θ) in points
-                # outside
-                if (x < rads[i] || 1 - rads[i] < x || y < rads[i] || 1 - rads[i] < y)
-                    return false
-                end
-
-                # obstacles
-                any(o -> dist([x, y], [o.x, o.y]) < o.r + rads[i], obstacles) && return false
+        points = (
+            !isnothing(points) ? vcat(points, [[q_to.x, q_to.y, q_to.θ]]) :
+            [[q_from.x, q_from.y, q_from.θ], [q_to.x, q_to.y, q_to.θ]]
+        )
+        for (x, y, θ) in points
+            # outside
+            if (x < rads[i] || 1 - rads[i] < x || y < rads[i] || 1 - rads[i] < y)
+                return false
             end
+
+            # obstacles
+            any(o -> dist([x, y], [o.x, o.y]) < o.r + rads[i], obstacles) &&
+                return false
         end
 
         return true
@@ -75,9 +70,8 @@ end
 function gen_collide(
     q::StateDubins,
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_LINE2D,
-    safety_dist::Float64 = 0.01,
-    )::Function
+    step_dist::Float64 = STEP_DIST,
+)::Function
 
     N = length(rads)
 
@@ -89,11 +83,38 @@ function gen_collide(
         i::Int64,
         j::Int64,
     ) = begin
+        path_i = dubins_shortest_path(
+            [q_i_from.x, q_i_from.y, q_i_from.θ],
+            [q_i_to.x, q_i_to.y, q_i_to.θ],
+            DUBINS_TURN_RADIUS * rads[i],
+        )[end]
+        path_j = dubins_shortest_path(
+            [q_j_from.x, q_j_from.y, q_j_from.θ],
+            [q_j_to.x, q_j_to.y, q_j_to.θ],
+            DUBINS_TURN_RADIUS * rads[j],
+        )[end]
+
+        P_i = dubins_path_sample_many(path_i, step_dist)[end]
+        P_j = dubins_path_sample_many(path_j, step_dist)[end]
+
+        P_i = (
+            !isnothing(P_i) ? vcat(P_i, [[q_i_to.x, q_i_to.y, q_i_to.θ]]) :
+            [[q_i_from.x, q_i_from.y, q_i_from.θ], [q_i_to.x, q_i_to.y, q_i_to.θ]]
+        )
+        P_j = (
+            !isnothing(P_j) ? vcat(P_j, [[q_j_to.x, q_j_to.y, q_j_to.θ]]) :
+            [[q_j_from.x, q_j_from.y, q_j_from.θ], [q_j_to.x, q_j_to.y, q_j_to.θ]]
+        )
+
+        for (x_i, y_i, θ_i) in P_i, (x_j, y_j, θ_j) in P_j
+            dist([x_i, y_i], [x_j, y_j]) < rads[i] + rads[j] && return true
+        end
+
         return false
     end
 
     f(q_i::StateDubins, q_j::StateDubins, i::Int64, j::Int64) = begin
-        return false
+        return dist([q_i.x, q_i.y], [q_j.x, q_j.y]) < rads[i] + rads[j]
     end
 
     f(Q_from::Vector{Node{StateDubins}}, Q_to::Vector{Node{StateDubins}}) = begin
@@ -106,6 +127,26 @@ function gen_collide(
     end
 
     f(Q::Vector{Node{StateDubins}}, q_i_to::StateDubins, i::Int64) = begin
+        q_i_from = Q[i].q
+        path_i = dubins_shortest_path(
+            [q_i_from.x, q_i_from.y, q_i_from.θ],
+            [q_i_to.x, q_i_to.y, q_i_to.θ],
+            DUBINS_TURN_RADIUS * rads[i],
+        )[end]
+        P_i = dubins_path_sample_many(path_i, step_dist)[end]
+        P_i = (
+            !isnothing(P_i) ? vcat(P_i, [[q_i_to.x, q_i_to.y, q_i_to.θ]]) :
+            [[q_i_from.x, q_i_from.y, q_i_from.θ], [q_i_to.x, q_i_to.y, q_i_to.θ]]
+        )
+
+        for j = 1:N
+            j == i && continue
+            p_j = [Q[j].q.x, Q[j].q.y]
+            for (x_i, y_i, θ_i) in P_i
+                dist([x_i, y_i], p_j) < rads[i] + rads[j] && return true
+            end
+        end
+
         return false
     end
 
@@ -123,16 +164,17 @@ function plot_motion!(
     q_to::StateDubins,
     rad::Float64,
     params;
-    step_dist::Float64=0.01,
-    )
+    step_dist::Float64 = STEP_DIST,
+)
 
     q_from == q_to && return
 
     path = dubins_shortest_path(
         [q_from.x, q_from.y, q_from.θ],
         [q_to.x, q_to.y, q_to.θ],
-        DUBINS_TURN_RADIUS,
+        DUBINS_TURN_RADIUS * rad,
     )[2]
+
     points = dubins_path_sample_many(path, step_dist)[end]
     p = copy(params)
     if haskey(p, :markershape)
@@ -166,7 +208,7 @@ function plot_anim!(
     solution::Union{Nothing,Vector{Vector{Node{StateDubins}}}} = nothing,
     filename::String = "tmp.gif",
     fps::Int64 = 10,
-    interpolate_depth::Union{Nothing,Int64} = nothing
+    interpolate_depth::Union{Nothing,Int64} = nothing,
 )
 
     if isnothing(solution)
@@ -185,17 +227,22 @@ function plot_anim!(
 
         if !isnothing(interpolate_depth) && interpolate_depth > 0 && 1 < t <= T
             depth = sum(map(k -> 2^k, 0:interpolate_depth-1)) + 2
-            for i in 1:N
+            for i = 1:N
                 q_from = solution[t-1][i].q
                 q_to = solution[t][i].q
                 path = dubins_shortest_path(
                     [q_from.x, q_from.y, q_from.θ],
                     [q_to.x, q_to.y, q_to.θ],
-                    DUBINS_TURN_RADIUS
+                    DUBINS_TURN_RADIUS * ins_params[1][i],
                 )[end]
-                points = dubins_path_sample_many(path, dubins_path_length(path) / depth)[end]
+                points =
+                    dubins_path_sample_many(path, dubins_path_length(path) / depth)[end]
                 for (x, y, θ) in vcat(points, [[q_to.x, q_to.y, q_to.θ]])
-                    plot_agent!(StateDubins(x, y, θ), map(arr -> arr[i], ins_params)..., get_color(i))
+                    plot_agent!(
+                        StateDubins(x, y, θ),
+                        map(arr -> arr[i], ins_params)...,
+                        get_color(i),
+                    )
                 end
             end
         else

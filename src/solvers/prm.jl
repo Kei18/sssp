@@ -116,7 +116,7 @@ function PRM_direct(
                     l = P[l]
                 end
                 VERBOSE > 1 && @printf("\r\t%6.4f sec, iteration: %02d", elapsed(), iter)
-                VERBOSE > 0 && @printf("\t%6.4f sec: found solution\n", elapsed())
+                VERBOSE > 0 && @info @sprintf("\t%6.4f sec: found solution\n", elapsed())
                 return (solution, get_roadmaps())
             end
 
@@ -134,7 +134,7 @@ function PRM_direct(
         end
     end
 
-    VERBOSE > 0 && @printf("\n\t%6.4f sec: failed to find solution\n", elapsed())
+    VERBOSE > 0 && @info @sprintf("\n\t%6.4f sec: failed to find solution\n", elapsed())
     return (nothing, get_roadmaps())
 end
 

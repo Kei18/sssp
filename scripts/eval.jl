@@ -19,12 +19,12 @@ function run!(
     anim_plot_params::Dict = Dict(),
 )::Nothing
 
-    config_init, config_goal, obstacles, rads = instance
+    config_init, config_goal, obstacles, ins_params... = instance
 
     # setup search details
     q = config_init[1]
-    connect = gen_connect(q, rads, obstacles)
-    collide = gen_collide(q, rads)
+    connect = gen_connect(q, obstacles, ins_params...)
+    collide = gen_collide(q, ins_params...)
     check_goal = MRMP.gen_check_goal(config_goal)
 
     # solve
@@ -67,12 +67,13 @@ function run!(
 
         save_animation &&
             Threads.nthreads() == 1 &&
+            !isnothing(solution) &&
             plot_anim!(
                 config_init,
                 config_goal,
                 obstacles,
-                rads,
-                solution;
+                ins_params...;
+                solution = solution,
                 filename = "$(root_dir)/res_$(solver_name)_$(k).gif",
                 anim_plot_params...,
             )

@@ -7,8 +7,6 @@ struct StateArm33 <: AbsState
     ϕ3::Float64
 end
 
-const STEP_DIST_ARM33 = 0.05
-
 to_string(s::StateArm33) = @sprintf(
     "(θ1: %.4f, ϕ1: %.4f, θ2: %.4f, ϕ2: %.4f, θ3: %.4f, ϕ3: %.4f)",
     s.θ1,
@@ -51,12 +49,12 @@ end
 
 function gen_connect(
     q::StateArm33,
+    obstacles::Vector{CircleObstacle3D},
     positions::Vector{Vector{Float64}},
-    rads::Vector{Float64},
-    obstacles::Vector{CircleObstacle3D};
-    step_dist::Float64 = STEP_DIST_ARM33,
+    rads::Vector{Float64};
+    step_dist::Float64 = STEP_DIST,
     max_dist::Union{Nothing,Float64} = nothing,
-    safety_dist::Float64 = 0.01,
+    safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
     # check: q \in C_free
@@ -128,8 +126,8 @@ function gen_collide(
     q::StateArm33,
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_ARM22,
-    safety_dist::Float64 = 0.01,
+    step_dist::Float64 = STEP_DIST,
+    safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
     N = length(rads)
@@ -385,7 +383,7 @@ function gen_random_instance_StateArm33(;
 
         # generate starts & goals
         _q = StateArm33(0, 0, 0, 0, 0, 0)
-        connect = gen_connect(_q, positions, rads, obstacles)
+        connect = gen_connect(_q, obstacles, positions, rads)
         collide = gen_collide(_q, positions, rads)
         config_init, config_goal = gen_config_init_goal(_q, N, connect, collide, timeover)
 

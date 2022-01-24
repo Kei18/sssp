@@ -57,9 +57,9 @@ function main(config::Dict; pre_compile::Bool = false)
             score = Threads.Atomic{Float64}(0)
             Threads.@threads for k = 1:num_instances
                 seed!(k)
-                config_init, config_goal, obstacles, rads = instances[k]
-                connect = gen_connect(config_init[1], rads, obstacles)
-                collide = gen_collide(config_init[1], rads)
+                config_init, config_goal, obstacles, ins_params... = instances[k]
+                connect = gen_connect(config_init[1], obstacles, ins_params...)
+                collide = gen_collide(config_init[1], ins_params...)
                 check_goal = MRMP.gen_check_goal(config_goal)
                 t = @elapsed begin
                     solution, roadmaps = eval(Meta.parse(solver_name))(
@@ -100,17 +100,25 @@ function main(config::Dict; pre_compile::Bool = false)
 end
 
 function main(args::Vector{String})
-    config_file = args[1]
-    if !isfile(config_file)
-        @warn @sprintf("%s does not exists", config_file)
+    if length(args) < 2
+        @warn @sprintf("two arguments [param_file, eval_file] are required")
         return
     end
-    config = YAML.load_file(config_file)
-    if !isfile(config["instance"])
-        @warn @sprintf("%s does not exists", config["instance"])
+    param_file, eval_file = args
+
+    # check file existence
+    for file in [param_file, eval_file]
+        if !isfile(file)
+            @warn @sprintf("%s does not exists", file)
+            return
+        end
     end
-    config =
-        merge(config, Dict("instance" => YAML.load_file(config["instance"])["instance"]))
+
+    # create config
+    config = merge(
+        YAML.load_file(param_file),
+        Dict("instance" => YAML.load_file(eval_file)["instance"]),
+    )
 
     # run once to force compilation
     @info "pre-compilation"

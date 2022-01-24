@@ -1,5 +1,16 @@
 module MRMP
 
+import DataStructures: PriorityQueue, enqueue!, dequeue!
+import Printf: @printf, @sprintf
+import Base: @kwdef
+import Random: randperm
+using LinearAlgebra: norm, dot, normalize
+
+# parameters
+const STEP_DIST = 0.01
+const SAFETY_DIST_LINE = 0.01
+const DUBINS_TURN_RADIUS = 1.0
+
 include("search.jl")
 include("smoother.jl")
 include("obstacle.jl")
@@ -15,10 +26,7 @@ include("models/dubins2d.jl")
 
 include("solvers/solvers.jl")
 
-export StateArm22, StateDubins, StateLine2D, StatePoint2D, StatePoint3D
-export CircleObstacle2D, CircleObstacle3D
 export gen_connect, gen_collide, gen_check_goal
-export gen_random_walk, gen_h_func, gen_g_func, gen_get_sample_nums
 export plot_res!, plot_anim!, plot_instance!
 export search!, simple_search
 export smoothing

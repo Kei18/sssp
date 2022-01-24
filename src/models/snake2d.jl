@@ -7,8 +7,6 @@ struct StateSnake2D <: AbsState
     theta4::Float64
 end
 
-const STEP_DIST_SNAKE2D = 0.01
-
 to_string(q::StateSnake2D) = @sprintf(
     "(x: %.4f, y: %.4f, theta: %.4f, %.4f, %.4f, %.4f)",
     q.x,
@@ -53,7 +51,7 @@ end
 
 function check_self_collision_snake2d(
     P::Vector{Vector{Float64}},
-    safety_dist::Float64 = 0.01,
+    safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Bool
     any(
         e -> dist(e...) < safety_dist,
@@ -68,11 +66,11 @@ end
 
 function gen_connect(
     q::StateSnake2D,
-    rads::Vector{Float64},
-    obstacles::Vector{CircleObstacle2D};
-    step_dist::Float64 = STEP_DIST_SNAKE2D,
+    obstacles::Vector{CircleObstacle2D},
+    rads::Vector{Float64};
+    step_dist::Float64 = STEP_DIST,
     max_dist::Union{Nothing,Float64} = nothing,
-    safety_dist::Float64 = 0.01,
+    safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
     # check: q \in C_free
@@ -134,8 +132,8 @@ end
 function gen_collide(
     q::StateSnake2D,
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_SNAKE2D,
-    safety_dist::Float64 = 0.01,
+    step_dist::Float64 = STEP_DIST,
+    safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
     N = length(rads)

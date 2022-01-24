@@ -1,12 +1,13 @@
-module CBS
-export conflict_based_search
+module LibCBS
+export CBS
 
-import ...MRMP: AbsState, Node, to_string, now, elapsed_sec, gen_g_func
+import ...MRMP: AbsState, Node, to_string, now, elapsed_sec
 import ..Solvers:
     SearchNode,
     find_timed_path,
     convert_paths_to_configurations,
     get_distance_tables,
+    gen_g_func,
     PRMs,
     PRMs!
 import Printf: @sprintf
@@ -35,7 +36,7 @@ end
     valid::Bool = true
 end
 
-function conflict_based_search(
+function CBS(
     config_init::Vector{State},
     config_goal::Vector{State},
     connect::Function,
@@ -59,15 +60,18 @@ function conflict_based_search(
     elapsed() = elapsed_sec(t_s)
     timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
-    roadmaps = PRMs(config_init, config_goal, connect, num_vertices; rads = rads)
-    if VERBOSE > 0
-        @info @sprintf("\tconstruct initial roadmaps: |V|=%d", num_vertices)
-    end
+    roadmaps = PRMs(
+        config_init,
+        config_goal,
+        connect,
+        num_vertices;
+        rads = rads,
+        TIME_LIMIT = isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed(),
+    )
+    VERBOSE > 0 && @info @sprintf("\tconstruct initial roadmaps: |V|=%d", num_vertices)
 
     if timeover()
-        if VERBOSE > 0
-            @info @sprintf("\tsolution is not found within time limit")
-        end
+        VERBOSE > 0 && @info @sprintf("\tsolution is not found within time limit")
         return (nothing, roadmaps)
     end
 
@@ -94,9 +98,7 @@ function conflict_based_search(
             rads = rads,
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
-        if timeover()
-            break
-        end
+        timeover() && break
         solution, roadmaps = conflict_based_search(
             roadmaps,
             collide,
@@ -109,13 +111,8 @@ function conflict_based_search(
         )
     end
 
-    if VERBOSE > 0
-        if !isnothing(solution)
-            @info "\tfound solution"
-        else
-            @info "\tfail to find solution"
-        end
-    end
+    VERBOSE > 0 &&
+        @info (!isnothing(solution) ? "\tfound solution" : "\tfail to find solution")
     return (solution, roadmaps)
 end
 
@@ -189,15 +186,12 @@ function conflict_based_search(
         # pop
         node = dequeue!(OPEN)
 
-        if VERBOSE > 1
-            @info @sprintf("\t\titer=%04d, expand new node, f=%d", iter, node.f)
-        end
+        VERBOSE > 1 && @info @sprintf("\t\titer=%04d, expand new node, f=%d", iter, node.f)
 
         # check constraints
         constraints = get_constraints(node.paths, collide)
-        if isempty(constraints)
+        isempty(constraints) &&
             return (convert_paths_to_configurations(node.paths), roadmaps)
-        end
 
         # create new nodes
         for c in constraints
@@ -248,9 +242,7 @@ function invoke(
     invalid =
         (S_from::SearchNode{State}, S_to::SearchNode{State}) -> begin
             # avoid infinite search
-            if S_to.t > max_makespan
-                return true
-            end
+            S_to.t > max_makespan && return true
 
             for c in constraints_i
                 if typeof(c) == VertexConstraint{State}
@@ -268,9 +260,7 @@ function invoke(
 
     check_goal_i =
         (S::SearchNode{State}) -> begin
-            if !check_goal(S.v, i)
-                return false
-            end
+            !check_goal(S.v, i) && return false
 
             # check additional constraints
             if any(
@@ -333,9 +323,7 @@ function invoke(
     )
 
     # failed
-    if isnothing(new_path)
-        return HighLevelNode{State}(valid = false)
-    end
+    isnothing(new_path) && return HighLevelNode{State}(valid = false)
 
     constraints = vcat(node.constraints, [new_constraint])
     paths = map(e -> e[1] != i ? deepcopy(e[2]) : new_path, enumerate(node.paths))
@@ -367,9 +355,7 @@ function get_constraints(
             if collide(v_i_to.q, v_j_to.q, i, j)
                 push!(constraints, VertexConstraint{State}(i, v_i_to, t))
                 push!(constraints, VertexConstraint{State}(j, v_j_to, t))
-                if !check_all_collisions
-                    return constraints
-                end
+                !check_all_collisions & return constraints
                 continue
             end
 
@@ -418,9 +404,7 @@ function get_init_node(
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
         # failure
-        if isnothing(path)
-            return HighLevelNode{State}(valid = false)
-        end
+        isnothing(path) && return HighLevelNode{State}(valid = false)
 
         push!(paths, path)
     end

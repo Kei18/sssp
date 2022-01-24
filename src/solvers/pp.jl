@@ -1,4 +1,4 @@
-function prioritized_planning(
+function PP(
     roadmaps::Vector{Vector{Node{State}}},
     collide::Function,
     check_goal::Function,
@@ -126,7 +126,7 @@ function prioritized_planning(
     return (convert_paths_to_configurations(paths), roadmaps)
 end
 
-function prioritized_planning(
+function PP(
     config_init::Vector{State},
     config_goal::Vector{State},
     connect::Function,
@@ -169,7 +169,7 @@ function prioritized_planning(
         return (nothing, roadmaps)
     end
 
-    solution, roadmaps = prioritized_planning(
+    solution, roadmaps = PP(
         roadmaps,
         collide,
         check_goal,
@@ -195,7 +195,7 @@ function prioritized_planning(
         if timeover()
             break
         end
-        solution, roadmaps = prioritized_planning(
+        solution, roadmaps = PP(
             roadmaps,
             collide,
             check_goal,
