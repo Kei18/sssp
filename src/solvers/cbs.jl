@@ -1,7 +1,7 @@
 module LibCBS
 export CBS
 
-import ...MRMP: AbsState, Node, to_string, now, elapsed_sec
+import ...MRMP: AbsState, Node, now, elapsed_sec
 import ..Solvers:
     SearchNode,
     find_timed_path,
@@ -143,7 +143,7 @@ function conflict_based_search(
                     "\t\t\tadd new child, agent-%d at t=%d, state=%s",
                     c.agent,
                     c.t,
-                    to_string(c.v.q)
+                    c.v.q
                 )
             elseif typeof(c) == EdgeConstraint{State}
                 @info @sprintf(
@@ -151,8 +151,8 @@ function conflict_based_search(
                     c.agent,
                     c.t_to - 1,
                     c.t_to,
-                    to_string(c.v_from.q),
-                    to_string(c.v_to.q)
+                    c.v_from.q,
+                    c.v_to.q
                 )
             end
         end

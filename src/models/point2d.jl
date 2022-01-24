@@ -3,8 +3,6 @@ struct StatePoint2D <: StatePoint
     y::Float64
 end
 
-to_string(s::StatePoint2D) = @sprintf("(%.4f, %.4f)", s.x, s.y)
-
 function get_mid_status(p::StatePoint2D, q::StatePoint2D)::StatePoint2D
     return StatePoint2D((p.x + q.x) / 2, (p.y + q.y) / 2)
 end

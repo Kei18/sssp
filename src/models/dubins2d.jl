@@ -6,8 +6,6 @@ struct StateDubins <: AbsState
     θ::Float64
 end
 
-to_string(s::StateDubins) = @sprintf("(x: %.4f, y: %.4f, θ: %.4f)", s.x, s.y, s.θ)
-
 function get_mid_status(p::StateDubins, q::StateDubins)::StateDubins
     return StateDubins((p.x + q.x) / 2, (p.y + q.y) / 2, diff_angles(q.θ, p.θ) / 2 + p.θ)
 end

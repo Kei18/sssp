@@ -13,6 +13,7 @@ function run!(
     instance::Tuple,
     solvers::Vector{Dict{Any,Any}},
     result::Vector{Any};
+    time_limit::Real = 10,
     seed::Int64 = 0,
     root_dir::String = "",
     save_animation::Bool = false,
@@ -43,6 +44,7 @@ function run!(
                 connect,
                 collide,
                 check_goal;
+                TIME_LIMIT = time_limit,
                 params...,
             )
         end
@@ -111,7 +113,7 @@ function main(config::Dict; pre_compile::Bool = false)
         seed!(seed_offset)
         map(e -> eval(target)(; params...), 1:num_instances)
     end
-    if !pre_compile && get(config, "save_instance_images", false)
+    if !pre_compile && Bool(get(config, "save_instance_images", false))
         @info "saving instance images"
         for k = 1:num_instances
             plot_instance!(
@@ -125,6 +127,7 @@ function main(config::Dict; pre_compile::Bool = false)
     num_total_tasks = num_instances * num_solvers
     cnt_fin = Threads.Atomic{Int}(0)
     result = Array{Any}(undef, num_total_tasks)
+    time_limit = get(config, "time_limit", 10)
     save_animation = !pre_compile && get(config, "save_animation", false)
     anim_plot_params =
         Dict(Symbol(key) => val for (key, val) in get(config, "anim_plot_params", Dict()))
@@ -136,6 +139,7 @@ function main(config::Dict; pre_compile::Bool = false)
             instances[k],
             config["solvers"],
             result;
+            time_limit = time_limit,
             seed = seed_offset,
             root_dir = root_dir,
             save_animation = save_animation,
@@ -154,7 +158,7 @@ function main(config::Dict; pre_compile::Bool = false)
 end
 
 # read experimental setting
-function main(args::Vector{String})
+function main(; args::Vector{String} = ARGS)
     config_file = args[1]
     if !isfile(config_file)
         @warn @sprintf("%s does not exists", config_file)
@@ -202,5 +206,3 @@ function main(args::Vector{String})
     @info "done, start performance measurement"
     main(config)
 end
-
-@time main(ARGS)

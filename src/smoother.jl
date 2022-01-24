@@ -307,9 +307,6 @@ function get_tpg_cost(
     return func([(length(TPG[i]) > 0 ? f(i, TPG[i][end].id) : 0) for i = 1:N])
 end
 
-import Dates
-
-
 function smoothing(
     solution::Vector{Vector{Node{State}}},
     collide::Function,
@@ -317,9 +314,9 @@ function smoothing(
     cost_fn::Function = sum,
     skip_connection::Bool = true,
 )::Tuple{
-    Vector{Vector{Action{State}}},
-    Vector{Vector{Node{State}}},
-    Float64,
+    Vector{Vector{Action{State}}},  # temporal plan graph
+    Vector{Vector{Node{State}}},  # solution
+    Float64,  # cost
 } where {State<:AbsState}
 
     solution_tmp = solution

@@ -1,4 +1,4 @@
-root: ../data/exp/point3d
+root: ../data/exp/snake2d
 seed_offset: 0
 
 num_instances: 1000
@@ -9,19 +9,19 @@ anim_plot_params:
   fps: 3
 
 instance:
-  _target_: MRMP.gen_random_instance_StatePoint3D
+  _target_: MRMP.gen_random_instance_StateSnake2D
   N_min: 2
   N_max: 8
-  rad_min: 0.1
-  rad_max: 0.15
+  rad_min: 0.025
+  rad_max: 0.1
   num_obs_min: 0
-  num_obs_max: 10
-  rad_obs_min: 0.1
-  rad_obs_max: 0.15
+  num_obs_max: 8
+  rad_obs_min: 0.05
+  rad_obs_max: 0.10
 
 solvers:
   - _target_: MRMP.PP
     num_vertices: 70
+    max_makespan: 10
     rad: 0.3
     roadmaps_growing_rate: 1.1
-    max_makespan: 10

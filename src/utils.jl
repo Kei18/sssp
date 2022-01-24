@@ -272,15 +272,15 @@ function print_instance(
         @info @sprintf(
             "\t%02d: %s -> %s, rad: %.4f\n",
             i,
-            to_string(q_init),
-            to_string(q_goal),
+            string(q_init),
+            string(q_goal),
             rad
         )
     end
     if !isempty(obstacles)
         @info "obstacles:"
         for (i, o) in enumerate(obstacles)
-            @info @sprintf("\t%02d: %s\n", i, to_string(o))
+            @info @sprintf("\t%02d: %s\n", i, o)
         end
     end
 end
@@ -298,11 +298,7 @@ function is_valid_instance(
     # check start
     for (i, q) in enumerate(config_init)
         if !connect(q, q, i; ignore_eps = true)
-            @warn @sprintf(
-                "invalid instance, start of agent-%d %s is strage",
-                i,
-                to_string(q)
-            )
+            @warn @sprintf("invalid instance, start of agent-%d %s is strage", i, string(q))
             return false
         end
     end
@@ -310,11 +306,7 @@ function is_valid_instance(
     # check goal
     for (i, q) in enumerate(config_goal)
         if !connect(q, q, i; ignore_eps = true)
-            @warn @sprintf(
-                "invalid instance, goal of agent-%d %s is strage",
-                i,
-                to_string(q)
-            )
+            @warn @sprintf("invalid instance, goal of agent-%d %s is strage", i, string(q))
             return false
         end
     end

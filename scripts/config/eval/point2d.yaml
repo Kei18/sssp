@@ -3,6 +3,11 @@ seed_offset: 0
 
 num_instances: 1000
 save_instance_images: false
+save_animation: false
+anim_plot_params:
+  interpolate_depth: 2
+  fps: 3
+
 instance:
   _target_: MRMP.gen_random_instance_StatePoint2D
   N_min: 2
@@ -14,29 +19,9 @@ instance:
   rad_obs_min: 0.05
   rad_obs_max: 0.10
 
-solvers_common: &solvers_common
-  TIME_LIMIT: 300
-
 solvers:
-  - _target_: MRMP.prioritized_planning
-    <<: *solvers_common
+  - _target_: MRMP.PP
     num_vertices: 70
     max_makespan: 10
     rad: 0.3
     roadmaps_growing_rate: 1.1
-  - _target_: MRMP.conflict_based_search
-    <<: *solvers_common
-    num_vertices: 70
-    max_makespan: 10
-    rad: 0.3
-    roadmaps_growing_rate: 1.0
-    collision_weight: 1.0
-  - _target_: MRMP.RRT
-    <<: *solvers_common
-    steering_depth: 2
-    epsilon: 2
-  - _target_: MRMP.Solvers.planner1
-    <<: *solvers_common
-    num_vertex_expansion: 10
-    init_min_dist_thread: 0.1
-    decreasing_rate_min_dist_thread: 0.99

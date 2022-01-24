@@ -1,0 +1,66 @@
+root: ../data/exp/hypra
+seed_offset: 10000
+num_instances: 5
+num_search_times: 5
+time_limit: 2
+
+solvers_common_params_mapf: &solvers_common_params_mapf
+  num_vertices:
+    - 30
+    - 50
+    - 70
+    - 90
+  rad:
+    - null
+    - 0.05
+    - 0.1
+    - 0.3
+    - 0.5
+  max_makespan:
+    - 10
+    - 20
+  roadmaps_growing_rate:
+    - null
+    - 1.0
+    - 1.1
+    - 1.5
+    - 2.0
+
+solvers_common_params_rrt: &solvers_common_params_rrt
+  steering_depth:
+    - 0
+    - 1
+    - 2
+    - 4
+    - 8
+    - 16
+  epsilon:
+    - null
+    - 0.1
+    - 0.2
+    - 0.5
+    - 1.0
+    - 2.0
+
+solvers:
+  - _target_: MRMP.PP
+    <<: *solvers_common_params_mapf
+  - _target_: MRMP.CBS
+    <<: *solvers_common_params_mapf
+    collision_weight:
+      - 0.0
+      - 0.1
+      - 0.5
+      - 1.0
+  - _target_: MRMP.RRT
+    <<: *solvers_common_params_rrt
+  - _target_: MRMP.RRT_connect
+    <<: *solvers_common_params_rrt
+  - _target_: MRMP.PRM_direct
+    epsilon:
+      - null
+      - 0.1
+      - 0.2
+      - 0.5
+      - 1.0
+      - 2.0

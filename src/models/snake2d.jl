@@ -7,16 +7,6 @@ struct StateSnake2D <: AbsState
     theta4::Float64
 end
 
-to_string(q::StateSnake2D) = @sprintf(
-    "(x: %.4f, y: %.4f, theta: %.4f, %.4f, %.4f, %.4f)",
-    q.x,
-    q.y,
-    q.theta1,
-    q.theta2,
-    q.theta3,
-    q.theta4
-)
-
 function get_mid_status(p::StateSnake2D, q::StateSnake2D)::StateSnake2D
     return StateSnake2D(
         (p.x + q.x) / 2,

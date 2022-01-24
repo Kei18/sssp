@@ -3,10 +3,6 @@ struct StateArm22 <: AbsState
     theta2::Float64
 end
 
-const STEP_DIST_ARM22 = 0.01
-
-to_string(s::StateArm22) = @sprintf("(theta1: %.4f, theta2: %.4f)", s.theta1, s.theta2)
-
 function get_mid_status(p::StateArm22, q::StateArm22)::StateArm22
     return StateArm22(
         diff_angles(q.theta1, p.theta1) / 2 + p.theta1,

@@ -7,16 +7,6 @@ struct StateArm33 <: AbsState
     ϕ3::Float64
 end
 
-to_string(s::StateArm33) = @sprintf(
-    "(θ1: %.4f, ϕ1: %.4f, θ2: %.4f, ϕ2: %.4f, θ3: %.4f, ϕ3: %.4f)",
-    s.θ1,
-    s.ϕ1,
-    s.θ2,
-    s.ϕ2,
-    s.θ3,
-    s.ϕ3
-)
-
 function get_mid_status(p::StateArm33, q::StateArm33)::StateArm33
     return StateArm33(
         diff_angles(q.θ1, p.θ1) / 2 + p.θ1,

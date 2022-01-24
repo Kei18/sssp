@@ -85,6 +85,14 @@ function main(config::Dict; pre_compile::Bool = false)
             push!(ho.results, score[])
         end
         results[solver_name] = ho
+
+        if !pre_compile
+            @info @sprintf("\nsolver:%s\n%s\n", solver_name, ho)
+            YAML.write_file(
+                joinpath(root_dir, @sprintf("best_params_%s.yaml", solver_name)),
+                Dict(solver_name => Dict(zip(ho.params, ho.minimizer))),
+            )
+        end
     end
 
     if !pre_compile
@@ -99,7 +107,7 @@ function main(config::Dict; pre_compile::Bool = false)
     end
 end
 
-function main(args::Vector{String})
+function main(; args::Vector{String} = ARGS)
     if length(args) < 2
         @warn @sprintf("two arguments [param_file, eval_file] are required")
         return
@@ -133,5 +141,3 @@ function main(args::Vector{String})
     @info "done, start hypra search"
     main(config)
 end
-
-@time main(ARGS)

@@ -4,8 +4,6 @@ struct StateLine2D <: AbsState
     theta::Float64
 end
 
-to_string(s::StateLine2D) = @sprintf("(%.4f, %.4f, theta: %.4f)", s.x, s.y, s.theta)
-
 function get_mid_status(p::StateLine2D, q::StateLine2D)::StateLine2D
     return StateLine2D(
         (p.x + q.x) / 2,
