@@ -21,8 +21,5 @@ instance:
   rad_obs_max: 0.07
 
 solvers:
-  - _target_: MRMP.PP
-    num_vertices: 70
-    max_makespan: 10
-    rad: 0.3
-    roadmaps_growing_rate: 1.1
+  # - _target_: MRMP.planner1
+  - _target_: MRMP.RRT_connect

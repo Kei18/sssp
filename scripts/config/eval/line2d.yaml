@@ -13,9 +13,9 @@ instance:
   N_min: 2
   N_max: 8
   rad_min: 0.05
-  rad_max: 0.2
+  rad_max: 0.15
   num_obs_min: 0
-  num_obs_max: 10
+  num_obs_max: 8
   rad_obs_min: 0.05
   rad_obs_max: 0.10
 

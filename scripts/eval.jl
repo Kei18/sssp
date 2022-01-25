@@ -158,7 +158,7 @@ function main(config::Dict; pre_compile::Bool = false)
 end
 
 # read experimental setting
-function main(; args::Vector{String} = ARGS)
+function main(args...)
     config_file = args[1]
     if !isfile(config_file)
         @warn @sprintf("%s does not exists", config_file)
@@ -206,3 +206,5 @@ function main(; args::Vector{String} = ARGS)
     @info "done, start performance measurement"
     main(config)
 end
+
+main() = main(ARGS...)

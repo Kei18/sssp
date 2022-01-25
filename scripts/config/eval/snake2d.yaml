@@ -11,8 +11,8 @@ anim_plot_params:
 instance:
   _target_: MRMP.gen_random_instance_StateSnake2D
   N_min: 2
-  N_max: 8
-  rad_min: 0.025
+  N_max: 6
+  rad_min: 0.05
   rad_max: 0.1
   num_obs_min: 0
   num_obs_max: 8
@@ -20,8 +20,10 @@ instance:
   rad_obs_max: 0.10
 
 solvers:
-  - _target_: MRMP.PP
-    num_vertices: 70
-    max_makespan: 10
-    rad: 0.3
-    roadmaps_growing_rate: 1.1
+  # - _target_: MRMP.PP
+  #   num_vertices: 70
+  #   max_makespan: 10
+  #   rad: 0.3
+  #   roadmaps_growing_rate: 1.1
+  # - _target_: MRMP.RRT_connect
+  - _target_: MRMP.planner1

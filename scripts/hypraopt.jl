@@ -107,7 +107,7 @@ function main(config::Dict; pre_compile::Bool = false)
     end
 end
 
-function main(; args::Vector{String} = ARGS)
+function main(args...)
     if length(args) < 2
         @warn @sprintf("two arguments [param_file, eval_file] are required")
         return
@@ -141,3 +141,5 @@ function main(; args::Vector{String} = ARGS)
     @info "done, start hypra search"
     main(config)
 end
+
+main() = main(ARGS)
