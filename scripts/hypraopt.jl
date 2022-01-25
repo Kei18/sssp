@@ -41,14 +41,16 @@ function main(config::Dict; pre_compile::Bool = false)
     end
 
     num_search_times = get(config, "num_search_times", 100)
+    time_limit = get(config, "time_limit", 30)
     results = Dict()
     for solver_info in config["solvers"]
         solver_name = solver_info["_target_"]
         @info @sprintf(
-            "hyper parameter search for %s with %d samples with %d threads",
+            "hyper parameter search for %s with %d samples with %d threads, timeout: %f sec",
             solver_name,
             num_search_times,
-            Threads.nthreads()
+            Threads.nthreads(),
+            time_limit
         )
         params_key = collect(filter(key -> key != "_target_", keys(solver_info)))
         params_cands_str = Dict(map(key -> (Symbol(key), solver_info[key]), params_key))
@@ -68,7 +70,7 @@ function main(config::Dict; pre_compile::Bool = false)
                         connect,
                         collide,
                         check_goal;
-                        TIME_LIMIT = config["time_limit"],
+                        TIME_LIMIT = time_limit,
                         Dict(pairs(params))...,
                     )
                 end
