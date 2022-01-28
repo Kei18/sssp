@@ -398,8 +398,10 @@ function planner4(
     VERBOSE > 0 && @info ("\tdone, setup initial roadmaps")
 
     # setup distance tables
-    distance_tables1 = get_distance_tables(roadmaps, goal_nodes = map(rmp -> rmp[2], roadmaps))
-    distance_tables2 = get_distance_tables(roadmaps, goal_nodes = map(rmp -> rmp[1], roadmaps))
+    distance_tables1 =
+        get_distance_tables(roadmaps, goal_nodes = map(rmp -> rmp[2], roadmaps))
+    distance_tables2 =
+        get_distance_tables(roadmaps, goal_nodes = map(rmp -> rmp[1], roadmaps))
 
     # verbose
     print_progress! =
@@ -423,8 +425,10 @@ function planner4(
     Q_init2 = [roadmaps[i][2] for i = 1:N]
 
     # initial search node
-    S_init1 = SuperNode(Q = Q_init1, next = 1, id = get_Q_id(Q_init1, 0), h = h_func1(Q_init1))
-    S_init2 = SuperNode(Q = Q_init2, next = 1, id = get_Q_id(Q_init2, 0), h = h_func2(Q_init2))
+    S_init1 =
+        SuperNode(Q = Q_init1, next = 1, id = get_Q_id(Q_init1, 0), h = h_func1(Q_init1))
+    S_init2 =
+        SuperNode(Q = Q_init2, next = 1, id = get_Q_id(Q_init2, 0), h = h_func2(Q_init2))
 
     k = 0
     while !timeover()
@@ -455,9 +459,9 @@ function planner4(
             loop_cnt += 1
 
             (OPEN, VISITED, VISITED_OTHERSIDE, distance_tables, h_func) = (
-                (loop_cnt % 2 == 1)
-                ? (OPEN1, VISITED1, VISITED2, distance_tables1, h_func1)
-                : (OPEN2, VISITED2, VISITED1, distance_tables2, h_func2)
+                (loop_cnt % 2 == 1) ?
+                (OPEN1, VISITED1, VISITED2, distance_tables1, h_func1) :
+                (OPEN2, VISITED2, VISITED1, distance_tables2, h_func2)
             )
             isempty(OPEN) && break
 
@@ -467,19 +471,18 @@ function planner4(
             # check goal
             S_other_near = begin
                 Q = map(v -> v.q, S.Q)
-                argmin(
-                    e -> dist(Q, map(v -> v.q, e[end].Q)),
-                    VISITED_OTHERSIDE
-                )[end]
+                argmin(e -> dist(Q, map(v -> v.q, e[end].Q)), VISITED_OTHERSIDE)[end]
             end
-            if ((isnothing(epsilon) || dist(S.Q, S_other_near.Q) < epsilon) &&
+            if (
+                (isnothing(epsilon) || dist(S.Q, S_other_near.Q) < epsilon) &&
                 all(i -> connect(S.Q[i].q, S_other_near.Q[i].q, i), 1:N) &&
-                !collide(S.Q, S_other_near.Q))
+                !collide(S.Q, S_other_near.Q)
+            )
                 print_progress!(S, loop_cnt, force = true)
                 VERBOSE > 0 && @printf("\n\t%6.4f sec: found solution\n", elapsed())
                 solution = vcat(
                     backtrack(S, VISITED),
-                    reverse(backtrack(S_other_near, VISITED_OTHERSIDE))
+                    reverse(backtrack(S_other_near, VISITED_OTHERSIDE)),
                 )
                 loop_cnt % 2 != 1 && (solution = reverse(solution))
                 return (solution, roadmaps)
@@ -503,8 +506,10 @@ function planner4(
                     num_vertex_expansion,
                     steering_depth,
                 )
-                    distance_tables1[i] = get_distance_table(roadmaps[i]; goal_node = Q_init2[i])
-                    distance_tables2[i] = get_distance_table(roadmaps[i]; goal_node = Q_init1[i])
+                    distance_tables1[i] =
+                        get_distance_table(roadmaps[i]; goal_node = Q_init2[i])
+                    distance_tables2[i] =
+                        get_distance_table(roadmaps[i]; goal_node = Q_init1[i])
                 end
             end
 

@@ -277,10 +277,39 @@ function get_greedy_solution(
     return solution
 end
 
+function get_solution_cost(
+    solution::Union{Nothing,Vector{Vector{Node{State}}}},
+)::Union{Nothing,Dict{Symbol,Float64}} where {State<:AbsState}
+
+    isnothing(solution) && return nothing
+    N = length(solution[1])
+    T = length(solution)
+
+    # compute last timesteps
+    last_timesteps = fill(T, N)
+    for i = 1:N
+        for t in reverse(collect(1:T-1))
+            solution[t][i] != solution[t+1][i] && break
+            last_timesteps[i] = t
+        end
+    end
+
+    makespan = 0
+    sum_of_cost = 0
+    for t = 2:T
+        c = maximum(i -> dist(solution[t-1][i], solution[t][i]), 1:N)
+        sum_of_cost += c * length(filter(e -> t <= e, last_timesteps))
+        makespan += c
+    end
+
+    return Dict(:sum_of_cost => sum_of_cost, :makespan => makespan)
+end
+
 function get_tpg_cost(
-    TPG::Vector{Vector{Action{State}}},
-    func::Function = sum,
-) where {State<:AbsState}
+    TPG::Union{Nothing,Vector{Vector{Action{State}}}},
+)::Union{Nothing,Dict{Symbol,Float64}} where {State<:AbsState}
+
+    isnothing(TPG) && return nothing
 
     N = length(TPG)
     cost_tables = [Dict{String,Float64}() for i = 1:N]
@@ -298,39 +327,46 @@ function get_tpg_cost(
         return c
     end
 
-    return func([(length(TPG[i]) > 0 ? f(i, TPG[i][end].id) : 0) for i = 1:N])
+    arr = [(length(TPG[i]) > 0 ? f(i, TPG[i][end].id) : 0) for i = 1:N]
+    return Dict(:sum_of_cost => sum(arr), :makespan => maximum(arr))
+end
+
+function smoothing(
+    solution::Nothing,
+    collide::Function,
+    connect::Function;
+    VERBOSE::Int64 = 0,
+)::Nothing
+    nothing
 end
 
 function smoothing(
     solution::Vector{Vector{Node{State}}},
     collide::Function,
     connect::Function;
-    cost_fn::Function = sum,
-    skip_connection::Bool = true,
     VERBOSE::Int64 = 0,
 )::Tuple{
     Vector{Vector{Action{State}}},  # temporal plan graph
     Vector{Vector{Node{State}}},  # solution
-    Float64,  # cost
+    Dict{Symbol,Float64},  # final cost
 } where {State<:AbsState}
+
+    isnothing(solution) && return nothing
 
     solution_tmp = solution
     config_goal = map(path -> path[end].q, solution)
-    cost_last = Inf
+    cost_last = nothing
+    sum_of_cost_last = Inf
     while true
-        TPG = get_temporal_plan_graph(
-            solution_tmp,
-            collide,
-            connect;
-            skip_connection = skip_connection,
-        )
+        TPG = get_temporal_plan_graph(solution_tmp, collide, connect)
         solution_tmp = get_greedy_solution(TPG; config_goal = config_goal)
-        cost = get_tpg_cost(TPG, cost_fn)
-        if cost_last == cost
+        cost = get_tpg_cost(TPG)
+        if sum_of_cost_last >= cost[:sum_of_cost]
             return (TPG, solution_tmp, cost)
         else
             VERBOSE > 0 && @info @sprintf("cost is updated: %f -> %f", cost_last, cost)
             cost_last = cost
+            sum_of_cost_last = get(cost, :sum_of_cost)
         end
     end
 end

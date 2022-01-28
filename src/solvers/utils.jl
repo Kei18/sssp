@@ -147,10 +147,7 @@ function get_distance_tables(
 
     N = length(roadmaps)
     return map(
-        i -> get_distance_table(
-            roadmaps[i];
-            g_func = g_func,
-            goal_node = goal_nodes[i]),
-        1:N
+        i -> get_distance_table(roadmaps[i]; g_func = g_func, goal_node = goal_nodes[i]),
+        1:N,
     )
 end
