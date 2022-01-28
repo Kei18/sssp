@@ -1,3 +1,5 @@
+const STEP_DIST_SNAKE2D = 0.05
+
 struct StateSnake2D <: AbsState
     x::Float64
     y::Float64
@@ -58,7 +60,7 @@ function gen_connect(
     q::StateSnake2D,
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
+    step_dist::Float64 = STEP_DIST_SNAKE2D,
     max_dist::Union{Nothing,Float64} = nothing,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
@@ -122,7 +124,7 @@ end
 function gen_collide(
     q::StateSnake2D,
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
+    step_dist::Float64 = STEP_DIST_SNAKE2D,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 

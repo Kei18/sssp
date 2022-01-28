@@ -6,13 +6,16 @@ MRMP
 A private research repo for multi-robot motion planning (MRMP), written in Julia (≥v1.6), tested on MacOS-10.15.
 
 ## TODO
+- [x] check timeout for planner3
+- [ ] check performance of planner3 at snake2d, arm22, arm33
+- [x] module: planner3
 - [ ] hypra search
   - [ ] baselines
     - [x] point2d
     - [x] point3d
     - [x] line2d
     - [x] arm22
-    - [ ] arm33
+    - [x] arm33
     - [ ] snake2d
     - [ ] dubins2d
   - [ ] proposal
@@ -24,6 +27,8 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [ ] snake2d
     - [ ] dubins2d
   - [ ] scalability test
+  - [ ] ablation study
+- [ ] insert citations
 
 ## Demo
 

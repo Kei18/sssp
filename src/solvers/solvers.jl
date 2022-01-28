@@ -13,9 +13,8 @@ include("rrt.jl")
 include("rrt_connect.jl")
 include("pp.jl")
 include("cbs.jl")
-include("planner1.jl")
-include("planner3.jl")
+include("plannerx.jl")
 
-using .LibCBS, .LibRRT, .LibRRT_connect
+using .LibCBS, .LibRRT, .LibRRT_connect, .LibPlannerX
 export PRM_direct, PRMs, PRMs!, RRT, RRT_connect, PP, CBS, planner1, planner3
 end

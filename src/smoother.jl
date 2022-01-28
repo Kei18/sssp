@@ -316,7 +316,7 @@ function smoothing(
 
     solution_tmp = solution
     config_goal = map(path -> path[end].q, solution)
-    cost_last = 0
+    cost_last = Inf
     while true
         TPG = get_temporal_plan_graph(
             solution_tmp,

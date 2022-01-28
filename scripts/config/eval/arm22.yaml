@@ -20,22 +20,23 @@ instance:
   rad_obs_max: 0.10
 
 solvers:
-  - _target_: MRMP.RRT
-    steering_depth: 2
-    epsilon: 0.5
-  - _target_: MRMP.PP
-    num_vertices: 100
-    max_makespan: 20
-    rad: 0.3
-    roadmaps_growing_rate: 2.0
-  - _target_: MRMP.PRM_direct
-    epsilon: 4.0
-  - _target_: MRMP.RRT_connect
-    steering_depth: 2
-    epsilon: 0.2
-  - _target_: MRMP.CBS
-    num_vertices: 100
-    max_makespan: 10
-    rad: 0.3
-    roadmaps_growing_rate: 1.5
-    collision_weight: 4.0
+  # - _target_: MRMP.RRT
+  #   steering_depth: 2
+  #   epsilon: 0.5
+  # - _target_: MRMP.PP
+  #   num_vertices: 100
+  #   max_makespan: 20
+  #   rad: 0.3
+  #   roadmaps_growing_rate: 2.0
+  # - _target_: MRMP.PRM_direct
+  #   epsilon: 4.0
+  # - _target_: MRMP.RRT_connect
+  #   steering_depth: 2
+  #   epsilon: 0.2
+  # - _target_: MRMP.CBS
+  #   num_vertices: 100
+  #   max_makespan: 10
+  #   rad: 0.3
+  #   roadmaps_growing_rate: 1.5
+  #   collision_weight: 4.0
+  - _target_: MRMP.planner3

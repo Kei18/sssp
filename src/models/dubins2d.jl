@@ -177,8 +177,7 @@ function plot_agent!(q::StateDubins, rad::Float64, color::String)
     plot!([q.x, p_from_x], [q.y, p_from_y], lw = 5, color = color, legend = nothing)
 end
 
-function gen_random_instance_StateDubins(
-    ;
+function gen_random_instance_StateDubins(;
     N_min::Int64 = 2,
     N_max::Int64 = 8,
     N::Int64 = rand(N_min:N_max),
@@ -192,12 +191,7 @@ function gen_random_instance_StateDubins(
     rad_obs_min::Float64 = rad_obs,
     rad_obs_max::Float64 = rad_obs,
     TIME_LIMIT::Float64 = 0.5,
-)::Tuple{
-    Vector{StateDubins},
-    Vector{StateDubins},
-    Vector{CircleObstacle2D},
-    Vector{Float64},
-}
+)::Tuple{Vector{StateDubins},Vector{StateDubins},Vector{CircleObstacle2D},Vector{Float64}}
     """This model do not consider 'back' operation,
     states too close to walls/obstacles cannot be reached.
     Hence this func inserts 'additional buffer'."""
@@ -216,7 +210,7 @@ function gen_random_instance_StateDubins(
         connect(q::StateDubins, i::Int64) = begin
             r = rads[i] + rads[i] * DUBINS_TURN_RADIUS
             p = [q.x, q.y]
-            return all(x -> r < x < 1-r, p) && all(o -> dist(p, o) > r + o.r, obstacles)
+            return all(x -> r < x < 1 - r, p) && all(o -> dist(p, o) > r + o.r, obstacles)
         end
 
         # avoiding deadlock
