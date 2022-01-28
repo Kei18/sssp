@@ -128,7 +128,7 @@ function main(config::Dict; pre_compile::Bool = false)
     cnt_fin = Threads.Atomic{Int}(0)
     result = Array{Any}(undef, num_total_tasks)
     time_limit = get(config, "time_limit", 10)
-    save_animation = !pre_compile && get(config, "save_animation", false)
+    save_animation = !pre_compile && Bool(get(config, "save_animation", false))
     anim_plot_params =
         Dict(Symbol(key) => val for (key, val) in get(config, "anim_plot_params", Dict()))
 
@@ -199,7 +199,10 @@ function main(args...)
     # run once to force compilation
     @info "pre-compilation"
     Logging.with_logger(Logging.SimpleLogger(stdout, Logging.Error)) do
-        main(merge(config, Dict("num_instances" => 1)); pre_compile = true)
+        main(
+            merge(config, Dict("num_instances" => 1, "time_limit" => 10));
+            pre_compile = true,
+        )
     end
 
     # start experiment

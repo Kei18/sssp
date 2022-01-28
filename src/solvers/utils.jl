@@ -102,8 +102,8 @@ function convert_paths_to_configurations(
 end
 
 function get_distance_table(
-    roadmap::Vector{Node{State}},
-    g_func::Function,
+    roadmap::Vector{Node{State}};
+    g_func::Function = dist,
     goal_node::Node{State} = roadmap[2],
 )::Vector{Float64} where {State<:AbsState}
     """by Dijkstra"""

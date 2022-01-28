@@ -75,7 +75,7 @@ function CBS(
         return (nothing, roadmaps)
     end
 
-    solution, roadmaps = conflict_based_search(
+    solution, roadmaps = CBS(
         roadmaps,
         collide,
         check_goal,
@@ -99,7 +99,7 @@ function CBS(
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
         timeover() && break
-        solution, roadmaps = conflict_based_search(
+        solution, roadmaps = CBS(
             roadmaps,
             collide,
             check_goal,
@@ -116,7 +116,7 @@ function CBS(
     return (solution, roadmaps)
 end
 
-function conflict_based_search(
+function CBS(
     roadmaps::Vector{Vector{Node{State}}},
     collide::Function,
     check_goal::Function,
@@ -173,9 +173,7 @@ function conflict_based_search(
         f_func_highlevel;
         TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
     )
-    if init_node.valid
-        enqueue!(OPEN, init_node, init_node.f)
-    end
+    init_node.valid && enqueue!(OPEN, init_node, init_node.f)
 
     # main loop
     iter = 0

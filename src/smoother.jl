@@ -135,17 +135,11 @@ function try_skip_connection!(
             a2 = TPG[i][k]
 
             # check connection
-            if !connect(a1.from.q, a2.to.q, i; ignore_eps = true)
-                continue
-            end
+            !connect(a1.from.q, a2.to.q, i) && continue
 
             # check dependencies
-            if any([j != i for (j, _) in a2.predecessors])
-                continue
-            end
-            if any([j != i for (j, _) in a1.successors])
-                continue
-            end
+            any([j != i for (j, _) in a2.predecessors]) && continue
+            any([j != i for (j, _) in a1.successors]) && continue
 
             # new action candidate
             a3 = Action(
@@ -313,6 +307,7 @@ function smoothing(
     connect::Function;
     cost_fn::Function = sum,
     skip_connection::Bool = true,
+    VERBOSE::Int64 = 0,
 )::Tuple{
     Vector{Vector{Action{State}}},  # temporal plan graph
     Vector{Vector{Node{State}}},  # solution
@@ -334,6 +329,7 @@ function smoothing(
         if cost_last == cost
             return (TPG, solution_tmp, cost)
         else
+            VERBOSE > 0 && @info @sprintf("cost is updated: %f -> %f", cost_last, cost)
             cost_last = cost
         end
     end

@@ -74,7 +74,7 @@ function RRT(
         # new sample
         C_h = sampler()
         # find parent
-        _, ind_near = findmin(C -> dist(C, C_h), V)
+        ind_near = findmin(C -> dist(C, C_h), V)[end]
         C_near = V[ind_near]
 
         # steering

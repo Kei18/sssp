@@ -2,6 +2,14 @@ function dist(a::Vector{Float64}, b::Vector{Float64})::Float64
     norm(a - b)
 end
 
+function dist(a::Vector{Float64}, o::CircleObstacle2D)::Float64
+    dist(a, [o.x, o.y])
+end
+
+function dist(a::Vector{Float64}, o::CircleObstacle3D)::Float64
+    dist(a, [o.x, o.y, o.z])
+end
+
 function dist(v1::Node{State}, v2::Node{State})::Float64 where {State<:AbsState}
     dist(v1.q, v2.q)
 end
@@ -71,30 +79,6 @@ end
 
 function diff_angles(t1::Float64, t2::Float64)::Float64
     atan(sin(t1 - t2), cos(t1 - t2))
-end
-
-function steering(
-    q_near::State,
-    q_rand::State,
-    connect::Function,
-    i::Int64,
-    steering_depth::Int64,
-)::State where {State<:AbsState}
-
-    q_h = q_rand  # might be unsafe
-    if !connect(q_near, q_h, i)
-        q_l = q_near  # safe
-        for _ = 1:steering_depth
-            q = get_mid_status(q_l, q_h)
-            if connect(q_near, q, i)
-                q_l = q
-            else
-                q_h = q
-            end
-        end
-        q_h = q_l
-    end
-    return q_h
 end
 
 function gen_collide(q::State, rads::Vector{Float64})::Function where {State<:StatePoint}

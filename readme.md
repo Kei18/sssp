@@ -5,7 +5,25 @@ MRMP
 
 A private research repo for multi-robot motion planning (MRMP), written in Julia (≥v1.6), tested on MacOS-10.15.
 
-
+## TODO
+- [ ] hypra search
+  - [ ] baselines
+    - [x] point2d
+    - [x] point3d
+    - [x] line2d
+    - [x] arm22
+    - [ ] arm33
+    - [ ] snake2d
+    - [ ] dubins2d
+  - [ ] proposal
+    - [ ] point2d
+    - [ ] point3d
+    - [ ] line2d
+    - [ ] arm22
+    - [ ] arm33
+    - [ ] snake2d
+    - [ ] dubins2d
+  - [ ] scalability test
 
 ## Demo
 
@@ -36,6 +54,13 @@ julia --project=. -e 'using Pkg; test()'
 #### Format
 ```sh
 julia --project=. -e 'using JuliaFormatter; format(".")'
+```
+
+#### Hyperparameter Optimization
+```sh
+julia --project=. --threads=auto
+> include("./scripts/hypraopt.jl")
+> @time main("./scripts/config/hypra/params.yaml", "./scripts/config/eval/point2d.yaml")
 ```
 
 
