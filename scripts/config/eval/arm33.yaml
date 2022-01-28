@@ -20,6 +20,22 @@ instance:
   rad_obs_max: 0.15
 
 solvers:
-  # - _target_: MRMP.planner1
-  # - _target_: MRMP.RRT_connect
+  - _target_: MRMP.RRT
+    steering_depth: 2
+    epsilon: 4.0
   - _target_: MRMP.PP
+    num_vertices: 50
+    max_makespan: 20
+    rad: 1.0
+    roadmaps_growing_rate: ~
+  - _target_: MRMP.PRM_direct
+    epsilon: 4.0
+  - _target_: MRMP.RRT_connect
+    steering_depth: 4
+    epsilon: 0.1
+  - _target_: MRMP.CBS
+    num_vertices: 50
+    max_makespan: 20
+    rad: 1.0
+    roadmaps_growing_rate: 1.0
+    collision_weight: 2.0
