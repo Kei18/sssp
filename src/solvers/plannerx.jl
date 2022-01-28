@@ -1,5 +1,5 @@
 module LibPlannerX
-export planner1, planner3
+export planner1, planner3, planner4
 
 import Printf: @sprintf, @printf
 import Base: @kwdef
@@ -344,6 +344,207 @@ function planner3(
     VERBOSE > 0 && @info @sprintf("\t%6.4f sec: failed to find solution\n", elapsed())
     return (nothing, roadmaps)
 end
+
+function planner4(
+    config_init::Vector{State},
+    config_goal::Vector{State},
+    connect::Function,
+    collide::Function,
+    check_goal::Function;
+    g_func::Function = gen_g_func(greedy = true),
+    steering_depth::Int64 = 2,
+    num_vertex_expansion::Int64 = 10,
+    init_min_dist_thread::Float64 = 0.1,
+    decreasing_rate_min_dist_thread::Float64 = 0.99,
+    epsilon::Union{Float64,Nothing} = nothing,
+    TIME_LIMIT::Union{Nothing,Real} = 30,
+    VERBOSE::Int64 = 0,
+)::Tuple{
+    Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+    Vector{Vector{Node{State}}},  # roadmap
+} where {State<:AbsState}
+    """get initial solution / refinement"""
+
+    t_s = now()
+    elapsed() = elapsed_sec(t_s)
+    timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
+
+    # number of agents
+    N = length(config_init)
+
+    # define sampler
+    sampler = gen_uniform_sampling(config_init[1])
+
+    # used in steering
+    conn(q_from::State, q_to::State, i::Int64) = begin
+        (isnothing(epsilon) || dist(q_from, q_to) <= epsilon) && connect(q_from, q_to, i)
+    end
+
+    # get initial roadmap by RRT-connect
+    roadmaps = gen_RRT_connect_roadmaps(
+        config_init,
+        config_goal,
+        connect;
+        steering_depth = steering_depth,
+        epsilon = epsilon,
+        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+    )
+    if isnothing(roadmaps)
+        VERBOSE > 0 &&
+            @info @sprintf("\t%6.4f sec: failed to construct initial roadmaps\n", elapsed())
+        return (nothing, map(i -> Vector{Node{State}}(), 1:N))
+    end
+
+    VERBOSE > 0 && @info ("\tdone, setup initial roadmaps")
+
+    # setup distance tables
+    distance_tables1 = get_distance_tables(roadmaps, goal_nodes = map(rmp -> rmp[2], roadmaps))
+    distance_tables2 = get_distance_tables(roadmaps, goal_nodes = map(rmp -> rmp[1], roadmaps))
+
+    # verbose
+    print_progress! =
+        (S::SuperNode{State}, loop_cnt::Int64; force::Bool = false) -> begin
+            (VERBOSE < 1 || (!force && (loop_cnt % 100 != 0))) && return
+            @printf(
+                "\r\t\t%6.4f sec, explored node: %08d, f: %.4f, depth: %04d",
+                elapsed(),
+                loop_cnt,
+                S.f,
+                S.depth
+            )
+        end
+
+    # setup heuristic function
+    h_func1(Q::Vector{Node{State}}) = sum(map(i -> distance_tables1[i][Q[i].id], 1:N)) / N
+    h_func2(Q::Vector{Node{State}}) = sum(map(i -> distance_tables2[i][Q[i].id], 1:N)) / N
+
+    # initial configuration
+    Q_init1 = [roadmaps[i][1] for i = 1:N]
+    Q_init2 = [roadmaps[i][2] for i = 1:N]
+
+    # initial search node
+    S_init1 = SuperNode(Q = Q_init1, next = 1, id = get_Q_id(Q_init1, 0), h = h_func1(Q_init1))
+    S_init2 = SuperNode(Q = Q_init2, next = 1, id = get_Q_id(Q_init2, 0), h = h_func2(Q_init2))
+
+    k = 0
+    while !timeover()
+        k += 1
+
+        # open list
+        OPEN1 = PriorityQueue{SuperNode{State},Float64}()
+        OPEN2 = PriorityQueue{SuperNode{State},Float64}()
+
+        # discovered list to avoid duplication
+        VISITED1 = Dict{String,SuperNode{State}}()
+        VISITED2 = Dict{String,SuperNode{State}}()
+
+        # already expanded in this iteration
+        EXPANDED = [Dict{Int64,Bool}() for i = 1:N]
+
+        # threshold of space-filling metric
+        min_dist_thread = init_min_dist_thread * (decreasing_rate_min_dist_thread^(k - 1))
+
+        # setup initail node
+        enqueue!(OPEN1, S_init1, S_init1.f)
+        enqueue!(OPEN2, S_init2, S_init2.f)
+        VISITED1[S_init1.id] = S_init1
+        VISITED2[S_init2.id] = S_init2
+
+        loop_cnt = 0
+        while !timeover()
+            loop_cnt += 1
+
+            (OPEN, VISITED, VISITED_OTHERSIDE, distance_tables, h_func) = (
+                (loop_cnt % 2 == 1)
+                ? (OPEN1, VISITED1, VISITED2, distance_tables1, h_func1)
+                : (OPEN2, VISITED2, VISITED1, distance_tables2, h_func2)
+            )
+            isempty(OPEN) && break
+
+            # pop
+            S = dequeue!(OPEN)
+
+            # check goal
+            S_other_near = begin
+                Q = map(v -> v.q, S.Q)
+                argmin(
+                    e -> dist(Q, map(v -> v.q, e[end].Q)),
+                    VISITED_OTHERSIDE
+                )[end]
+            end
+            if ((isnothing(epsilon) || dist(S.Q, S_other_near.Q) < epsilon) &&
+                all(i -> connect(S.Q[i].q, S_other_near.Q[i].q, i), 1:N) &&
+                !collide(S.Q, S_other_near.Q))
+                print_progress!(S, loop_cnt, force = true)
+                VERBOSE > 0 && @printf("\n\t%6.4f sec: found solution\n", elapsed())
+                solution = vcat(
+                    backtrack(S, VISITED),
+                    reverse(backtrack(S_other_near, VISITED_OTHERSIDE))
+                )
+                loop_cnt % 2 != 1 && (solution = reverse(solution))
+                return (solution, roadmaps)
+            end
+
+            # initial search or update for refine agents
+            i = S.next
+            j = mod1(S.next + 1, N)
+
+            v = S.Q[i]
+
+            # explore new states
+            if !get(EXPANDED[i], v.id, false)
+                EXPANDED[i][v.id] = true
+                if expand!(
+                    (q_from::State, q_to::State) -> connect(q_from, q_to, i),
+                    sampler,
+                    v,
+                    roadmaps[i],
+                    min_dist_thread,
+                    num_vertex_expansion,
+                    steering_depth,
+                )
+                    distance_tables1[i] = get_distance_table(roadmaps[i]; goal_node = Q_init2[i])
+                    distance_tables2[i] = get_distance_table(roadmaps[i]; goal_node = Q_init1[i])
+                end
+            end
+
+            # expand search node
+            for p_id in vcat(v.neighbors, [v.id])
+
+                # create new configuration
+                p = roadmaps[i][p_id]
+                Q = copy(S.Q)
+                Q[i] = p
+
+                # check duplication and collision
+                Q_id = get_Q_id(Q, j)
+                (haskey(VISITED, Q_id) || collide(S.Q, p.q, i)) && continue
+
+                # create new search node
+                S_new = SuperNode(
+                    Q = Q,
+                    next = j,
+                    id = Q_id,
+                    parent_id = S.id,
+                    h = h_func(Q),
+                    g = S.g + g_func(S.Q, Q),
+                    depth = S.depth + 1,
+                )
+
+                # insert
+                enqueue!(OPEN, S_new, S_new.f)
+                VISITED[S_new.id] = S_new
+            end
+            print_progress!(S, loop_cnt, force = isempty(OPEN))
+        end
+
+        VERBOSE > 1 && println()
+    end
+
+    VERBOSE > 0 && @info @sprintf("\t%6.4f sec: failed to find solution\n", elapsed())
+    return (nothing, roadmaps)
+end
+
 
 function expand!(
     connect::Function,
