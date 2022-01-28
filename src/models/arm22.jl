@@ -168,8 +168,8 @@ function gen_collide(
         return false
     end
 
-    f(Q::Vector{Node{StateArm22}}, q_i_to::StateArm22, i::Int64) = begin
-        q_i_from = Q[i].q
+    f(C::Vector{StateArm22}, q_i_to::StateArm22, i::Int64) = begin
+        q_i_from = C[i]
         D_i = dist(q_i_from, q_i_to)
 
         dt1_i = diff_angles(q_i_to.theta1, q_i_from.theta1)
@@ -184,7 +184,7 @@ function gen_collide(
             c_i = rads[i] * [cos(t2_i), sin(t2_i)] + b_i
 
             for j in filter(k -> k != i, 1:N)
-                a_j, b_j, c_j = get_arm22_positions(Q[j].q, positions[j], rads[j])
+                a_j, b_j, c_j = get_arm22_positions(C[j], positions[j], rads[j])
 
                 # check collision
                 any(
@@ -200,6 +200,10 @@ function gen_collide(
         end
 
         return false
+    end
+
+    f(Q::Vector{Node{StateArm22}}, q_i_to::StateArm22, i::Int64) = begin
+        return f(map(v -> v.q, Q), q_i_to, i)
     end
 
     return f
@@ -250,7 +254,7 @@ function plot_agent!(q::StateArm22, pos::Vector{Float64}, rad::Float64, color::S
     scatter!(
         [pos[1]],
         [pos[2]],
-        markershpa = 10,
+        markersize = 8,
         markershape = :rect,
         color = color,
         label = nothing,

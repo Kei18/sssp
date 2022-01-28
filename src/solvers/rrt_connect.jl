@@ -138,8 +138,6 @@ function extend!(
         end
         C_h = C_l
     end
-
-    # update graph
     push!(V, C_h)
     push!(P, ind_near)
 

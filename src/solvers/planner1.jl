@@ -1,8 +1,3 @@
-import DataStructures: PriorityQueue, enqueue!, dequeue!
-import Printf: @printf, @sprintf
-import Base: @kwdef
-import Random: randperm
-
 @kwdef mutable struct SuperNode{State<:AbsState}
     Q::Vector{Node{State}}  # set of search nodes
     next::Int64  # next agent, 0 -> fixed agents
@@ -14,16 +9,6 @@ import Random: randperm
     depth::Int64 = 1  # depth
     t::Int64 = 1 # used in refinement phase
 end
-
-# to generate id of search nodes
-function get_Q_id(
-    Q::Vector{Node{State}},
-    t::Int64,
-    next::Int64,
-)::String where {State<:AbsState}
-    return @sprintf("%s_%d_%d", join([v.id for v in Q], "-"), t, next)
-end
-
 
 function planner1(
     config_init::Vector{State},
@@ -38,6 +23,7 @@ function planner1(
     decreasing_rate_min_dist_thread::Float64 = 0.99,
     steering_depth::Int64 = 2,
     max_makespan::Union{Nothing,Int64} = nothing,
+    epsilon::Union{Float64,Nothing} = nothing,
     TIME_LIMIT::Union{Nothing,Real} = 30,
     VERBOSE::Int64 = 0,
 )::Tuple{
@@ -53,12 +39,16 @@ function planner1(
     # number of agents
     N = length(config_init)
 
+    conn(q_from::State, q_to::State, i::Int64) = begin
+        (isnothing(epsilon) || dist(q_from, q_to) <= epsilon) && connect(q_from, q_to, i)
+    end
+
     roadmaps = map(
         i -> [Node{State}(config_init[i], 1, []), Node{State}(config_goal[i], 2, [])],
         1:N,
     )
     for i = 1:N
-        if connect(config_init[i], config_goal[i], i)
+        if conn(config_init[i], config_goal[i], i)
             push!(roadmaps[i][1].neighbors, 2)
             push!(roadmaps[i][2].neighbors, 1)
         end
@@ -71,12 +61,10 @@ function planner1(
         (S::SuperNode{State}, k::Int64, loop_cnt::Int64; force::Bool = false) -> begin
             (VERBOSE == 0 || (!force && (loop_cnt % 100 != 0))) && return
             @printf(
-                "\r\t%6.4f sec, iteration: %02d, explored node: %08d, f: %.2f, g: %.2f, h: %.2f, depth: %04d",
+                "\r\t%6.4f sec, iteration: %02d, explored node: %08d, f: %.2f, depth: %04d",
                 elapsed(),
                 k,
                 loop_cnt,
-                S.f,
-                S.g,
                 S.f,
                 S.depth
             )
@@ -125,73 +113,84 @@ function planner1(
                 return (backtrack(S, VISITED), roadmaps)
             end
 
-            if S.next > 0
-                # initial search or update for refine agents
-                i = S.next
-                j = mod1(S.next + 1, N)
+            # initial search or update for refine agents
+            i = S.next
+            j = mod1(S.next + 1, N)
 
-                v = S.Q[i]
+            v = S.Q[i]
 
-                # explore new states
-                if !get(EXPANDED[i], v.id, false)
-                    EXPANDED[i][v.id] = true
+            # explore new states
+            if !get(EXPANDED[i], v.id, false)
+                EXPANDED[i][v.id] = true
 
-                    for _ = 1:num_vertex_expansion
-                        # steering
-                        q_new = MRMP.steering(v.q, sampler(), connect, i, steering_depth)
-
-                        # identify neighbors
-                        C_v_u = filter(v -> connect(v.q, q_new, i), roadmaps[i])
-                        C_u_v = filter(v -> connect(q_new, v.q, i), roadmaps[i])
-
-                        # check space-filling metric
-                        if isempty(C_v_u) ||
-                           minimum(map(v -> dist(v.q, q_new), C_v_u)) > min_dist_thread
-                            # add vertex and edges
-                            u = Node(q_new, length(roadmaps[i]) + 1, Vector{Int64}())
-                            push!(roadmaps[i], u)
-                            # update neighbors
-                            foreach(v -> push!(v.neighbors, u.id), C_v_u)
-                            foreach(v -> push!(u.neighbors, v.id), C_u_v)
+                for _ = 1:num_vertex_expansion
+                    # steering
+                    q_new = begin
+                        q_h = sampler()
+                        q_near = v.q
+                        if !conn(q_near, q_h, i)
+                            q_l = q_near  # safe
+                            for _ = 1:steering_depth
+                                q = MRMP.get_mid_status(q_l, q_h)
+                                if conn(q_near, q, i)
+                                    q_l = q
+                                else
+                                    q_h = q
+                                end
+                            end
+                            q_h = q_l
                         end
-                    end
-                end
-
-                # expand search node
-                for p_id in vcat(v.neighbors, [v.id])
-
-                    # create new configuration
-                    p = roadmaps[i][p_id]
-                    Q = copy(S.Q)
-                    Q[i] = p
-
-                    # check duplication and collision
-                    Q_id = get_Q_id(Q, S.t, j)
-                    if haskey(VISITED, Q_id) || collide(S.Q, p.q, i)
-                        continue
+                        q_h
                     end
 
-                    # check max makespan
-                    !isnothing(max_makespan) && max_makespan * N < S.depth + 1 && continue
+                    # identify neighbors
+                    C_v_u = filter(v -> conn(v.q, q_new, i), roadmaps[i])
+                    C_u_v = filter(v -> connect(q_new, v.q, i), roadmaps[i])
 
-                    # create new search node
-                    S_new = SuperNode(
-                        Q = Q,
-                        t = S.t,
-                        next = j,
-                        id = Q_id,
-                        parent_id = S.id,
-                        h = h_func(Q),
-                        g = S.g + g_func(S.Q, Q),
-                        depth = S.depth + 1,
-                    )
-
-                    # insert
-                    enqueue!(OPEN, S_new, S_new.f)
-                    VISITED[S_new.id] = S_new
+                    # check space-filling metric
+                    if isempty(C_v_u) ||
+                       minimum(map(v -> dist(v.q, q_new), C_v_u)) > min_dist_thread
+                        # add vertex and edges
+                        u = Node(q_new, length(roadmaps[i]) + 1, Vector{Int64}())
+                        push!(roadmaps[i], u)
+                        # update neighbors
+                        foreach(v -> push!(v.neighbors, u.id), C_v_u)
+                        foreach(v -> push!(u.neighbors, v.id), C_u_v)
+                    end
                 end
             end
 
+            # expand search node
+            for p_id in vcat(v.neighbors, [v.id])
+
+                # create new configuration
+                p = roadmaps[i][p_id]
+                Q = copy(S.Q)
+                Q[i] = p
+
+                # check duplication and collision
+                Q_id = get_Q_id(Q, S.t, j)
+                (haskey(VISITED, Q_id) || collide(S.Q, p.q, i)) && continue
+
+                # check max makespan
+                !isnothing(max_makespan) && max_makespan * N < S.depth + 1 && continue
+
+                # create new search node
+                S_new = SuperNode(
+                    Q = Q,
+                    t = S.t,
+                    next = j,
+                    id = Q_id,
+                    parent_id = S.id,
+                    h = h_func(Q),
+                    g = S.g + g_func(S.Q, Q),
+                    depth = S.depth + 1,
+                )
+
+                # insert
+                enqueue!(OPEN, S_new, S_new.f)
+                VISITED[S_new.id] = S_new
+            end
             print_progress!(S, k, loop_cnt, force = isempty(OPEN))
         end
 
@@ -202,6 +201,14 @@ function planner1(
     return (nothing, roadmaps)
 end
 
+# to generate id of search nodes
+function get_Q_id(
+    Q::Vector{Node{State}},
+    t::Int64,
+    next::Int64,
+)::String where {State<:AbsState}
+    return @sprintf("%s_%d_%d", join([v.id for v in Q], "-"), t, next)
+end
 
 function backtrack(
     S_fin::SuperNode{State},
