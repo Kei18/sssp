@@ -10,5 +10,5 @@
         "../scripts/config/eval/snake2d.yaml"
         "../scripts/config/eval/dubins2d.yaml"
     ]
-    foreach(e -> main(; args = vcat([e], args_common)), yaml_files)
+    foreach(e -> main(e, args_common...), yaml_files)
 end

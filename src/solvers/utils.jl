@@ -140,9 +140,9 @@ function get_distance_table(
 end
 
 function get_distance_tables(
-    roadmaps::Vector{Vector{Node{State}}},
-    g_func::Function,
+    roadmaps::Vector{Vector{Node{State}}};
+    g_func::Function = dist,
 )::Vector{Vector{Float64}} where {State<:AbsState}
 
-    return map(rmp -> get_distance_table(rmp, g_func), roadmaps)
+    return map(rmp -> get_distance_table(rmp; g_func=g_func), roadmaps)
 end

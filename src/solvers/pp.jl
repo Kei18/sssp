@@ -18,7 +18,7 @@ function PP(
     timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
     N = length(roadmaps)
-    distance_tables = get_distance_tables(roadmaps, g_func)
+    distance_tables = get_distance_tables(roadmaps; g_func = g_func)
     paths = map(i -> Vector{Node{State}}(), 1:N)
     costs_table = Vector{Float64}([0.0])
     for i in (order_randomize ? randperm(N) : (1:N))

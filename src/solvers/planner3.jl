@@ -51,7 +51,7 @@ function planner3(
     VERBOSE > 0 && @info ("\tdone, setup initial roadmaps")
 
     # setup distance tables
-    distance_tables = map(rmp -> get_distance_table(rmp), roadmaps)
+    distance_tables = get_distance_tables(roadmaps)
 
     # verbose
     print_progress! =

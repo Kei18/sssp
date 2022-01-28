@@ -159,7 +159,7 @@ function CBS(
     end
 
     # compute distance tables
-    distance_tables = get_distance_tables(roadmaps, g_func)
+    distance_tables = get_distance_tables(roadmaps; g_func = g_func)
 
     # for high-level search
     OPEN = PriorityQueue{HighLevelNode{State},Float64}()
