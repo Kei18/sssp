@@ -192,6 +192,7 @@ function plot_anim!(
     filename::String = "tmp.gif",
     fps::Int64 = 10,
     interpolate_depth::Union{Nothing,Int64} = nothing,
+    VERBOSE::Int64 = 0,
 ) where {State<:AbsState}
 
     if isnothing(solution)
@@ -201,6 +202,7 @@ function plot_anim!(
 
     T = length(solution)
     anim = @animate for (t, Q) in enumerate(vcat(solution, [solution[end]]))
+        VERBOSE > 0 && @printf("\rplotting t = %d", t)
         plot_init!(State)
         plot_obs!(obstacles)
         plot_traj!(solution, ins_params...; lw = 1.0)
@@ -234,6 +236,7 @@ function plot_anim!(
             end
         end
     end
+    VERBOSE > 0 && println()
 
     dirname = join(split(filename, "/")[1:end-1], "/")
     !isdir(dirname) && mkpath(dirname)

@@ -41,7 +41,7 @@ include("solvers/solvers.jl")
 
 export gen_connect, gen_collide, gen_check_goal
 export plot_res!, plot_anim!, plot_instance!
-export smoothing
+export smoothing, get_solution_cost
 export print_instance, is_valid_instance
 
 using .Solvers

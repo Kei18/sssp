@@ -37,7 +37,7 @@ function run!(
             (key, val) in filter(e -> e[1] != "_target_", solver_info)
         ])
         seed!(seed)
-        t = @elapsed begin
+        t_planning = @elapsed begin
             solution, roadmaps = eval(solver)(
                 config_init,
                 config_goal,
@@ -56,6 +56,11 @@ function run!(
                 seed
             )
         end
+        # compute solution quality
+        cost_original = get_solution_cost(solution)
+        t_refinement = @elapsed begin
+            res_refined = smoothing(solution, collide, connect)
+        end
 
         result[length(solvers)*(k-1)+l] = (
             instance = k,
@@ -63,7 +68,15 @@ function run!(
             num_obs = length(obstacles),
             solver = solver_name,
             solver_index = l,
-            elapsed_sec = t,
+            elapsed_planning = t_planning,
+            elapsed_refinement = t_refinement,
+            elapsed_total = t_planning + t_refinement,
+            sum_of_cost_original = isnothing(cost_original) ? 0 :
+                                   cost_original[:sum_of_cost],
+            makespan_original = isnothing(cost_original) ? 0 : cost_original[:makespan],
+            sum_of_cost_refined = isnothing(res_refined) ? 0 :
+                                  res_refined[end][:sum_of_cost],
+            makespan_refined = isnothing(res_refined) ? 0 : res_refined[end][:makespan],
             solved = !isnothing(solution),
         )
 
