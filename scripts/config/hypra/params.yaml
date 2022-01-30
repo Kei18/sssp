@@ -1,8 +1,8 @@
 root: ../data/exp/hypra
 seed_offset: 10000
-num_instances: 5
-num_search_times: 10
-time_limit: 5
+num_instances: 50
+num_search_times: 100
+time_limit: 30
 
 solvers_common_params_mapf: &solvers_common_params_mapf
   num_vertices:
