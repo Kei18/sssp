@@ -1,3 +1,6 @@
+"""experimental scripts for hyper-parameter optimization"""
+
+
 using MRMP
 import Random: seed!
 using Hyperopt

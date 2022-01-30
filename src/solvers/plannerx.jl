@@ -189,6 +189,7 @@ function planner3(
     init_min_dist_thread::Float64 = 0.1,
     decreasing_rate_min_dist_thread::Float64 = 0.99,
     epsilon::Union{Float64,Nothing} = nothing,
+    force_output::Bool = false,
     TIME_LIMIT::Union{Nothing,Real} = 30,
     VERBOSE::Int64 = 0,
 )::Tuple{
@@ -253,6 +254,11 @@ function planner3(
 
     # initial search node
     S_init = SuperNode(Q = Q_init, next = 1, id = get_Q_id(Q_init, 0), h = h_func(Q_init))
+
+    # store best node
+    S_best = S_init
+    f_best = S_init.f
+    VISITED = nothing
 
     k = 0
     while !timeover()
@@ -334,6 +340,12 @@ function planner3(
                 # insert
                 enqueue!(OPEN, S_new, S_new.f)
                 VISITED[S_new.id] = S_new
+
+                # update best one
+                if S_new.f < f_best
+                    S_best = S_new
+                    f_best = S_new.f
+                end
             end
             print_progress!(S, loop_cnt, force = isempty(OPEN))
         end
@@ -342,7 +354,7 @@ function planner3(
     end
 
     VERBOSE > 0 && @info @sprintf("\t%6.4f sec: failed to find solution\n", elapsed())
-    return (nothing, roadmaps)
+    return (force_output ? backtrack(S_best, VISITED) : nothing, roadmaps)
 end
 
 function planner4(
@@ -547,6 +559,53 @@ function planner4(
     end
 
     VERBOSE > 0 && @info @sprintf("\t%6.4f sec: failed to find solution\n", elapsed())
+    return (nothing, roadmaps)
+end
+
+function planner5(
+    config_init::Vector{State},
+    config_goal::Vector{State},
+    connect::Function,
+    collide::Function,
+    check_goal::Function;
+    TIME_RESET::Real = 3.0,
+    TIME_LIMIT::Real = 30,
+    VERBOSE::Int64 = 0,
+    params_planner3...,
+)::Tuple{
+    Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+    Vector{Vector{Node{State}}},  # roadmap
+} where {State<:AbsState}
+
+    t_s = now()
+    elapsed() = elapsed_sec(t_s)
+    timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
+
+    solution, roadmaps = nothing, nothing
+
+    starts = config_init
+    while !timeover()
+        VERBOSE > 0 && @info @sprintf("\t%f sec: start new search by planner3", elapsed())
+        println(starts[1])
+        solution_tmp, roadmaps = planner3(
+            starts,
+            config_goal,
+            connect,
+            collide,
+            check_goal;
+            force_output = true,
+            TIME_LIMIT = min(TIME_RESET, TIME_LIMIT - elapsed()),
+            VERBOSE = VERBOSE + 1,
+            params_planner3...,
+        )
+        if isnothing(solution)
+            solution = solution_tmp
+        elseif length(solution) > 1
+            solution = vcat(solution, solution_tmp[2:end])
+        end
+        check_goal(solution[end]) && return (solution, roadmaps)
+        starts = map(v -> v.q, solution[end])
+    end
     return (nothing, roadmaps)
 end
 

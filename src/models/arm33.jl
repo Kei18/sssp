@@ -1,3 +1,5 @@
+"""model definition of arm33"""
+
 struct StateArm33 <: AbsState
     θ1::Float64
     ϕ1::Float64

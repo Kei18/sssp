@@ -1,3 +1,5 @@
+"""experimental scripts to evaluate solvers"""
+
 using MRMP
 import Random: seed!
 import CSV
@@ -59,7 +61,7 @@ function run!(
         # compute solution quality
         cost_original = get_solution_cost(solution)
         t_refinement = @elapsed begin
-            res_refined = smoothing(solution, collide, connect)
+            res_refined = smoothing(solution, connect, collide)
         end
 
         result[length(solvers)*(k-1)+l] = (
@@ -68,6 +70,7 @@ function run!(
             num_obs = length(obstacles),
             solver = solver_name,
             solver_index = l,
+            solved = !isnothing(solution),
             elapsed_planning = t_planning,
             elapsed_refinement = t_refinement,
             elapsed_total = t_planning + t_refinement,
@@ -77,7 +80,6 @@ function run!(
             sum_of_cost_refined = isnothing(res_refined) ? 0 :
                                   res_refined[end][:sum_of_cost],
             makespan_refined = isnothing(res_refined) ? 0 : res_refined[end][:makespan],
-            solved = !isnothing(solution),
         )
 
         save_animation &&
@@ -118,6 +120,7 @@ function main(config::Dict; pre_compile::Bool = false)
     # instance generation
     seed_offset = get(config, "seed_offset", 0)
     num_instances = get(config, "num_instances", 3)
+
     @info @sprintf("generating %d instances", num_instances)
     instances = begin
         params = Dict([(Symbol(key), val) for (key, val) in config["instance"]])

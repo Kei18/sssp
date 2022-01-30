@@ -1,11 +1,15 @@
+"""visualization functions"""
+
 using Plots
 
 COLORS = ["royalblue", "orange", "lime", "gray", "coral", "brown4", "aquamarine4"]
 
+"""get color given agent's index"""
 function get_color(i::Int64)::String
     return COLORS[mod1(i, length(COLORS))]
 end
 
+"""plot circle in 2D space"""
 function plot_circle!(
     x::Float64,
     y::Float64,
@@ -30,6 +34,7 @@ function plot_circle!(
     plot!(Xs + offset_x, -Ys + offset_y, color = color, lw = lw, label = nothing)
 end
 
+"""plot sphere in 3D space"""
 function plot_sphere!(
     x::Float64,
     y::Float64,
@@ -52,6 +57,7 @@ function plot_sphere!(
     end
 end
 
+"""plot obstacles"""
 function plot_obs!(obstacles::Vector{Obs}) where {Obs<:Obstacle}
     for o in obstacles
         if Obs == CircleObstacle2D
@@ -62,10 +68,13 @@ function plot_obs!(obstacles::Vector{Obs}) where {Obs<:Obstacle}
     end
 end
 
+"""plot roadmaps"""
 function plot_roadmap!(
-    V::Vector{Vector{Node{State}}},
+    V::Union{Nothing,Vector{Vector{Node{State}}}},
     ins_params...,
 ) where {State<:AbsState}
+    isnothing(V) && return nothing
+
     for i = 1:length(V)
         params = Dict(
             :lw => 0.2,
@@ -87,6 +96,7 @@ function plot_roadmap!(
     end
 end
 
+"""plot start and goal states for all agents"""
 function plot_start_goal!(
     config_init::Vector{State},
     config_goal::Vector{State},
@@ -104,6 +114,7 @@ function plot_start_goal!(
     end
 end
 
+"""plot trajectory of all agents"""
 function plot_traj!(
     solution::Union{Nothing,Vector{Vector{Node{State}}}},
     ins_params...;
@@ -122,6 +133,7 @@ function plot_traj!(
     end
 end
 
+"""setup artboard"""
 function plot_init!(State::DataType)
     if State in [StatePoint3D, StateArm33]
         plot3d(size = (400, 400), xlim = (0, 1), ylim = (0, 1), zlim = (0, 1))
@@ -137,6 +149,7 @@ function plot_init!(State::DataType)
     end
 end
 
+"""save figure"""
 function safe_savefig!(filename::Union{Nothing,String} = nothing)
     isnothing(filename) && return
     dirname = join(split(filename, "/")[1:end-1], "/")
@@ -144,6 +157,17 @@ function safe_savefig!(filename::Union{Nothing,String} = nothing)
     savefig(filename)
 end
 
+"""
+    plot_instance!(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        obstacles::Vector{Obs} where {Obs<:Obstacle},
+        ins_params...;                                   # positions, radius
+        filename::Union{Nothing,String} = nothing,       # save plot if given
+    ) where {State<:AbsState}
+
+visualize instance
+"""
 function plot_instance!(
     config_init::Vector{State},
     config_goal::Vector{State},
@@ -164,6 +188,19 @@ function plot_instance!(
     return plot!()
 end
 
+"""
+    plot_res!(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        obstacles::Vector{Obs} where {Obs<:Obstacle},
+        ins_params...;                                                    # positions, radius
+        roadmaps::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
+        solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
+        filename::Union{Nothing,String} = nothing,                        # save plot if given
+    ) where {State<:AbsState}
+
+visualize planning result
+"""
 function plot_res!(
     config_init::Vector{State},
     config_goal::Vector{State},
@@ -183,6 +220,21 @@ function plot_res!(
     return plot!()
 end
 
+"""
+    plot_anim!(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        obstacles::Vector{Obs} where {Obs<:Obstacle},
+        ins_params...;
+        solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
+        filename::String = "tmp.gif",
+        fps::Int64 = 10,
+        interpolate_depth::Union{Nothing,Int64} = nothing,  # plots intermediate states
+        VERBOSE::Int64 = 0,
+    ) where {State<:AbsState}
+
+visualize animation
+"""
 function plot_anim!(
     config_init::Vector{State},
     config_goal::Vector{State},
@@ -202,13 +254,14 @@ function plot_anim!(
 
     T = length(solution)
     anim = @animate for (t, Q) in enumerate(vcat(solution, [solution[end]]))
-        VERBOSE > 0 && @printf("\rplotting t = %d", t)
+        VERBOSE > 0 && @printf("\rplotting t = %d / %d", t, T)
         plot_init!(State)
         plot_obs!(obstacles)
         plot_traj!(solution, ins_params...; lw = 1.0)
         plot_start_goal!(config_init, config_goal, ins_params...)
 
         if !isnothing(interpolate_depth) && interpolate_depth > 0 && 1 < t <= T
+            # compute intermediate states
             C_arr = Array{Any}(undef, 2 + sum(map(k -> 2^k, 0:interpolate_depth-1)))
             add_mid_config(d, ind1, ind2) = begin
                 if d > 0
@@ -244,12 +297,23 @@ function plot_anim!(
     return gif(anim, filename, fps = fps)
 end
 
+"""
+    plot_tpg!(
+        TPG::Vector{Vector{Action{State}}};
+        init::Bool = true,
+        offset::Int64 = 0,
+        filename::Union{Nothing,String} = nothing,
+    )
+
+visualize temporal plan graph
+"""
 function plot_tpg!(
-    TPG;
+    TPG::Vector{Vector{Action{State}}};
     init::Bool = true,
     offset::Int64 = 0,
     filename::Union{Nothing,String} = nothing,
-)
+) where {State<:AbsState}
+
     N = length(TPG)
     if init
         plot(size = (200, 400), xlim = (0.5, N + 0.5), xticks = 1:N)
@@ -271,44 +335,6 @@ function plot_tpg!(
             scatter!([i], [actions[1].t + offset]; params...)
         end
     end
-    safe_savefig!(filename)
-    return plot!()
-end
-
-function plot_tpg!(TPG1, TPG2; filename::Union{Nothing,String} = nothing)
-    # compute offset
-    maxval_tpg1 = (
-        !all(map(e -> isempty(e), TPG1)) ?
-        maximum(map(e -> e[end].t, filter(e -> !isempty(e), TPG1))) : 1
-    )
-    minval_tpg2 = (
-        !all(map(e -> isempty(e), TPG2)) ?
-        minimum(map(e -> e[1].t, filter(e -> !isempty(e), TPG2))) : 0
-    )
-    offset = maxval_tpg1 - minval_tpg2 + 1
-    plot_tpg!(TPG1)
-    plot_tpg!(TPG2; init = false, offset = offset)
-    for (i, actions) in enumerate(TPG1)
-        if !isempty(actions)
-            if !isempty(TPG2[i])
-                plot!(
-                    [i, i],
-                    [TPG1[i][end].t, TPG2[i][1].t + offset];
-                    label = nothing,
-                    color = :black,
-                )
-            end
-            scatter!(
-                [i],
-                [TPG1[i][end].t];
-                color = :red,
-                label = nothing,
-                markersize = 5,
-                markershape = :circle,
-            )
-        end
-    end
-
     safe_savefig!(filename)
     return plot!()
 end

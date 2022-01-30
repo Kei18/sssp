@@ -1,0 +1,24 @@
+root: ../data/exp/point2d_many
+seed_offset: 0
+time_limit: 300
+
+num_instances: 1000
+save_instance_images: true
+save_animation: false
+anim_plot_params:
+  interpolate_depth: 2
+  fps: 3
+
+instance:
+  _target_: MRMP.gen_random_instance_StatePoint2D
+  N: 50
+  rad_min: 0.015625
+  rad_max: 0.0234375
+  num_obs: 10
+  rad_obs_min: 0.025
+  rad_obs_max: 0.04
+
+solvers:
+  - _target_: MRMP.planner3
+  - _target_: MRMP.CBS
+  - _target_: MRMP.RRT_connect

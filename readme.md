@@ -1,12 +1,13 @@
 MRMP
 ===
-
-[![Run test](https://github.com/Kei18/mrmp/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/Kei18/mrmp/actions/workflows/test.yml)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
+[![CI](https://github.com/Kei18/mrmp/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/Kei18/mrmp/actions/workflows/ci.yml)
 
 A private research repo for multi-robot motion planning (MRMP), written in Julia (≥v1.6), tested on MacOS-10.15.
 
 ## TODO
-- [ ] evaluate solution quality
+- [ ] setup configurations of ablation studies
+- [ ] documentation
 - [ ] hypra search
   - [ ] baselines
     - [x] point2d
@@ -14,8 +15,9 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [x] line2d
     - [x] arm22
     - [x] arm33
-    - [ ] snake2d
-    - [ ] dubins2d
+    - [x] dubins2d
+    - [x] snake2d
+    - [ ] point2d (scalability)
   - [ ] proposal
     - [ ] point2d
     - [ ] point3d
@@ -24,6 +26,7 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [ ] arm33
     - [ ] snake2d
     - [ ] dubins2d
+    - [ ] point2d (scalability)
   - [ ] scalability test
   - [ ] ablation study
   - [ ] robot demo
@@ -52,7 +55,7 @@ julia --project=. -e "using IJulia; jupyterlab()"
 
 #### Test
 ```sh
-julia --project=. -e 'using Pkg; test()'
+julia --project -e 'using Pkg; Pkg.test()'
 ```
 
 #### Format
@@ -60,11 +63,22 @@ julia --project=. -e 'using Pkg; test()'
 julia --project=. -e 'using JuliaFormatter; format(".")'
 ```
 
-#### Hyperparameter Optimization
+#### Hyperparameter Optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
 ```sh
 julia --project=. --threads=auto
 > include("./scripts/hypraopt.jl")
 > @time main("./scripts/config/hypra/params.yaml", "./scripts/config/eval/point2d.yaml")
+```
+
+#### Evaluate Algorithms
+
+The script is inspired by [Hydra](https://hydra.cc/).
+
+#### Scalability Test
+```sh
+julia --project=. --threads=auto
+> include("./scripts/eval.jl")
+> @time foreach(N -> main("./scripts/config/eval/point2d_many.yaml", "instance.N=$N"), 10:10:50)
 ```
 
 

@@ -1,3 +1,15 @@
+"""
+smoother of solution
+
+ref:
+- Dechter, R., Meiri, I., and Pearl, J. (1991).
+  Temporal constraint networks.
+  Artificial Intelligence (AIJ).
+- Honing, W. et al. (2016).
+  Multi-agent path finding with kinematic constraints.
+  In ICAPS.
+"""
+
 mutable struct Action{State<:AbsState}
     id::String
     from::Node{State}
@@ -16,6 +28,7 @@ function get_action_id(
     return string(from.id) * "_" * string(to.id) * "_" * string(t)
 end
 
+"""create temporal plan graph temporal plan graph"""
 function get_temporal_plan_graph(
     solution::Vector{Vector{Node{State}}},
     collide::Function,
@@ -112,12 +125,11 @@ function get_temporal_plan_graph(
         end
     end
 
-    if skip_connection
-        try_skip_connection!(TPG, collide, connect)
-    end
+    skip_connection && try_skip_connection!(TPG, collide, connect)
     return TPG
 end
 
+"""remove redundant actions in temporal plan graph"""
 function try_skip_connection!(
     TPG::Vector{Vector{Action{State}}},
     collide::Function,
@@ -204,6 +216,7 @@ function try_skip_connection!(
     end
 end
 
+"""obtain actions with causal dependencies"""
 function get_causal_actions(
     action::Action{State},
     TPG::Vector{Vector{Action{State}}},
@@ -242,12 +255,14 @@ function get_descendants(
     return get_causal_actions(action, TPG, false)
 end
 
+"""sampling one solution from temporal plan graph"""
 function get_greedy_solution(
-    TPG::Vector{Vector{Action{State}}};
-    config_goal::Union{Vector{State},Nothing} = nothing,
+    TPG::Vector{Vector{Action{State}}},
+    config_goal::Vector{State},
 )::Vector{Vector{Node{State}}} where {State<:AbsState}
+
     N = length(TPG)
-    indexes = [1 for i = 1:N]
+    indexes = [1 for i = 1:N]  # internal clock of agents
     solution = [[
         (length(arr) > 0 ? arr[1].from : Node(config_goal[i], 0, Vector{Int64}())) for
         (i, arr) in enumerate(TPG)
@@ -263,12 +278,14 @@ function get_greedy_solution(
                     findfirst(a -> a.id == id, TPG[j]) < indexes_last[j] for
                     (j, id) in action.predecessors
                 ])
+                    # increment
                     indexes[i] = min(indexes[i] + 1, length(TPG[i]) + 1)
                     push!(config, action.to)
                 else
+                    # stay
                     push!(config, action.from)
                 end
-            elseif config_goal != nothing
+            else
                 push!(config, Node(config_goal[i], 0, Vector{Int64}()))
             end
         end
@@ -277,6 +294,13 @@ function get_greedy_solution(
     return solution
 end
 
+"""
+    get_solution_cost(
+        solution::Union{Nothing,Vector{Vector{Node{State}}}},
+    )::Union{Nothing,Dict{Symbol,Float64}} where {State<:AbsState}
+
+compute costs (sum_of_costs & makespan) of solution
+"""
 function get_solution_cost(
     solution::Union{Nothing,Vector{Vector{Node{State}}}},
 )::Union{Nothing,Dict{Symbol,Float64}} where {State<:AbsState}
@@ -305,6 +329,13 @@ function get_solution_cost(
     return Dict(:sum_of_cost => sum_of_cost, :makespan => makespan)
 end
 
+"""
+    get_tpg_cost(
+        TPG::Union{Nothing,Vector{Vector{Action{State}}}},
+    )::Union{Nothing,Dict{Symbol,Float64}} where {State<:AbsState}
+
+compute costs (sum_of_costs & makespan) of temporal plan graph (by dynamic programming)
+"""
 function get_tpg_cost(
     TPG::Union{Nothing,Vector{Vector{Action{State}}}},
 )::Union{Nothing,Dict{Symbol,Float64}} where {State<:AbsState}
@@ -331,19 +362,24 @@ function get_tpg_cost(
     return Dict(:sum_of_cost => sum(arr), :makespan => maximum(arr))
 end
 
-function smoothing(
-    solution::Nothing,
-    collide::Function,
-    connect::Function;
-    VERBOSE::Int64 = 0,
-)::Nothing
-    nothing
-end
+"""
+    smoothing(
+        solution::Vector{Vector{Node{State}}},
+        connect::Function,
+        collide::Function;
+        VERBOSE::Int64 = 0,
+    )::Tuple{
+        Vector{Vector{Action{State}}},  # temporal plan graph
+        Vector{Vector{Node{State}}},    # solution
+        Dict{Symbol,Float64},           # final cost
+    } where {State<:AbsState}
 
+smoothing by temporal plan graph
+"""
 function smoothing(
     solution::Vector{Vector{Node{State}}},
-    collide::Function,
-    connect::Function;
+    connect::Function,
+    collide::Function;
     VERBOSE::Int64 = 0,
 )::Tuple{
     Vector{Vector{Action{State}}},  # temporal plan graph
@@ -358,15 +394,22 @@ function smoothing(
     cost_last = nothing
     sum_of_cost_last = Inf
     while true
+        # 1. create temporal plan graph
         TPG = get_temporal_plan_graph(solution_tmp, collide, connect)
-        solution_tmp = get_greedy_solution(TPG; config_goal = config_goal)
+        # 2. sampling from temporal plan graph
+        solution_tmp = get_greedy_solution(TPG, config_goal)
         cost = get_tpg_cost(TPG)
         if sum_of_cost_last >= cost[:sum_of_cost]
             return (TPG, solution_tmp, cost)
         else
+            # 3. update solution
             VERBOSE > 0 && @info @sprintf("cost is updated: %f -> %f", cost_last, cost)
             cost_last = cost
             sum_of_cost_last = get(cost, :sum_of_cost)
         end
     end
+end
+
+function smoothing(solution::Nothing, args...; kwargs...)::Nothing
+    nothing
 end

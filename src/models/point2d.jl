@@ -1,3 +1,5 @@
+"""model definition of point2d"""
+
 struct StatePoint2D <: StatePoint
     x::Float64
     y::Float64

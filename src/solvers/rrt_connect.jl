@@ -1,9 +1,34 @@
+"""Implementation of RRT-connect
+
+ref:
+- Kuffner, J. J., & LaValle, S. M. (2000).
+  RRT-connect: An efficient approach to single-query path planning.
+  In ICRA.
+"""
 module LibRRT_connect
 export RRT_connect
 
 import Printf: @sprintf, @printf
 import ...MRMP: AbsState, Node, now, elapsed_sec, gen_uniform_sampling, get_mid_status, dist
 
+"""
+    RRT_connect(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        connect::Function,
+        collide::Function,
+        check_goal::Function;
+        steering_depth::Int64 = 4,
+        epsilon::Union{Float64,Nothing} = 0.2,
+        TIME_LIMIT::Union{Nothing,Real} = nothing,
+        VERBOSE::Int64 = 0,
+    )::Tuple{
+        Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+        Vector{Vector{Node{State}}},  # roadmaps
+    } where {State<:AbsState}
+
+implementation of RRT-connect
+"""
 function RRT_connect(
     config_init::Vector{State},
     config_goal::Vector{State},

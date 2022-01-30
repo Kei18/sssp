@@ -1,4 +1,16 @@
+"""model definition of dubins2d
+
+Current model only considers the Dubins shortest path
+
+ref:
+- Dubins, Lester E (1957).
+  On Curves of Minimal Length with a Constraint on Average Curvature,
+  and with Prescribed Initial and Terminal Positions and Tangents.
+  American Journal of Mathematics.
+"""
+
 using Dubins
+
 
 struct StateDubins <: AbsState
     x::Float64
@@ -224,10 +236,6 @@ function gen_random_instance_StateDubins(;
     end
 end
 
-# function gen_random_instance_StateDubins(; params...)
-#     return gen_random_instance(StateDubins(0, 0, 0); params...)
-# end
-
 function plot_anim!(
     config_init::Vector{StateDubins},
     config_goal::Vector{StateDubins},
@@ -237,6 +245,7 @@ function plot_anim!(
     filename::String = "tmp.gif",
     fps::Int64 = 10,
     interpolate_depth::Union{Nothing,Int64} = nothing,
+    VERBOSE::Int64 = 0,
 )
 
     if isnothing(solution)
@@ -247,14 +256,15 @@ function plot_anim!(
     T = length(solution)
     N = length(config_init)
     anim = @animate for (t, Q) in enumerate(vcat(solution, [solution[end]]))
+        VERBOSE > 0 && @printf("\rplotting t = %d / %d", t, T)
         plot_init!(StateDubins)
         plot_obs!(obstacles)
         plot_traj!(solution, ins_params...; lw = 1.0)
         plot_start_goal!(config_init, config_goal, ins_params...)
 
-
         if !isnothing(interpolate_depth) && interpolate_depth > 0 && 1 < t <= T
             depth = sum(map(k -> 2^k, 0:interpolate_depth-1)) + 2
+            # compute intermediate states
             for i = 1:N
                 P = get_dubins_points(
                     solution[t-1][i].q,
@@ -276,6 +286,7 @@ function plot_anim!(
             end
         end
     end
+    VERBOSE > 0 && println()
 
     dirname = join(split(filename, "/")[1:end-1], "/")
     !isdir(dirname) && mkpath(dirname)

@@ -1,3 +1,14 @@
+"""
+# solvers for multi-robot motion planning
+
+## included solvers
+- PRM: probabilistic roadmap
+- CBS: PRM + conflict-based search
+- PP: PRM + prioritized planning
+- RRT: rapidly-exploring random tree
+- RRT-connect
+- plannerX
+"""
 module Solvers
 
 using MRMP
@@ -15,6 +26,6 @@ include("pp.jl")
 include("cbs.jl")
 include("plannerx.jl")
 
-using .LibCBS, .LibRRT, .LibRRT_connect, .LibPlannerX
+using .LibPP, .LibCBS, .LibRRT, .LibRRT_connect, .LibPlannerX
 export PRM_direct, PRMs, PRMs!, RRT, RRT_connect, PP, CBS, planner1, planner3, planner4
 end

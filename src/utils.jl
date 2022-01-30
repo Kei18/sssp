@@ -1,3 +1,19 @@
+"""utilities of multi-robot motion planning"""
+
+# ------------------------------------------------
+# time
+# ------------------------------------------------
+function now()
+    return Base.time_ns()
+end
+
+function elapsed_sec(t_s::UInt64)
+    return (now() - t_s) / 1.0e9
+end
+
+# ------------------------------------------------
+# distance
+# ------------------------------------------------
 function dist(a::Vector{Float64}, b::Vector{Float64})::Float64
     norm(a - b)
 end
@@ -77,43 +93,56 @@ function dist(
     )
 end
 
+"""compute difference of two angles"""
 function diff_angles(t1::Float64, t2::Float64)::Float64
     atan(sin(t1 - t2), cos(t1 - t2))
 end
 
-function gen_collide(q::State, rads::Vector{Float64})::Function where {State<:StatePoint}
-    """collision function for point robots"""
-    N = length(rads)
+# ------------------------------------------------
+# functions to define instance
+# ------------------------------------------------
+"""
+    gen_check_goal(
+        config_goal::Vector{State};
+        goal_rad::Float64 = 0.0,
+        goal_rads::Vector{Float64} = fill(goal_rad, length(config_goal)),
+    )::Function where {State<:AbsState}
 
-    f(q_i_from::State, q_i_to::State, q_j_from::State, q_j_to::State, i::Int64, j::Int64) =
-        begin
-            return dist(q_i_from, q_i_to, q_j_from, q_j_to) < rads[i] + rads[j]
-        end
+generate goal check function, example:
+```jl
+check_goal = gen_check_goal(config_goal)
+check_goal(config_goal)  # return true
+```
+"""
+function gen_check_goal(
+    config_goal::Vector{State};
+    goal_rad::Float64 = 0.0,
+    goal_rads::Vector{Float64} = fill(goal_rad, length(config_goal)),
+)::Function where {State<:AbsState}
 
-    f(q_i::State, q_j::State, i::Int64, j::Int64) = begin
-        return dist(q_i, q_j) < rads[i] + rads[j]
+    N = length(config_goal)
+
+    f(C::Vector{State}) = begin
+        all(i -> dist(C[i], config_goal[i]) <= goal_rads[i], 1:N)
     end
 
-    f(Q_from::Vector{Node{State}}, Q_to::Vector{Node{State}}) = begin
-        for i = 1:N, j = i+1:N
-            if f(Q_from[i].q, Q_to[i].q, Q_from[j].q, Q_to[j].q, i, j)
-                return true
-            end
-        end
-        return false
+    f(Q::Vector{Node{State}}) = begin
+        all(i -> dist(Q[i].q, config_goal[i]) <= goal_rads[i], 1:N)
     end
 
-    f(Q::Vector{Node{State}}, q_to::State, i::Int64) = begin
-        q_from = Q[i].q
-        for j = 1:N
-            j != i && dist(q_from, q_to, Q[j].q) < rads[i] + rads[j] && return true
-        end
-        return false
+    f(v::Node{State}, i::Int64) = begin
+        return dist(v.q, config_goal[i]) <= goal_rads[i]
     end
 
     return f
 end
 
+
+# ------------------------------------------------
+# instance generation
+# ------------------------------------------------
+
+"""generate obstacles randomly"""
 function gen_obstacles(
     d::Int64,  # dimension
     num_obs::Int64,
@@ -127,6 +156,7 @@ function gen_obstacles(
     )
 end
 
+"""generate initial/goal configurations randomly"""
 function gen_config_init_goal(
     q::State,
     N::Int64,
@@ -170,8 +200,9 @@ function gen_config_init_goal(
     return (config_init, config_goal)
 end
 
+"""generate random instance"""
 function gen_random_instance(
-    _q::State;
+    _q::State;  # to specify type
     N_min::Int64 = 2,
     N_max::Int64 = 8,
     N::Int64 = rand(N_min:N_max),
@@ -213,75 +244,33 @@ function gen_random_instance(
     end
 end
 
-function gen_check_goal(
-    config_goal::Vector{State};
-    goal_rad::Float64 = 0.0,
-    goal_rads::Vector{Float64} = fill(goal_rad, length(config_goal)),
-)::Function where {State<:AbsState}
+# ------------------------------------------------
+# validation
+# ------------------------------------------------
 
-    N = length(config_goal)
+"""
+    is_valid_instance(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        obstacles::Vector{Obs} where {Obs<:Obstacle},
+        ins_params...
+    )::Bool where {State<:AbsState}
 
-    f(C::Vector{State}) = begin
-        all(i -> dist(C[i], config_goal[i]) <= goal_rads[i], 1:N)
-    end
-
-    f(Q::Vector{Node{State}}) = begin
-        all(i -> dist(Q[i].q, config_goal[i]) <= goal_rads[i], 1:N)
-    end
-
-    f(v::Node{State}, i::Int64) = begin
-        return dist(v.q, config_goal[i]) <= goal_rads[i]
-    end
-
-    return f
-end
-
-function now()
-    return Base.time_ns()
-end
-
-function elapsed_sec(t_s::UInt64)
-    return (now() - t_s) / 1.0e9
-end
-
-function print_instance(
-    config_init::Vector{State},
-    config_goal::Vector{State},
-    rads::Vector{Float64},
-    obstacles::Vector{Obs} where {Obs<:Obstacle},
-)::Nothing where {State<:AbsState}
-
-    @info "problem instance:"
-    for (i, (q_init, q_goal, rad)) in enumerate(zip(config_init, config_goal, rads))
-        @info @sprintf(
-            "\t%02d: %s -> %s, rad: %.4f\n",
-            i,
-            string(q_init),
-            string(q_goal),
-            rad
-        )
-    end
-    if !isempty(obstacles)
-        @info "obstacles:"
-        for (i, o) in enumerate(obstacles)
-            @info @sprintf("\t%02d: %s\n", i, o)
-        end
-    end
-end
-
+simple check whether instance is valid
+"""
 function is_valid_instance(
     config_init::Vector{State},
     config_goal::Vector{State},
-    rads::Vector{Float64},
     obstacles::Vector{Obs} where {Obs<:Obstacle},
+    ins_params...,
 )::Bool where {State<:AbsState}
 
-    connect = gen_connect(config_init[1], rads, obstacles)
-    collide = gen_collide(config_init[1], rads)
+    connect = gen_connect(config_init[1], obstacles, ins_params...)
+    collide = gen_collide(config_init[1], ins_params...)
 
     # check start
     for (i, q) in enumerate(config_init)
-        if !connect(q, q, i; ignore_eps = true)
+        if !connect(q, q, i)
             @warn @sprintf("invalid instance, start of agent-%d %s is strage", i, string(q))
             return false
         end
@@ -289,7 +278,7 @@ function is_valid_instance(
 
     # check goal
     for (i, q) in enumerate(config_goal)
-        if !connect(q, q, i; ignore_eps = true)
+        if !connect(q, q, i)
             @warn @sprintf("invalid instance, goal of agent-%d %s is strage", i, string(q))
             return false
         end
@@ -317,6 +306,17 @@ function is_valid_instance(
     return true
 end
 
+"""
+    validate(
+        config_init::Vector{State},
+        connect::Function,
+        collide::Function,
+        check_goal::Function,
+        solution::Union{Nothing,Vector{Vector{Node{State}}}},
+    )::Bool where {State<:AbsState}
+
+check validity of solution
+"""
 function validate(
     config_init::Vector{State},
     connect::Function,

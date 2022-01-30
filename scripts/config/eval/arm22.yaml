@@ -40,3 +40,4 @@ solvers:
   #   roadmaps_growing_rate: 1.5
   #   collision_weight: 4.0
   - _target_: MRMP.planner3
+  - _target_: MRMP.planner4

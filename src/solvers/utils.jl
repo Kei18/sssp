@@ -1,14 +1,29 @@
+"""utilities of solvers"""
+
+"""
+    SearchNode{State<:AbsState}
+
+used in space-timed A*
+"""
 @kwdef struct SearchNode{State<:AbsState}
-    v::Node{State}
-    t::Int64
-    id::String = @sprintf("%d-%d", v.id, t)
-    parent_id::Union{Nothing,String} = nothing
-    g::Float64 = 0.0
-    h::Float64 = 0.0
-    f::Float64 = g + h
-    unique_id::Int64 = 1
+    v::Node{State}  # corresponding vertex in roadmap
+    t::Int64  # time
+    id::String = @sprintf("%d-%d", v.id, t)  # id of search node
+    parent_id::Union{Nothing,String} = nothing  # parent in the search tree
+    g::Float64 = 0.0  # g-value
+    h::Float64 = 0.0  # h-value
+    f::Float64 = g + h  # f-value
+    unique_id::Int64 = 1   # to avoid duplication
 end
 
+"""
+    gen_g_func(;
+        greedy::Bool = false,           # true -> returns constant function that always returns 0
+        stay_penalty::Float64 = 0.0     # adds cost for "stay" actions
+    )::Function
+
+generate cost function based on distance (g-value)
+"""
 function gen_g_func(; greedy::Bool = false, stay_penalty::Float64 = 0.0)::Function
     f(Q_from::Vector, Q_to::Vector)::Float64 = begin
         greedy ? 0 : dist(Q_from, Q_to)
@@ -21,6 +36,21 @@ function gen_g_func(; greedy::Bool = false, stay_penalty::Float64 = 0.0)::Functi
     return f
 end
 
+"""
+    find_timed_path(
+        roadmap::Vector{Node{State}},   # roadmap
+        invalid::Function,              # collision check function
+        check_goal::Function,           # goal check function
+        h_func::Function,               # heuristic function
+        g_func::Function;               # cost function
+        TIME_LIMIT::Union{Nothing,Float64} = nothing,  # time limit (sec)
+    )::Union{
+        Nothing,                        # case not found
+        Vector{Node{State}}             # path
+    } where {State<:AbsState}
+
+perform space-time A*
+"""
 function find_timed_path(
     roadmap::Vector{Node{State}},
     invalid::Function,
@@ -40,14 +70,13 @@ function find_timed_path(
 
     num_generated_nodes = 1
 
-    # initial node
+    # setup initial node
     v_init = roadmap[1]
     S_init =
         SearchNode(v = v_init, t = 1, h = h_func(v_init), unique_id = num_generated_nodes)
     # case: not connected
-    if S_init.h == typemax(Float64)
-        return nothing
-    end
+    S_init.h == typemax(Float64) && return nothing
+    # insert initial node
     enqueue!(OPEN, S_init, S_init.f)
 
     # main loop
@@ -55,9 +84,7 @@ function find_timed_path(
 
         # pop
         S = dequeue!(OPEN)
-        if haskey(CLOSE, S.id)
-            continue
-        end
+        haskey(CLOSE, S.id) && continue
         CLOSE[S.id] = S
 
         # check goal condition
@@ -83,9 +110,7 @@ function find_timed_path(
                 h = h_func(u),
                 unique_id = num_generated_nodes,
             )
-            if haskey(CLOSE, S_new.id) || invalid(S, S_new)
-                continue
-            end
+            (haskey(CLOSE, S_new.id) || invalid(S, S_new)) && continue
             enqueue!(OPEN, S_new, S_new.f)
         end
     end
@@ -93,6 +118,13 @@ function find_timed_path(
     return nothing
 end
 
+"""
+    convert_paths_to_configurations(
+        paths::Vector{Vector{Node{State}}},
+    )::Vector{Vector{Node{State}}} where {State<:AbsState}
+
+transform paths (vector of paths) to configurations (vector of configurations)
+"""
 function convert_paths_to_configurations(
     paths::Vector{Vector{Node{State}}},
 )::Vector{Vector{Node{State}}} where {State<:AbsState}
@@ -101,12 +133,21 @@ function convert_paths_to_configurations(
     return [map(path -> path[min(t, length(path))], paths) for t = 1:max_len]
 end
 
+"""
+
+    get_distance_table(
+        roadmap::Vector{Node{State}};
+        g_func::Function = dist,
+        goal_node::Node{State} = roadmap[2],
+    )::Vector{Float64} where {State<:AbsState}
+
+given one roadamp, compute distance table by Dijkstra method
+"""
 function get_distance_table(
     roadmap::Vector{Node{State}};
     g_func::Function = dist,
     goal_node::Node{State} = roadmap[2],
 )::Vector{Float64} where {State<:AbsState}
-    """by Dijkstra"""
 
     table = fill(typemax(Float64), length(roadmap))
     OPEN = PriorityQueue{Int64,Float64}()
@@ -125,11 +166,9 @@ function get_distance_table(
         for u_id in v.neighbors
             u = roadmap[u_id]
             g = g_func(v.q, u.q) + d
-            # update
+            # update distance
             if g < table[u_id]
-                if haskey(OPEN, u_id)
-                    delete!(OPEN, u_id)
-                end
+                haskey(OPEN, u_id) && delete!(OPEN, u_id)
                 table[u_id] = g
                 enqueue!(OPEN, u_id, g)
             end
@@ -139,15 +178,23 @@ function get_distance_table(
     return table
 end
 
+"""
+    get_distance_tables(
+        roadmaps::Vector{Vector{Node{State}}};
+        g_func::Function = dist,
+        goal_nodes::Vector{Node{State}} = map(rmp -> rmp[2], roadmaps),
+    )::Vector{Vector{Float64}} where {State<:AbsState}
+
+compute distance tables for multiple roadmaps by Dijkstra method
+"""
 function get_distance_tables(
     roadmaps::Vector{Vector{Node{State}}};
     g_func::Function = dist,
     goal_nodes::Vector{Node{State}} = map(rmp -> rmp[2], roadmaps),
 )::Vector{Vector{Float64}} where {State<:AbsState}
 
-    N = length(roadmaps)
     return map(
         i -> get_distance_table(roadmaps[i]; g_func = g_func, goal_node = goal_nodes[i]),
-        1:N,
+        1:length(roadmaps),
     )
 end

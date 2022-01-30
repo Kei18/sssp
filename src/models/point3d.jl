@@ -1,3 +1,5 @@
+"""model definition of point3d"""
+
 struct StatePoint3D <: StatePoint
     x::Float64
     y::Float64

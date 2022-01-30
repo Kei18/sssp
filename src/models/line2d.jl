@@ -1,3 +1,5 @@
+"""model definition of line2d"""
+
 struct StateLine2D <: AbsState
     x::Float64
     y::Float64

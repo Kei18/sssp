@@ -1,3 +1,5 @@
+"""model definition of arm22"""
+
 struct StateArm22 <: AbsState
     theta1::Float64
     theta2::Float64

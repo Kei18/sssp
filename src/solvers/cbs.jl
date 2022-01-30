@@ -1,3 +1,10 @@
+"""implementation of Conflict-based Search(CBS)
+
+Ref:
+- Sharon, G., Stern, R., Felner, A., & Sturtevant, N. R. (2015).
+  Conflict-based search for optimal multi-agent pathfinding.
+  Artificial Intelligence (AIJ)
+"""
 module LibCBS
 export CBS
 
@@ -36,6 +43,30 @@ end
     valid::Bool = true
 end
 
+"""
+    CBS(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        connect::Function,
+        collide::Function,
+        check_goal::Function;
+        g_func::Function = gen_g_func(stay_penalty = 0.1),
+        num_vertices::Int64 = 100,
+        rad::Union{Nothing,Real} = nothing,
+        rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),
+        roadmaps_growing_rate::Union{Nothing,Float64} = nothing,
+        max_makespan::Int64 = 20,
+        collision_weight::Float64 = 1.0,
+        VERBOSE::Int64 = 0,
+        TIME_LIMIT::Union{Nothing,Real} = nothing,
+    )::Tuple{
+        Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+        Vector{Vector{Node{State}}},  # roadmaps
+    } where {State<:AbsState}
+
+implementation of CBS on PRM
+
+"""
 function CBS(
     config_init::Vector{State},
     config_goal::Vector{State},
@@ -60,6 +91,7 @@ function CBS(
     elapsed() = elapsed_sec(t_s)
     timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
+    # get initial roadmaps
     roadmaps = PRMs(
         config_init,
         config_goal,
@@ -75,6 +107,7 @@ function CBS(
         return (nothing, roadmaps)
     end
 
+    # try to find solution
     solution, roadmaps = CBS(
         roadmaps,
         collide,
@@ -86,11 +119,11 @@ function CBS(
         TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
     )
 
+    # fail to find solution -> increase roadmaps
     while isnothing(solution) && !isnothing(roadmaps_growing_rate) && !timeover()
         num_vertices = Int64(floor(num_vertices * roadmaps_growing_rate))
-        if VERBOSE > 0
-            @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
-        end
+        VERBOSE > 0 && @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
+        # update roadmap
         roadmaps = PRMs!(
             roadmaps,
             connect,
@@ -99,6 +132,7 @@ function CBS(
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
         )
         timeover() && break
+        # retry
         solution, roadmaps = CBS(
             roadmaps,
             collide,
@@ -136,6 +170,7 @@ function CBS(
     elapsed() = elapsed_sec(t_s)
     timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
 
+    # verbose
     print_constraint!(c::Constraint) = begin
         if VERBOSE > 2
             if typeof(c) == VertexConstraint{State}
@@ -233,6 +268,7 @@ function invoke(
     N = length(roadmaps)
     i = new_constraint.agent
 
+    # get constraints for agent-i
     constraints_i = filter(c -> c.agent == i, node.constraints)
     push!(constraints_i, new_constraint)
 
@@ -311,6 +347,8 @@ function invoke(
             )
             return cost_to_come_q + num_collsions * collision_weight
         end
+
+    # low-level search
     new_path = find_timed_path(
         roadmaps[i],
         invalid,
@@ -323,6 +361,7 @@ function invoke(
     # failed
     isnothing(new_path) && return HighLevelNode{State}(valid = false)
 
+    # create new high-level node
     constraints = vcat(node.constraints, [new_constraint])
     paths = map(e -> e[1] != i ? deepcopy(e[2]) : new_path, enumerate(node.paths))
     return HighLevelNode(
@@ -363,9 +402,7 @@ function get_constraints(
             if collide(v_i_from.q, v_i_to.q, v_j_from.q, v_j_to.q, i, j)
                 push!(constraints, EdgeConstraint{State}(i, v_i_from, v_i_to, t))
                 push!(constraints, EdgeConstraint{State}(j, v_j_from, v_j_to, t))
-                if !check_all_collisions
-                    return constraints
-                end
+                !check_all_collisions && return constraints
                 continue
             end
         end

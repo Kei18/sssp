@@ -1,3 +1,138 @@
+"""implementation of a standard prioritized planning
+
+Ref:
+- Silver, D. (2005). Cooperative Pathfinding. AIIDE.
+- Erdmann, M., & Lozano-Perez, T. (1987). On multiple moving objects. Algorithmica.
+"""
+module LibPP
+export PP
+
+import ...MRMP: AbsState, Node, now, elapsed_sec
+import ..Solvers:
+    SearchNode,
+    find_timed_path,
+    convert_paths_to_configurations,
+    get_distance_tables,
+    gen_g_func,
+    PRMs,
+    PRMs!
+import Printf: @sprintf
+import Base: @kwdef
+import Random: randperm
+
+
+"""
+    PP(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        connect::Function,
+        collide::Function,
+        check_goal::Function;
+        g_func::Function = gen_g_func(stay_penalty = 0.1),
+        num_vertices::Int64 = 100,
+        rad::Union{Nothing,Real} = nothing,
+        rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),
+        roadmaps_growing_rate::Union{Nothing,Float64} = nothing,
+        max_makespan::Int64 = 20,
+        order_randomize::Bool = true,
+        TIME_LIMIT::Union{Nothing,Real} = nothing,
+        VERBOSE::Int64 = 0,
+    )::Tuple{
+        Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+        Vector{Vector{Node{State}}},  # roadmaps
+    } where {State<:AbsState}
+
+implementation of PP on PRM
+"""
+function PP(
+    config_init::Vector{State},
+    config_goal::Vector{State},
+    connect::Function,
+    collide::Function,
+    check_goal::Function;
+    g_func::Function = gen_g_func(stay_penalty = 0.1),
+    num_vertices::Int64 = 100,
+    rad::Union{Nothing,Real} = nothing,
+    rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),
+    roadmaps_growing_rate::Union{Nothing,Float64} = nothing,
+    max_makespan::Int64 = 20,
+    order_randomize::Bool = true,
+    TIME_LIMIT::Union{Nothing,Real} = nothing,
+    VERBOSE::Int64 = 0,
+)::Tuple{
+    Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+    Vector{Vector{Node{State}}},  # roadmaps
+} where {State<:AbsState}
+
+    t_s = now()
+    elapsed() = elapsed_sec(t_s)
+    timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
+
+    # get initial roadmaps
+    roadmaps = PRMs(
+        config_init,
+        config_goal,
+        connect,
+        num_vertices;
+        rads = rads,
+        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+    )
+    VERBOSE > 0 && @info @sprintf("\tconstruct initial roadmaps: |V|=%d", num_vertices)
+
+    if timeover()
+        VERBOSE > 0 && @info @sprintf("\tsolution is not found within time limit")
+        return (nothing, roadmaps)
+    end
+
+    # try to find solution
+    solution, roadmaps = PP(
+        roadmaps,
+        collide,
+        check_goal,
+        g_func;
+        max_makespan = max_makespan,
+        order_randomize = order_randomize,
+        VERBOSE = VERBOSE,
+        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+    )
+
+    # fail to find solution -> increase roadmaps
+    while isnothing(solution) && !isnothing(roadmaps_growing_rate) && !timeover()
+        num_vertices = Int64(floor(num_vertices * roadmaps_growing_rate))
+        VERBOSE > 0 && @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
+        # update roadmap
+        roadmaps = PRMs!(
+            roadmaps,
+            connect,
+            num_vertices;
+            rads = rads,
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+        )
+        timeover() && break
+        # retry
+        solution, roadmaps = PP(
+            roadmaps,
+            collide,
+            check_goal,
+            g_func;
+            max_makespan = max_makespan,
+            order_randomize = order_randomize,
+            VERBOSE = VERBOSE,
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+        )
+    end
+
+    if VERBOSE > 0
+        if isnothing(solution)
+            @info "\tfailed to find solution"
+        else
+            @info "\tfound solution"
+        end
+    end
+    return (solution, roadmaps)
+end
+
+
 function PP(
     roadmaps::Vector{Vector{Node{State}}},
     collide::Function,
@@ -22,13 +157,8 @@ function PP(
     paths = map(i -> Vector{Node{State}}(), 1:N)
     costs_table = Vector{Float64}([0.0])
     for i in (order_randomize ? randperm(N) : (1:N))
-        if timeover()
-            return (nothing, roadmaps)
-        end
-
-        if VERBOSE > 1
-            @info @sprintf("\t\tstart planning for agent-%d", i)
-        end
+        timeover() && return (nothing, roadmaps)
+        VERBOSE > 1 && @info @sprintf("\t\tstart planning for agent-%d", i)
 
         # setup functions
         invalid =
@@ -101,9 +231,7 @@ function PP(
 
         # case failure
         if isnothing(path)
-            if VERBOSE > 1
-                @info @sprintf("\t\tfailed planning for agent-%d", i)
-            end
+            VERBOSE > 1 && @info @sprintf("\t\tfailed planning for agent-%d", i)
             return (nothing, roadmaps)
         end
 
@@ -126,93 +254,4 @@ function PP(
     return (convert_paths_to_configurations(paths), roadmaps)
 end
 
-function PP(
-    config_init::Vector{State},
-    config_goal::Vector{State},
-    connect::Function,
-    collide::Function,
-    check_goal::Function;
-    g_func::Function = gen_g_func(stay_penalty = 0.1),
-    num_vertices::Int64 = 100,
-    rad::Union{Nothing,Real} = nothing,
-    rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),
-    roadmaps_growing_rate::Union{Nothing,Float64} = nothing,
-    max_makespan::Int64 = 20,
-    order_randomize::Bool = true,
-    TIME_LIMIT::Union{Nothing,Real} = nothing,
-    VERBOSE::Int64 = 0,
-)::Tuple{
-    Union{Nothing,Vector{Vector{Node{State}}}},  # solution
-    Vector{Vector{Node{State}}},  # roadmaps
-} where {State<:AbsState}
-
-    t_s = now()
-    elapsed() = elapsed_sec(t_s)
-    timeover() = TIME_LIMIT != nothing && elapsed() > TIME_LIMIT
-
-    roadmaps = PRMs(
-        config_init,
-        config_goal,
-        connect,
-        num_vertices;
-        rads = rads,
-        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
-    )
-    if VERBOSE > 0
-        @info @sprintf("\tconstruct initial roadmaps: |V|=%d", num_vertices)
-    end
-
-    if timeover()
-        if VERBOSE > 0
-            @info @sprintf("\tsolution is not found within time limit")
-        end
-        return (nothing, roadmaps)
-    end
-
-    solution, roadmaps = PP(
-        roadmaps,
-        collide,
-        check_goal,
-        g_func;
-        max_makespan = max_makespan,
-        order_randomize = order_randomize,
-        VERBOSE = VERBOSE,
-        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
-    )
-
-    while isnothing(solution) && !isnothing(roadmaps_growing_rate) && !timeover()
-        num_vertices = Int64(floor(num_vertices * roadmaps_growing_rate))
-        if VERBOSE > 0
-            @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
-        end
-        roadmaps = PRMs!(
-            roadmaps,
-            connect,
-            num_vertices;
-            rads = rads,
-            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
-        )
-        if timeover()
-            break
-        end
-        solution, roadmaps = PP(
-            roadmaps,
-            collide,
-            check_goal,
-            g_func;
-            max_makespan = max_makespan,
-            order_randomize = order_randomize,
-            VERBOSE = VERBOSE,
-            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
-        )
-    end
-
-    if VERBOSE > 0
-        if isnothing(solution)
-            @info "\tfailed to find solution"
-        else
-            @info "\tfound solution"
-        end
-    end
-    return (solution, roadmaps)
 end

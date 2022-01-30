@@ -1,3 +1,5 @@
+"""model definition of snake2d"""
+
 const STEP_DIST_SNAKE2D = 0.05
 
 struct StateSnake2D <: AbsState

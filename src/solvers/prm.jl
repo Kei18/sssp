@@ -1,3 +1,31 @@
+"""Implementation of (simplified) PRM
+
+ref:
+- Kavraki, L. E., Svestka, P., Latombe, J. C., & Overmars, M. H. (1996).
+  Probabilistic roadmaps for path planning in high-dimensional configuration spaces.
+  IEEE transactions on Robotics and Automation
+- Karaman, S., & Frazzoli, E. (2011).
+  Sampling-based algorithms for optimal motion planning.
+  The international journal of robotics research (IJRR)
+"""
+
+"""
+    PRM_direct(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        connect::Function,
+        collide::Function,
+        check_goal::Function;
+        epsilon::Union{Float64,Nothing} = 0.2,
+        TIME_LIMIT::Union{Nothing,Real} = nothing,
+        VERBOSE::Int64 = 0,
+    )::Tuple{
+        Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+        Vector{Vector{Node{State}}},  # roadmaps
+    } where {State<:AbsState}
+
+solve the problem directly by PRM
+"""
 function PRM_direct(
     config_init::Vector{State},
     config_goal::Vector{State},
@@ -11,7 +39,6 @@ function PRM_direct(
     Union{Nothing,Vector{Vector{Node{State}}}},  # solution
     Vector{Vector{Node{State}}},  # roadmaps
 } where {State<:AbsState}
-    """solve the problem directly"""
 
     t_s = now()
     elapsed() = elapsed_sec(t_s)
@@ -139,6 +166,17 @@ function PRM_direct(
 end
 
 
+"""
+    PRM!(
+        roadmap::Vector{Node{State}},
+        connect::Function,
+        num_vertices::Int64 = 100,
+        rad::Union{Nothing,Float64} = nothing;
+        TIME_LIMIT::Union{Nothing,Real} = nothing,
+    )::Vector{Node{State}} where {State<:AbsState}
+
+update known probabilistic roadmap
+"""
 function PRM!(
     roadmap::Vector{Node{State}},
     connect::Function,
@@ -146,7 +184,6 @@ function PRM!(
     rad::Union{Nothing,Float64} = nothing;
     TIME_LIMIT::Union{Nothing,Real} = nothing,
 )::Vector{Node{State}} where {State<:AbsState}
-    """probabilistic roadmap"""
 
     t_s = now()
     elapsed() = elapsed_sec(t_s)
@@ -177,6 +214,16 @@ function PRM!(
     return roadmap
 end
 
+"""
+    PRM(
+        q_init::State,
+        q_goal::State,
+        args...;
+        kwargs...,
+    )::Vector{Node{State}} where {State<:AbsState}
+
+generate one PRM
+"""
 function PRM(
     q_init::State,
     q_goal::State,
@@ -190,6 +237,19 @@ function PRM(
     )
 end
 
+"""
+    PRMs(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        connect::Function,
+        num_vertices::Int64 = 100;
+        rad::Union{Nothing,Float64} = nothing,
+        rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(config_init)),
+        TIME_LIMIT::Union{Nothing,Real} = nothing,
+    )::Vector{Vector{Node{State}}} where {State<:AbsState}
+
+generate multiple PRMs
+"""
 function PRMs(
     config_init::Vector{State},
     config_goal::Vector{State},
@@ -217,6 +277,18 @@ function PRMs(
     )
 end
 
+"""
+    PRMs!(
+        roadmaps::Vector{Vector{Node{State}}},
+        connect::Function,
+        num_vertices::Int64 = 100;
+        rad::Union{Nothing,Float64} = nothing,
+        rads::Union{Vector{Nothing},Vector{Float64}} = fill(rad, length(roadmaps)),
+        TIME_LIMIT::Union{Nothing,Real} = nothing,
+    )::Vector{Vector{Node{State}}} where {State<:AbsState}
+
+update PRMs
+"""
 function PRMs!(
     roadmaps::Vector{Vector{Node{State}}},
     connect::Function,

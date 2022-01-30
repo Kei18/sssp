@@ -1,8 +1,32 @@
+"""Implementation of RRT
+
+ref:
+- LaValle, S. M. (1998). Rapidly-exploring random trees: A new tool for path planning.
+"""
 module LibRRT
 export RRT
 
 import Printf: @sprintf, @printf
 import ...MRMP: AbsState, Node, now, elapsed_sec, gen_uniform_sampling, get_mid_status, dist
+
+"""
+    RRT(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        connect::Function,
+        collide::Function,
+        check_goal::Function;
+        steering_depth::Int64 = 4,                  # steering parameter
+        epsilon::Union{Float64,Nothing} = 0.2,      # \epsilon neighbor
+        TIME_LIMIT::Union{Nothing,Real} = nothing,
+        VERBOSE::Int64 = 0,
+    )::Tuple{
+        Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+        Vector{Vector{Node{State}}},  # roadmaps
+    } where {State<:AbsState}
+
+implementation of RRT
+"""
 
 function RRT(
     config_init::Vector{State},
