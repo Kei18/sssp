@@ -1,13 +1,15 @@
 MRMP
 ===
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
-[![CI](https://github.com/Kei18/mrmp/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/Kei18/mrmp/actions/workflows/ci.yml)
+[![CI](https://github.com/Kei18/mrmp/actions/workflows/ci.yaml/badge.svg?branch=dev)](https://github.com/Kei18/mrmp/actions/workflows/ci.yaml)
 
 A private research repo for multi-robot motion planning (MRMP), written in Julia (≥v1.6), tested on MacOS-10.15.
 
 ## TODO
 - [ ] setup configurations of ablation studies
-- [ ] documentation
+    - [x] drop h-value
+    - [x] drop initial roadmap
+- [x] documentation
 - [ ] hypra search
   - [ ] baselines
     - [x] point2d
@@ -19,7 +21,7 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [x] snake2d
     - [ ] point2d (scalability)
   - [ ] proposal
-    - [ ] point2d
+    - [x] point2d
     - [ ] point3d
     - [ ] line2d
     - [ ] arm22
@@ -28,9 +30,8 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [ ] dubins2d
     - [ ] point2d (scalability)
   - [ ] scalability test
-  - [ ] ablation study
+  - [ ] ablation study (point2d, snake2d)
   - [ ] robot demo
-- [ ] insert citations
 
 ## Demo
 
@@ -42,7 +43,7 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
 ```sh
 git clone https://github.com/Kei18/mrmp.git
 cd mrmp
-julia --project=. -e 'using Pkg; instantiate()'
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
 ## Usage
@@ -72,6 +73,12 @@ julia --project=. --threads=auto
 
 #### Evaluate Algorithms
 
+```sh
+julia --project=. --threads=auto
+> include("./scripts/eval.jl")
+> @time main("./scripts/config/eval/point2d.yaml", "time_limit=300")
+```
+
 The script is inspired by [Hydra](https://hydra.cc/).
 
 #### Scalability Test
@@ -81,6 +88,13 @@ julia --project=. --threads=auto
 > @time foreach(N -> main("./scripts/config/eval/point2d_many.yaml", "instance.N=$N"), 10:10:50)
 ```
 
+#### Ablation Study
+```sh
+julia --project=. --threads=auto
+> include("./scripts/eval.jl")
+> @time main("./scripts/config/eval/point2d_ablation.yaml")
+> @time main("./scripts/config/eval/arm22_ablation.yaml")
+```
 
 ## Licence
 This software is released under the MIT License, see [LICENSE.txt](LICENCE.txt).

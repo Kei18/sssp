@@ -32,6 +32,10 @@ function planner3(
     epsilon::Union{Float64,Nothing} = nothing,
     TIME_LIMIT::Union{Nothing,Real} = 30,
     VERBOSE::Int64 = 0,
+    #
+    # for ablation study
+    use_random_h_func::Bool = false,
+    no_roadmap_at_beginning::Bool = false,
 )::Tuple{
     Union{Nothing,Vector{Vector{Node{State}}}},  # solution
     Vector{Vector{Node{State}}},  # roadmap
@@ -54,13 +58,26 @@ function planner3(
     end
 
     # get initial roadmap by RRT-connect
-    roadmaps = gen_RRT_connect_roadmaps(
-        config_init,
-        config_goal,
-        connect;
-        steering_depth = steering_depth,
-        epsilon = epsilon,
-        TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+    roadmaps = (
+        no_roadmap_at_beginning
+        ? map(
+            i -> begin
+                v_init = Node{State}(config_init[i], 1, [])
+                v_goal = Node{State}(config_goal[i], 2, [])
+                conn(v_init.q, v_goal.q, i) && push!(v_init.neighbors, v_goal.id)
+                conn(v_goal.q, v_init.q, i) && push!(v_goal.neighbors, v_init.id)
+                [v_init, v_goal]
+            end,
+            1:N,
+        )
+        : gen_RRT_connect_roadmaps(
+                config_init,
+            config_goal,
+            connect;
+            steering_depth = steering_depth,
+            epsilon = epsilon,
+            TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
+        )
     )
     if isnothing(roadmaps)
         VERBOSE > 0 &&
@@ -68,7 +85,7 @@ function planner3(
         return (nothing, map(i -> Vector{Node{State}}(), 1:N))
     end
 
-    VERBOSE > 0 && @info ("\tdone, setup initial roadmaps")
+    VERBOSE > 0 && !no_roadmap_at_beginning && @info ("\tdone, setup initial roadmaps")
 
     # setup distance tables
     distance_tables = get_distance_tables(roadmaps)
@@ -87,7 +104,11 @@ function planner3(
         end
 
     # setup heuristic function
-    h_func(Q::Vector{Node{State}}) = sum(map(i -> distance_tables[i][Q[i].id], 1:N)) / N
+    h_func(Q::Vector{Node{State}}) = (
+        use_random_h_func
+        ? rand()
+        : sum(map(i -> distance_tables[i][Q[i].id], 1:N)) / N
+    )
 
     # initial configuration
     Q_init = [roadmaps[i][1] for i = 1:N]
