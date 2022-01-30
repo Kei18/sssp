@@ -101,6 +101,7 @@ function main(config::Dict; pre_compile::Bool = false)
     end
 
     if !pre_compile
+        @info "summary:"
         foreach(e -> @info(@sprintf("\nsolver:%s\n%s\n", e...)), results)
         YAML.write_file(
             joinpath(root_dir, "best_params.yaml"),

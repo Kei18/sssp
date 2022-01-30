@@ -27,5 +27,5 @@ include("cbs.jl")
 include("plannerx.jl")
 
 using .LibPP, .LibCBS, .LibRRT, .LibRRT_connect, .LibPlannerX
-export PRM_direct, PRMs, PRMs!, RRT, RRT_connect, PP, CBS, planner1, planner3, planner4
+export PRM_direct, PRMs, PRMs!, RRT, RRT_connect, PP, CBS, planner3
 end
