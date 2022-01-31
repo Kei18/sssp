@@ -8,7 +8,10 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
 ## TODO
 - [ ] setup configurations of ablation studies
     - [x] drop h-value
-    - [x] drop initial roadmap
+    - [x] drop initial roadmap by RRT-connect
+    - [x] drop random walk
+    - [x] drop steering
+    - [x] drop extend
 - [x] documentation
 - [ ] hypra search
   - [ ] baselines
@@ -22,12 +25,12 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [ ] point2d (scalability)
   - [ ] proposal
     - [x] point2d
-    - [ ] point3d
-    - [ ] line2d
-    - [ ] arm22
-    - [ ] arm33
-    - [ ] snake2d
-    - [ ] dubins2d
+    - [x] point3d
+    - [x] line2d
+    - [x] arm22
+    - [x] arm33
+    - [x] dubins2d
+    - [x] snake2d
     - [ ] point2d (scalability)
   - [ ] scalability test
   - [ ] ablation study (point2d, snake2d)
@@ -93,7 +96,7 @@ julia --project=. --threads=auto
 julia --project=. --threads=auto
 > include("./scripts/eval.jl")
 > @time main("./scripts/config/eval/point2d_ablation.yaml")
-> @time main("./scripts/config/eval/arm22_ablation.yaml")
+> @time main("./scripts/config/eval/snake2d_ablation.yaml")
 ```
 
 ## Licence
