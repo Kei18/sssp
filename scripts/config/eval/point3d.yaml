@@ -39,3 +39,9 @@ solvers:
     rad: 0.3
     roadmaps_growing_rate: 1.5
     collision_weight: 1.0
+  - _target_: MRMP.planner3
+    init_min_dist_thread: 0.2
+    decreasing_rate_min_dist_thread: 0.99
+    steering_depth: 2
+    epsilon: 0.5
+    num_vertex_expansion: 30
