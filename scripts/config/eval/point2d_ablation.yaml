@@ -21,7 +21,11 @@ instance:
   rad_obs_max: 0.10
 
 solvers_common_params: &solvers_common_params
-  epsilon: 0.2
+  init_min_dist_thread: 0.1
+  decreasing_rate_min_dist_thread: 0.5
+  steering_depth: 4
+  epsilon: 4.0
+  num_vertex_expansion: 15
 
 solvers:
   - _target_: MRMP.planner3
@@ -32,3 +36,12 @@ solvers:
   - _target_: MRMP.planner3
     <<: *solvers_common_params
     no_roadmap_at_beginning: true
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+    num_vertex_expansion: 0
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+    steering_depth: 0
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+    no_expand_check: true

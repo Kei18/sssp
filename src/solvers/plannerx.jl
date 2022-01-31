@@ -36,6 +36,7 @@ function planner3(
     # for ablation study
     use_random_h_func::Bool = false,
     no_roadmap_at_beginning::Bool = false,
+    no_expand_check::Bool = false,
 )::Tuple{
     Union{Nothing,Vector{Vector{Node{State}}}},  # solution
     Vector{Vector{Node{State}}},  # roadmap
@@ -161,7 +162,7 @@ function planner3(
             v = S.Q[i]
 
             # explore new states
-            if !get(EXPANDED[i], v.id, false)
+            if !get(EXPANDED[i], v.id, false) || no_expand_check
                 EXPANDED[i][v.id] = true
                 expand!(
                     (q_from::State, q_to::State) -> connect(q_from, q_to, i),
