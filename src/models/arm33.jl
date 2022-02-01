@@ -360,6 +360,7 @@ function gen_random_instance_StateArm33(;
     Vector{Float64},  # radius
 }
 
+    _q = StateArm33(0, 0, 0, 0, 0, 0)
     while true
         t_s = now()
         timeover() = elapsed_sec(t_s) > TIME_LIMIT
@@ -374,7 +375,6 @@ function gen_random_instance_StateArm33(;
         rads = map(e -> rand() * (rad_max - rad_min) + rad_min, 1:N)
 
         # generate starts & goals
-        _q = StateArm33(0, 0, 0, 0, 0, 0)
         connect = gen_connect(_q, obstacles, positions, rads)
         collide = gen_collide(_q, positions, rads)
         config_init, config_goal = gen_config_init_goal(_q, N, connect, collide, timeover)

@@ -9,6 +9,7 @@
         "../scripts/config/eval/arm33.yaml"
         "../scripts/config/eval/snake2d.yaml"
         "../scripts/config/eval/dubins2d.yaml"
+        "../scripts/config/eval/capsel3d.yaml"
     ]
     foreach(e -> main(e, args_common...), yaml_files)
 end

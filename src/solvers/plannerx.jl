@@ -60,8 +60,8 @@ function planner3(
 
     # get initial roadmap by RRT-connect
     roadmaps = (
-        no_roadmap_at_beginning
-        ? map(
+        no_roadmap_at_beginning ?
+        map(
             i -> begin
                 v_init = Node{State}(config_init[i], 1, [])
                 v_goal = Node{State}(config_goal[i], 2, [])
@@ -70,9 +70,9 @@ function planner3(
                 [v_init, v_goal]
             end,
             1:N,
-        )
-        : gen_RRT_connect_roadmaps(
-                config_init,
+        ) :
+        gen_RRT_connect_roadmaps(
+            config_init,
             config_goal,
             connect;
             steering_depth = steering_depth,
@@ -105,11 +105,8 @@ function planner3(
         end
 
     # setup heuristic function
-    h_func(Q::Vector{Node{State}}) = (
-        use_random_h_func
-        ? rand()
-        : sum(map(i -> distance_tables[i][Q[i].id], 1:N)) / N
-    )
+    h_func(Q::Vector{Node{State}}) =
+        (use_random_h_func ? rand() : sum(map(i -> distance_tables[i][Q[i].id], 1:N)) / N)
 
     # initial configuration
     Q_init = [roadmaps[i][1] for i = 1:N]
@@ -165,7 +162,7 @@ function planner3(
             if !get(EXPANDED[i], v.id, false) || no_expand_check
                 EXPANDED[i][v.id] = true
                 expand!(
-                    (q_from::State, q_to::State) -> connect(q_from, q_to, i),
+                    (q_from::State, q_to::State) -> conn(q_from, q_to, i),
                     sampler,
                     v,
                     roadmaps[i],
@@ -235,7 +232,11 @@ function expand!(
         # identify neighbors
         neigh = filter(v -> connect(v.q, q_new), roadmap)
         # check space-filling metric
-        if isempty(neigh) || minimum(v -> dist(v.q, q_new), neigh) > min_dist_thread
+        if !(v_from.id in map(v -> v.id, neigh))
+            @warn @sprintf("sampled vertex must have original vertex in neighbors")
+            continue
+        end
+        if minimum(v -> dist(v.q, q_new), neigh) > min_dist_thread
             # add vertex and edges
             u = Node(
                 q_new,

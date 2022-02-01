@@ -47,7 +47,7 @@ function plot_sphere!(
         b = sqrt(r^2 - a^2)
         Xs = cos.(collect(0:0.1:2π+0.1)) * b
         Ys = sin.(collect(0:0.1:2π+0.1)) * b
-        Plots.plot!(
+        plot!(
             Xs + fill(x, size(Xs)),
             Ys + fill(y, size(Ys)),
             fill(z + a, size(Xs)),
@@ -135,7 +135,7 @@ end
 
 """setup artboard"""
 function plot_init!(State::DataType)
-    if State in [StatePoint3D, StateArm33]
+    if State in [StatePoint3D, StateArm33, StateCapsel3D]
         plot3d(size = (400, 400), xlim = (0, 1), ylim = (0, 1), zlim = (0, 1))
     else
         plot(
@@ -315,9 +315,7 @@ function plot_tpg!(
 ) where {State<:AbsState}
 
     N = length(TPG)
-    if init
-        plot(size = (200, 400), xlim = (0.5, N + 0.5), xticks = 1:N)
-    end
+    init && plot(size = (200, 400), xlim = (0.5, N + 0.5), xticks = 1:N)
     params =
         Dict(:label => nothing, :color => :black, :markersize => 5, :markershape => :circle)
     for (i, actions) in enumerate(TPG)

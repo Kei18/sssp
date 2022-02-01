@@ -7,7 +7,7 @@ solvers = [
     "MRMP.RRT",
     "MRMP.RRT_connect",
     "MRMP.PRM_direct",
-    "MRMP.planner1",
+    "MRMP.planner3",
 ]
 
 TIME_LIMIT = 1.0
@@ -55,5 +55,8 @@ end
     test_all_solvers(MRMP.gen_random_instance_StateSnake2D)
 end
 @testset "dubins2d" begin
+    test_all_solvers(MRMP.gen_random_instance_StateDubins)
+end
+@testset "capsel3d" begin
     test_all_solvers(MRMP.gen_random_instance_StateDubins)
 end
