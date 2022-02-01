@@ -329,9 +329,7 @@ function plot_tpg!(
             end
             annotate!(i - 0.1, a.t + offset, text(a.id, :black, :right, 3))
         end
-        if length(actions) == 1
-            scatter!([i], [actions[1].t + offset]; params...)
-        end
+        length(actions) == 1 && scatter!([i], [actions[1].t + offset]; params...)
     end
     safe_savefig!(filename)
     return plot!()
