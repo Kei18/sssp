@@ -42,8 +42,8 @@ solvers:
   # - _target_: MRMP.CBS
   - _target_: MRMP.RRT_connect
   - _target_: MRMP.planner3
-    # init_min_dist_thread: 0.4
-    # decreasing_rate_min_dist_thread: 0.5
-    # steering_depth: 1
-    # epsilon: 2.0
-    # num_vertex_expansion: 10
+    init_min_dist_thread: 0.4
+    decreasing_rate_min_dist_thread: 0.99
+    steering_depth: 1
+    epsilon: 1.0
+    num_vertex_expansion: 10
