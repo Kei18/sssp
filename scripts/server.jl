@@ -148,7 +148,7 @@ function main(; ADDR::String = "127.0.0.1", PORT = UInt16(8081))
             req_num += 1
             while !eof(ws)
                 req = JSON.parse(String(readavailable(ws)))
-                req["type"] == "init" && planning(req, ws)
+                planning(req, ws)
             end
             @info @sprintf("\n%02d: finish planning\n", req_num)
         end

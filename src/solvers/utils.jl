@@ -178,6 +178,42 @@ function get_distance_table(
     return table
 end
 
+"""dubins case requires neighbor computation"""
+function get_distance_table(
+    roadmap::Vector{Node{MRMP.StateDubins}};
+    g_func::Function = dist,
+    goal_node::Node{MRMP.StateDubins} = roadmap[2],
+    )::Vector{Float64}
+
+    table = fill(typemax(Float64), length(roadmap))
+    OPEN = PriorityQueue{Int64,Float64}()
+
+    # setup initial vertex
+    table[goal_node.id] = 0
+    enqueue!(OPEN, goal_node.id, 0)
+
+    while !isempty(OPEN)
+        # pop
+        v_id = dequeue!(OPEN)
+        v = roadmap[v_id]
+        d = table[v_id]
+
+        # expand
+        for u in filter(w -> v_id in w.neighbors, roadmap)
+            g = g_func(v.q, u.q) + d
+            # update distance
+            if g < table[u.id]
+                haskey(OPEN, u.id) && delete!(OPEN, u.id)
+                table[u.id] = g
+                enqueue!(OPEN, u.id, g)
+            end
+        end
+    end
+
+    return table
+end
+
+
 """
     get_distance_tables(
         roadmaps::Vector{Vector{Node{State}}};

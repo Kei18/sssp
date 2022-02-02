@@ -257,6 +257,7 @@ function plot_agent!(
             map(e -> e[3], P),
             label = nothing,
             color = color,
+            linewidth = 3.0,
         )
     end
 
