@@ -6,33 +6,27 @@ MRMP
 A private research repo for multi-robot motion planning (MRMP), written in Julia (≥v1.6), tested on MacOS-10.15.
 
 ## TODO
-- [ ] setup configurations of ablation studies
-    - [x] drop h-value
-    - [x] drop initial roadmap by RRT-connect
-    - [x] drop random walk
-    - [x] drop steering
-    - [x] drop extend
-- [x] documentation
 - [ ] hypra search
   - [ ] baselines
     - [x] point2d
     - [x] point3d
     - [x] line2d
+    - [ ] capsel3d
     - [x] arm22
     - [x] arm33
     - [x] dubins2d
     - [x] snake2d
-    - [ ] point2d (scalability)
   - [ ] proposal
     - [x] point2d
     - [x] point3d
     - [x] line2d
+    - [x] capsel3d
     - [x] arm22
     - [x] arm33
-    - [x] dubins2d
+    - [ ] dubins2d
     - [x] snake2d
     - [ ] point2d (scalability)
-  - [ ] scalability test
+  - [ ] scalability test (only planner3)
   - [ ] ablation study (point2d, snake2d)
   - [ ] robot demo
 
@@ -97,6 +91,13 @@ julia --project=. --threads=auto
 > include("./scripts/eval.jl")
 > @time main("./scripts/config/eval/point2d_ablation.yaml")
 > @time main("./scripts/config/eval/snake2d_ablation.yaml")
+```
+
+#### Planning Server (used in robot demo)
+```sh
+julia --project=.
+> include("./scripts/server.jl")
+> # To close the server, just perform `close()`
 ```
 
 ## Licence

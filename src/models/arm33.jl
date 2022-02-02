@@ -331,7 +331,7 @@ function plot_agent!(q::StateArm33, pos::Vector{Float64}, rad::Float64, color::S
         [pos[1]],
         [pos[2]],
         [pos[3]],
-        markershpa = 10,
+        markersize = 10,
         markershape = :rect,
         color = color,
         label = nothing,

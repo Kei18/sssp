@@ -96,7 +96,7 @@ include("models/dubins2d.jl")
 include("solvers/solvers.jl")
 
 export gen_connect, gen_collide, gen_check_goal
-export plot_res!, plot_anim!, plot_instance!
+export plot_res!, plot_anim!, plot_instance!, plot_tpg!
 export smoothing, get_solution_cost, get_tpg_cost, is_valid_instance, validate
 export gen_random_instance_StateArm22,
     gen_random_instance_StateArm33,

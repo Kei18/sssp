@@ -136,7 +136,15 @@ end
 """setup artboard"""
 function plot_init!(State::DataType)
     if State in [StatePoint3D, StateArm33, StateCapsel3D]
-        plot3d(size = (400, 400), xlim = (0, 1), ylim = (0, 1), zlim = (0, 1))
+        plot3d(
+            size = (400, 400),
+            xlim = (0, 1),
+            ylim = (0, 1),
+            zlim = (0, 1),
+            xticks = nothing,
+            yticks = nothing,
+            zticks = nothing,
+        )
     else
         plot(
             size = (400, 400),
@@ -145,6 +153,8 @@ function plot_init!(State::DataType)
             framestyle = :box,
             yflip = true,
             xmirror = true,
+            xticks = nothing,
+            yticks = nothing,
         )
     end
 end
@@ -214,8 +224,13 @@ function plot_res!(
     plot_init!(State)
     plot_obs!(obstacles)
     plot_roadmap!(roadmaps, ins_params...)
-    plot_traj!(solution, ins_params...)
+    plot_traj!(solution, ins_params...; lw=isnothing(roadmaps) ? 1.0 : 3.0)
     plot_start_goal!(config_init, config_goal, ins_params...)
+    foreach(i -> plot_agent!(
+        config_init[i],
+        map(arr -> arr[i], ins_params)...,
+        get_color(i)
+    ), 1:length(config_init))
     safe_savefig!(filename)
     return plot!()
 end
@@ -329,9 +344,7 @@ function plot_tpg!(
             end
             annotate!(i - 0.1, a.t + offset, text(a.id, :black, :right, 3))
         end
-        if length(actions) == 1
-            scatter!([i], [actions[1].t + offset]; params...)
-        end
+        length(actions) == 1 && scatter!([i], [actions[1].t + offset]; params...)
     end
     safe_savefig!(filename)
     return plot!()

@@ -390,7 +390,7 @@ function smoothing(
     isnothing(solution) && return nothing
 
     solution_tmp = solution
-    config_goal = map(path -> path[end].q, solution)
+    config_goal = map(v -> v.q, solution[end])
     cost_last = nothing
     sum_of_cost_last = Inf
     while true
