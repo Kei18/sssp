@@ -42,32 +42,30 @@ solvers_common_params_rrt: &solvers_common_params_rrt
     - 4.0
 
 solvers:
-  # - _target_: MRMP.PP
-  #   <<: *solvers_common_params_mapf
-  # - _target_: MRMP.CBS
-  #   <<: *solvers_common_params_mapf
-  #   collision_weight:
-  #     - 0.0
-  #     - 0.5
-  #     - 1.0
-  #     - 2.0
-  #     - 4.0
-  # - _target_: MRMP.RRT
-  #   <<: *solvers_common_params_rrt
-  # - _target_: MRMP.RRT_connect
-  #   <<: *solvers_common_params_rrt
-  # - _target_: MRMP.PRM_direct
-  #   epsilon:
-  #     - null
-  #     - 0.1
-  #     - 0.2
-  #     - 0.5
-  #     - 1.0
-  #     - 2.0
-  #     - 4.0
+  - _target_: MRMP.PP
+    <<: *solvers_common_params_mapf
+  - _target_: MRMP.CBS
+    <<: *solvers_common_params_mapf
+    collision_weight:
+      - 0.0
+      - 0.5
+      - 1.0
+      - 2.0
+      - 4.0
+  - _target_: MRMP.RRT
+    <<: *solvers_common_params_rrt
+  - _target_: MRMP.RRT_connect
+    <<: *solvers_common_params_rrt
+  - _target_: MRMP.PRM_direct
+    epsilon:
+      - null
+      - 0.1
+      - 0.2
+      - 0.5
+      - 1.0
+      - 2.0
+      - 4.0
   - _target_: MRMP.planner3
-    steering_depth:
-      - 0
       - 1
       - 2
       - 4
