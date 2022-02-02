@@ -11,7 +11,7 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [x] point2d
     - [x] point3d
     - [x] line2d
-    - [ ] capsel3d
+    - [x] capsel3d
     - [x] arm22
     - [x] arm33
     - [x] dubins2d
@@ -23,7 +23,7 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [x] capsel3d
     - [x] arm22
     - [x] arm33
-    - [ ] dubins2d
+    - [x] dubins2d
     - [x] snake2d
     - [ ] point2d (scalability)
   - [ ] scalability test (only planner3)

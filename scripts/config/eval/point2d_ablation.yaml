@@ -22,10 +22,10 @@ instance:
 
 solvers_common_params: &solvers_common_params
   init_min_dist_thread: 0.1
-  decreasing_rate_min_dist_thread: 0.5
+  decreasing_rate_min_dist_thread: 0.99
   steering_depth: 4
   epsilon: 4.0
-  num_vertex_expansion: 15
+  num_vertex_expansion: 20
 
 solvers:
   - _target_: MRMP.planner3
@@ -41,7 +41,7 @@ solvers:
     num_vertex_expansion: 0
   - _target_: MRMP.planner3
     <<: *solvers_common_params
-    steering_depth: 0
+    no_expand_check: true
   - _target_: MRMP.planner3
     <<: *solvers_common_params
-    no_expand_check: true
+    init_min_dist_thread: 0.0
