@@ -37,6 +37,7 @@ function planner3(
     use_random_h_func::Bool = false,
     no_roadmap_at_beginning::Bool = false,
     no_expand_check::Bool = false,
+    no_fast_collision_check::Bool = false,
 )::Tuple{
     Union{Nothing,Vector{Vector{Node{State}}}},  # solution
     Vector{Vector{Node{State}}},  # roadmap
@@ -182,7 +183,9 @@ function planner3(
 
                 # check duplication and collision
                 Q_id = get_Q_id(Q, j)
-                (haskey(VISITED, Q_id) || collide(S.Q, p.q, i)) && continue
+                haskey(VISITED, Q_id) && continue
+                !no_fast_collision_check && collide(S.Q, p.q, i) && continue
+                no_fast_collision_check && collide(S.Q, Q) && continue
 
                 # create new search node
                 S_new = SuperNode(

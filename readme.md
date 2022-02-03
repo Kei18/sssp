@@ -7,7 +7,7 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
 
 ## TODO
 - [ ] hypra search
-  - [ ] baselines
+  - [x] baselines
     - [x] point2d
     - [x] point3d
     - [x] line2d
@@ -26,8 +26,12 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [x] dubins2d
     - [x] snake2d
     - [ ] point2d (scalability)
-  - [ ] scalability test (only planner3)
-  - [ ] ablation study (point2d, snake2d)
+  - [ ] scalability test (point2d)
+    - [ ] CBS
+    - [ ] planner3
+  - [ ] ablation study
+    - [ ] point2d
+    - [ ] snake2d
   - [ ] robot demo
 
 ## Demo

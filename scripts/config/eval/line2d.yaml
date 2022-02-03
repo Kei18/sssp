@@ -45,3 +45,5 @@ solvers:
     steering_depth: 2
     epsilon: 0.5
     num_vertex_expansion: 20
+    # for fairness
+    no_fast_collision_check: true
