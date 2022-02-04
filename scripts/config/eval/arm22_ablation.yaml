@@ -1,0 +1,47 @@
+root: ../data/exp/arm22_ablation
+seed_offset: 0
+time_limit: 300
+
+num_instances: 1000
+save_instance_images: false
+save_animation: false
+anim_plot_params:
+  interpolate_depth: 2
+  fps: 3
+
+instance:
+  _target_: MRMP.gen_random_instance_StateArm22
+  N_min: 2
+  N_max: 6
+  rad_min: 0.15
+  rad_max: 0.25
+  num_obs_min: 0
+  num_obs_max: 3
+  rad_obs_min: 0.05
+  rad_obs_max: 0.10
+
+solvers_common_params: &solvers_common_params
+  init_min_dist_thread: 0.1
+  decreasing_rate_min_dist_thread: 0.99
+  steering_depth: 4
+  epsilon: ~
+  num_vertex_expansion: 5
+
+solvers:
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+    use_random_h_func: true
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+    no_roadmap_at_beginning: true
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+    num_vertex_expansion: 0
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+    no_expand_check: true
+  - _target_: MRMP.planner3
+    <<: *solvers_common_params
+    init_min_dist_thread: 0.0
