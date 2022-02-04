@@ -32,11 +32,12 @@ function planner3(
     epsilon::Union{Float64,Nothing} = nothing,
     TIME_LIMIT::Union{Nothing,Real} = 30,
     VERBOSE::Int64 = 0,
-    #
+
     # for ablation study
     use_random_h_func::Bool = false,
     no_roadmap_at_beginning::Bool = false,
-    no_expand_check::Bool = false,
+
+    # just for fairness of experiments
     no_fast_collision_check::Bool = false,
 )::Tuple{
     Union{Nothing,Vector{Vector{Node{State}}}},  # solution
@@ -129,9 +130,6 @@ function planner3(
         # discovered list to avoid duplication
         VISITED = Dict{String,SuperNode{State}}()
 
-        # already expanded in this iteration
-        EXPANDED = [Dict{Int64,Bool}() for i = 1:N]
-
         # threshold of space-filling metric
         min_dist_thread = init_min_dist_thread * (decreasing_rate_min_dist_thread^(k - 1))
 
@@ -160,18 +158,15 @@ function planner3(
             v = S.Q[i]
 
             # explore new states
-            if !get(EXPANDED[i], v.id, false) || no_expand_check
-                EXPANDED[i][v.id] = true
-                expand!(
-                    (q_from::State, q_to::State) -> conn(q_from, q_to, i),
-                    sampler,
-                    v,
-                    roadmaps[i],
-                    min_dist_thread,
-                    num_vertex_expansion,
-                    steering_depth,
-                ) && (distance_tables[i] = get_distance_table(roadmaps[i]))
-            end
+            expand!(
+                (q_from::State, q_to::State) -> conn(q_from, q_to, i),
+                sampler,
+                v,
+                roadmaps[i],
+                min_dist_thread,
+                num_vertex_expansion,
+                steering_depth,
+            ) && (distance_tables[i] = get_distance_table(roadmaps[i]))
 
             # expand search node
             for p_id in vcat(v.neighbors, [v.id])
@@ -232,14 +227,8 @@ function expand!(
     for _ = 1:num_vertex_expansion
         # steering
         q_new = steering(connect, sampler(), v_from.q, steering_depth)
-        # identify neighbors
-        neigh = filter(v -> connect(v.q, q_new), roadmap)
         # check space-filling metric
-        if !(v_from.id in map(v -> v.id, neigh))
-            @warn @sprintf("sampled vertex must have original vertex in neighbors")
-            continue
-        end
-        if minimum(v -> dist(v.q, q_new), neigh) > min_dist_thread
+        if minimum(v -> dist(v.q, q_new), roadmap) > min_dist_thread
             # add vertex and edges
             u = Node(
                 q_new,
@@ -248,7 +237,7 @@ function expand!(
             )
             push!(roadmap, u)
             # update neighbors
-            foreach(v -> push!(v.neighbors, u.id), neigh)
+            foreach(v -> push!(v.neighbors, u.id), filter(v -> connect(v.q, q_new), roadmap))
             updated = true
         end
     end
