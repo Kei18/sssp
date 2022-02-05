@@ -41,7 +41,4 @@ solvers:
     num_vertex_expansion: 0
   - _target_: MRMP.planner3
     <<: *solvers_common_params
-    no_expand_check: true
-  - _target_: MRMP.planner3
-    <<: *solvers_common_params
     init_min_dist_thread: 0.0

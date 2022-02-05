@@ -26,13 +26,22 @@ A private research repo for multi-robot motion planning (MRMP), written in Julia
     - [x] dubins2d
     - [x] snake2d
     - [ ] point2d (scalability)
-  - [ ] scalability test (point2d)
-    - [ ] CBS
-    - [ ] planner3
-  - [ ] ablation study
-    - [ ] point2d
-    - [ ] snake2d
-  - [ ] robot demo
+- [ ] main reuslt
+  - [ ] point2d
+  - [ ] point3d
+  - [ ] line2d
+  - [ ] capsel3d
+  - [ ] arm22
+  - [ ] arm33
+  - [ ] dubins2d
+  - [ ] snake2d
+- [ ] scalability test (point2d)
+  - [ ] CBS
+  - [ ] planner3
+- [ ] ablation study
+  - [ ] point2d
+  - [ ] snake2d
+- [ ] robot demo
 
 ## Demo
 
@@ -94,6 +103,7 @@ julia --project=. --threads=auto
 julia --project=. --threads=auto
 > include("./scripts/eval.jl")
 > @time main("./scripts/config/eval/point2d_ablation.yaml")
+> @time main("./scripts/config/eval/arm22_ablation.yaml")
 > @time main("./scripts/config/eval/snake2d_ablation.yaml")
 ```
 
