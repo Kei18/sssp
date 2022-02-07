@@ -328,6 +328,8 @@ function gen_RRT_connect_roadmap(
         return true
     end
 
+    conn(q::State)::Bool = connect(q, i)
+
     # special case
     conn(q_init, q_goal) && return [Node(q_init, 1, [2]), Node(q_goal, 2, [1])]
 
@@ -390,11 +392,11 @@ function extend!(
     q_h = q_rand  # probably unsafe sample -> eventually safe
 
     # steering, binary search
-    if from_start ? !connect(q_near, q_h) : !connect(q_h, q_near)
+    if from_start ? !connect(q_near, q_h) : !(connect(q_h) && connect(q_h, q_near))
         flg = :trapped
         for _ = 1:steering_depth
             q = from_start ? get_mid_status(q_l, q_h) : get_mid_status(q_h, q_l)
-            if from_start ? connect(q_near, q) : connect(q, q_near)
+            if from_start ? connect(q_near, q) : (connect(q) && connect(q, q_near))
                 flg = :advanced
                 q_l = q
             else

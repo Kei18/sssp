@@ -72,6 +72,8 @@ function RRT_connect(
         return true
     end
 
+    connect_C(C::Vector{State})::Bool = all(i -> !connect(C[i], i), 1:N)
+
     # store all samples
     V1 = [config_init]
     V2 = [config_goal]
@@ -151,11 +153,11 @@ function extend!(
     C_h = C_rand  # probably unsafe sample -> eventually safe
 
     # steering, binary search
-    if from_start ? !connect(C_near, C_h) : !connect(C_h, C_near)
+    if from_start ? !connect(C_near, C_h) : !(connect(C_h) && connect(C_h, C_near))
         flg = :advanced
         for _ = 1:steering_depth
             C = map(e -> get_mid_status(e...), from_start ? zip(C_l, C_h) : zip(C_h, C_l))
-            if from_start ? connect(C_near, C) : connect(C, C_near)
+            if from_start ? connect(C_near, C) : (connect(C) && connect(C, C_near))
                 C_l = C
             else
                 C_h = C

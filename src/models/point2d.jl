@@ -57,14 +57,10 @@ function gen_connect(
     end
 
     f(q_from::StatePoint2D, q_to::StatePoint2D, i::Int64)::Bool = begin
-        if any(x -> (x < rads[i] || 1 - rads[i] < x), [q_to.x, q_to.y])
-            return false
-        end
+        any(x -> (x < rads[i] || 1 - rads[i] < x), [q_to.x, q_to.y]) && return false
 
         # check: collisions with static obstacles
-        if any([dist(q_from, q_to, o) < o.r + rads[i] for o in obstacles])
-            return false
-        end
+        any([dist(q_from, q_to, o) < o.r + rads[i] for o in obstacles]) && return false
 
         return true
     end
