@@ -89,7 +89,7 @@ function RRT_connect(
         return (
             [
                 map(q -> Node{State}(q, 1, []), config_init),
-                map(q -> Node{State}(q, 1, []), config_goal),
+                map(q -> Node{State}(q, 2, []), config_goal),
             ],
             get_roadmaps(V1, P1, V2, P2),
         )

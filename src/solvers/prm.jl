@@ -83,12 +83,10 @@ function PRM_direct(
 
     # special case
     if connect_C(config_init, config_goal)
-        push!(E[1], 2)
-        push!(E[2], 1)
         return (
             [
                 map(q -> Node{State}(q, 1, []), config_init),
-                map(q -> Node{State}(q, 1, []), config_goal),
+                map(q -> Node{State}(q, 2, []), config_goal),
             ],
             get_roadmaps(),
         )
