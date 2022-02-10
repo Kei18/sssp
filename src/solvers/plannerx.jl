@@ -331,7 +331,12 @@ function gen_RRT_connect_roadmap(
     conn(q::State)::Bool = connect(q, i)
 
     # special case
-    conn(q_init, q_goal) && return [Node(q_init, 1, [2]), Node(q_goal, 2, [1])]
+    if conn(q_init, q_goal)
+        v_init = Node(q_init, 1, [2])
+        v_goal = Node(q_goal, 2, Vector{Int64}())
+        conn(q_goal, q_init) && push!(v_goal.neighbors, v_init.id)
+        return [v_init, v_goal]
+    end
 
     # store all samples
     V1 = [q_init]

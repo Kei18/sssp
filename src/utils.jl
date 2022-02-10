@@ -344,9 +344,11 @@ function validate(
 
     for t = 2:T
         # check connectivity
-        if !all(i -> connect(solution[t-1][i].q, solution[t][i].q, i), 1:N)
-            @warn @sprintf("invalid: not connected at t= %d -> %d", t - 1, t)
-            return false
+        for i = 1:N
+            if !connect(solution[t-1][i].q, solution[t][i].q, i)
+                @warn @sprintf("invalid: not connected, agent-%d, at t= %d -> %d", i, t - 1, t)
+                return false
+            end
         end
 
         # check collision
