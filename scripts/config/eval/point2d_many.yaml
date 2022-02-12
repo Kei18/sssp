@@ -21,4 +21,3 @@ instance:
 solvers:
   - _target_: MRMP.planner3
   - _target_: MRMP.CBS
-  - _target_: MRMP.RRT_connect
