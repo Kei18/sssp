@@ -72,7 +72,7 @@ function RRT_connect(
         return true
     end
 
-    connect_C(C::Vector{State})::Bool = all(i -> !connect(C[i], i), 1:N)
+    connect_C(C::Vector{State})::Bool = all(i -> connect(C[i], i), 1:N)
 
     # store all samples
     V1 = [config_init]

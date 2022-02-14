@@ -119,18 +119,22 @@ function plot_traj!(
     solution::Union{Nothing,Vector{Vector{Node{State}}}},
     ins_params...;
     lw::Float64 = 3.0,
+    VERBOSE::Int64 = 0,
 ) where {State<:AbsState}
 
     isnothing(solution) && return
 
     N = length(solution[1])
+    T = length(solution)
     for (t, Q_to) in enumerate(solution[2:end])
+        VERBOSE > 0 && @printf("\rplotting t=%d/%d", t, T)
         Q_from = solution[t]
         for i = 1:N
             params = Dict(:color => get_color(i), :lw => lw, :label => nothing)
             plot_motion!(Q_from[i].q, Q_to[i].q, map(arr -> arr[i], ins_params)..., params)
         end
     end
+    @printf("\n")
 end
 
 """setup artboard"""
@@ -219,12 +223,13 @@ function plot_res!(
     roadmaps::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
     solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
     filename::Union{Nothing,String} = nothing,
+    VERBOSE::Int64 = 0,
 ) where {State<:AbsState}
 
     plot_init!(State)
     plot_obs!(obstacles)
     plot_roadmap!(roadmaps, ins_params...)
-    plot_traj!(solution, ins_params...; lw=isnothing(roadmaps) ? 1.0 : 3.0)
+    plot_traj!(solution, ins_params...; lw=isnothing(roadmaps) ? 1.0 : 3.0, VERBOSE = VERBOSE)
     plot_start_goal!(config_init, config_goal, ins_params...)
     foreach(i -> plot_agent!(
         config_init[i],
