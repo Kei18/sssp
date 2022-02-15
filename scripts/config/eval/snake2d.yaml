@@ -27,7 +27,7 @@ solvers:
     num_vertices: 50
     max_makespan: 20
     rad: 1.0
-    roadmaps_growing_rate: ~
+    roadmaps_growing_rate: 1.0
   - _target_: MRMP.PRM_direct
     epsilon: 0.1
   - _target_: MRMP.RRT_connect
@@ -37,7 +37,7 @@ solvers:
     num_vertices: 50
     max_makespan: 20
     rad: 1.0
-    roadmaps_growing_rate: ~
+    roadmaps_growing_rate: 1.0
     collision_weight: 4.0
   - _target_: MRMP.planner3
     init_min_dist_thread: 0.01

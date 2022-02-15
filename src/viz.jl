@@ -66,6 +66,7 @@ function plot_obs!(obstacles::Vector{Obs}) where {Obs<:Obstacle}
             plot_sphere!(o.x, o.y, o.z, o.r, "black")
         end
     end
+    return plot!()
 end
 
 """plot roadmaps"""
@@ -94,6 +95,8 @@ function plot_roadmap!(
             end
         end
     end
+
+    return plot!()
 end
 
 """plot start and goal states for all agents"""
@@ -112,6 +115,7 @@ function plot_start_goal!(
         )
         plot_start_goal!(q_init, q_goal, map(arr -> arr[i], ins_params)..., params)
     end
+    return plot!()
 end
 
 """plot trajectory of all agents"""
@@ -134,7 +138,8 @@ function plot_traj!(
             plot_motion!(Q_from[i].q, Q_to[i].q, map(arr -> arr[i], ins_params)..., params)
         end
     end
-    @printf("\n")
+    VERBOSE > 0 && @printf("\n")
+    return plot!()
 end
 
 """setup artboard"""

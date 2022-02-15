@@ -3,7 +3,7 @@ seed_offset: 0
 time_limit: 300
 
 num_instances: 1000
-save_instance_images: true
+save_instance_images: false
 save_animation: false
 anim_plot_params:
   interpolate_depth: 2
@@ -11,7 +11,7 @@ anim_plot_params:
 
 instance:
   _target_: MRMP.gen_random_instance_StatePoint2D
-  N: 50
+  N: 30
   rad_min: 0.015625
   rad_max: 0.0234375
   num_obs: 10
@@ -20,4 +20,10 @@ instance:
 
 solvers:
   - _target_: MRMP.planner3
-  - _target_: MRMP.CBS
+    epsilon: 0.2
+    init_min_dist_thread: 0.05
+  - _target_: MRMP.PP
+    roadmaps_growing_rate: 1.00
+    max_makespan: 64
+    num_vertices: 1500
+    rad: 0.05

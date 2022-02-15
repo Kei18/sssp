@@ -37,7 +37,7 @@ solvers:
     num_vertices: 100
     max_makespan: 10
     rad: 0.3
-    roadmaps_growing_rate: ~
+    roadmaps_growing_rate: 1.0
     collision_weight: 2.0
   - _target_: MRMP.planner3
     init_min_dist_thread: 0.1

@@ -77,7 +77,7 @@ function PP(
         rads = rads,
         TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
     )
-    VERBOSE > 0 && @info @sprintf("\tconstruct initial roadmaps: |V|=%d", num_vertices)
+    VERBOSE > 0 && @info @sprintf("\t%f sec, construct initial roadmaps: |V|=%d", elapsed(), num_vertices)
 
     if timeover()
         VERBOSE > 0 && @info @sprintf("\tsolution is not found within time limit")
@@ -99,7 +99,7 @@ function PP(
     # fail to find solution -> increase roadmaps
     while isnothing(solution) && !isnothing(roadmaps_growing_rate) && !timeover()
         num_vertices = Int64(floor(num_vertices * roadmaps_growing_rate))
-        VERBOSE > 0 && @info @sprintf("\tupdate roadmaps: |V|=%d", num_vertices)
+        VERBOSE > 0 && @info @sprintf("\t%f sec, update roadmaps: |V|=%d", elapsed(), num_vertices)
         # update roadmap
         roadmaps = PRMs!(
             roadmaps,
@@ -156,9 +156,9 @@ function PP(
     distance_tables = get_distance_tables(roadmaps; g_func = g_func)
     paths = map(i -> Vector{Node{State}}(), 1:N)
     costs_table = Vector{Float64}([0.0])
-    for i in (order_randomize ? randperm(N) : (1:N))
+    for (k, i) in enumerate(order_randomize ? randperm(N) : (1:N))
         timeover() && return (nothing, roadmaps)
-        VERBOSE > 1 && @info @sprintf("\t\tstart planning for agent-%d", i)
+        VERBOSE > 1 && @info @sprintf("\t\tstart planning for agent-%d, %d / %d", i, k, N)
 
         # setup functions
         invalid =
