@@ -1,4 +1,4 @@
-SSSP
+sssp
 ===
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
 [![CI](https://github.com/Kei18/sssp/actions/workflows/ci.yaml/badge.svg?branch=dev)](https://github.com/Kei18/sssp/actions/workflows/ci.yaml)

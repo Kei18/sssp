@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <title>SSSP: Quick Multi-Robot Motion Planning by Combining Sampling and Search</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400&family=Roboto:wght@100&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/custom.css">
+  </head>
+  <body class="d-flex flex-column h-100">
+
+    <main role="main flex-shrink-0">
+      <div class="container">
+        <p class="h1 text-center">Quick Multi-Robot Motion Planning<br/>by Combining Sampling and Search</p>
+        <p class="text-center">
+          <a href="https://kei18.github.io/">Keisuke Okumura</a> and
+          <a href="https://www.coord.c.titech.ac.jp/m/defago/">Xavier Défago</a>
+        </p>
+
+        <p class="text-center mt-3">
+          <a href="https://arxiv.org/abs/xxxxx">[preprint]</a>
+          <a href="https://github.com/Kei18/sssp">[code]</a>
+        </p>
+
+        <div class="row">
+          <div class="col-md-12">
+            <img alt="" src="images/demo_middle.gif" class="img-fluid" style="width:100%;" />
+          </div>
+        </div>
+
+        <div class="mx-auto mt-5">
+          <p class="h5">Overview</p>
+          <div class="text-secondary">
+            We propose a novel algorithm to solve multi-robot motion planning (MRMP) rapidly, that we call <em class="text-primary">Simultaneous Sampling-and-Search Planning (SSSP)</em>.
+            Conventional MRMP studies mostly take the form of two-phase planning that constructs roadmaps then finds inter-robot collision-free paths on those roadmaps.
+            In contrast, SSSP performs roadmap construction and collision-free pathfinding at the same time.
+            This is realized by uniting techniques of single-robot sampling-based motion planning and search techniques of multi-agent pathfinding on discretized graphs.
+            SSSP ensures to find a solution if exists on the search space defined by the cartesian product of robot-wise roadmaps.
+            Our empirical evaluation in various scenarios demonstrates that SSSP significantly outperforms standard approaches to MRMP, i.e., solving more problem instances much faster.
+            We also applied SSSP to planning for 32 ground robots in a dense situation.
+          </div>
+        </div>
+
+        <div class="mx-auto mt-5">
+          <p class="h5">News</p>
+          <ul>
+            <li>Not yet!</li>
+          </ul>
+        </div>
+
+
+        <p class="h5 mt-5">Video</p>
+        <div class="text-center video-wrapper mb-5">
+          <iframe src="https://player.vimeo.com/video/678664920" width="854" height="480" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+        </div>
+
+        <div class="mx-auto mt-5">
+          <p class="h5">Citation</p>
+          <div class="citation mb-3 text-secondary">
+            <pre><code>@article{okumura2022sssp,
+  title={Quick Multi-Robot Motion Planning by Combining Sampling and Search},
+  author={Okumura, Keisuke and D{\'e}fago, Xavier},
+  journal={arXiv preprint},
+  year={2022}
+}</code></pre></div>
+        </div>
+
+        <div class="mx-auto mt-5">
+          <p class="h5">Contact</p>
+          <p>okumura.k [at] coord.c.titech.ac.jp</p>
+        </div>
+
+      </div>
+    </main>
+
+    <footer class="footer mt-auto">
+      <div class="container pt-3">
+        <p class="text-center">&copy;2022 Keisuke Okumura</p>
+      </div>
+    </footer>
+  </body>
+</html>
