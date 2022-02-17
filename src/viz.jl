@@ -72,13 +72,14 @@ end
 """plot roadmaps"""
 function plot_roadmap!(
     V::Union{Nothing,Vector{Vector{Node{State}}}},
-    ins_params...,
+    ins_params...;
+    lw::Float64 = 0.2,
 ) where {State<:AbsState}
     isnothing(V) && return nothing
 
     for i = 1:length(V)
         params = Dict(
-            :lw => 0.2,
+            :lw => lw,
             :markersize => 2,
             :markershape => :circle,
             :legend => nothing,
@@ -144,7 +145,7 @@ end
 
 """setup artboard"""
 function plot_init!(State::DataType)
-    if State in [StatePoint3D, StateArm33, StateCapsel3D]
+    if State in [StatePoint3D, StateArm33, StateCapsule3D]
         plot3d(
             size = (400, 400),
             xlim = (0, 1),

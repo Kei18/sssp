@@ -1,0 +1,49 @@
+root: ../data/exp/capsule3d
+seed_offset: 0
+
+num_instances: 1000
+save_instance_images: false
+save_animation: false
+anim_plot_params:
+  interpolate_depth: 2
+  fps: 3
+
+instance:
+  _target_: MRMP.gen_random_instance_StateCapsule3D
+  N_min: 2
+  N_max: 8
+  rad_min: 0.05
+  rad_max: 0.15
+  num_obs_min: 0
+  num_obs_max: 10
+  rad_obs_min: 0.1
+  rad_obs_max: 0.15
+
+solvers:
+  - _target_: MRMP.RRT
+    steering_depth: 1
+    epsilon: 1.0
+  - _target_: MRMP.PP
+    num_vertices: 50
+    max_makespan: 10
+    rad: 1.0
+    roadmaps_growing_rate: 1.0
+  - _target_: MRMP.PRM_direct
+    epsilon: 1.0
+  - _target_: MRMP.RRT_connect
+    steering_depth: 2
+    epsilon: 0.5
+  - _target_: MRMP.CBS
+    num_vertices: 50
+    max_makespan: 20
+    rad: 1.0
+    roadmaps_growing_rate: 1.5
+    collision_weight: 2.0
+  - _target_: MRMP.SSSP
+    init_min_dist_thread: 0.4
+    decreasing_rate_min_dist_thread: 0.99
+    steering_depth: 1
+    epsilon: 1.0
+    num_vertex_expansion: 10
+    # for fairness
+    no_fast_collision_check: true

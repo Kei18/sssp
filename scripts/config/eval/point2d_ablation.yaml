@@ -28,17 +28,17 @@ solvers_common_params: &solvers_common_params
   num_vertex_expansion: 20
 
 solvers:
-  - _target_: MRMP.planner3
+  - _target_: MRMP.SSSP
     <<: *solvers_common_params
-  - _target_: MRMP.planner3
+  - _target_: MRMP.SSSP
     <<: *solvers_common_params
     use_random_h_func: true
-  - _target_: MRMP.planner3
+  - _target_: MRMP.SSSP
     <<: *solvers_common_params
     no_roadmap_at_beginning: true
-  - _target_: MRMP.planner3
+  - _target_: MRMP.SSSP
     <<: *solvers_common_params
     num_vertex_expansion: 0
-  - _target_: MRMP.planner3
+  - _target_: MRMP.SSSP
     <<: *solvers_common_params
     init_min_dist_thread: 0.0

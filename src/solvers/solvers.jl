@@ -7,7 +7,7 @@
 - PP: PRM + prioritized planning
 - RRT: rapidly-exploring random tree
 - RRT-connect
-- plannerX
+- SSSP: simultaneous sampling-and-search planning
 """
 module Solvers
 
@@ -24,8 +24,8 @@ include("rrt.jl")
 include("rrt_connect.jl")
 include("pp.jl")
 include("cbs.jl")
-include("plannerx.jl")
+include("sssp.jl")
 
-using .LibPP, .LibCBS, .LibRRT, .LibRRT_connect, .LibPlannerX
-export PRM_direct, PRMs, PRMs!, RRT, RRT_connect, PP, CBS, planner3
+using .LibPP, .LibCBS, .LibRRT, .LibRRT_connect, .LibSSSP
+export PRM_direct, PRMs, PRMs!, RRT, RRT_connect, PP, CBS, SSSP
 end

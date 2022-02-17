@@ -65,7 +65,7 @@ solvers:
       - 1.0
       - 2.0
       - 4.0
-  - _target_: MRMP.planner3
+  - _target_: MRMP.SSSP
       - 1
       - 2
       - 4
