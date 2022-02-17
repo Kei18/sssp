@@ -1,14 +1,8 @@
 using MRMP
 import Random: seed!
 
-solvers = [
-    "MRMP.PP",
-    "MRMP.CBS",
-    "MRMP.RRT",
-    "MRMP.RRT_connect",
-    "MRMP.PRM_direct",
-    "MRMP.SSSP",
-]
+solvers =
+    ["MRMP.PP", "MRMP.CBS", "MRMP.RRT", "MRMP.RRT_connect", "MRMP.PRM_direct", "MRMP.SSSP"]
 
 TIME_LIMIT = 1.0
 

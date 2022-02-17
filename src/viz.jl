@@ -235,13 +235,17 @@ function plot_res!(
     plot_init!(State)
     plot_obs!(obstacles)
     plot_roadmap!(roadmaps, ins_params...)
-    plot_traj!(solution, ins_params...; lw=isnothing(roadmaps) ? 1.0 : 3.0, VERBOSE = VERBOSE)
+    plot_traj!(
+        solution,
+        ins_params...;
+        lw = isnothing(roadmaps) ? 1.0 : 3.0,
+        VERBOSE = VERBOSE,
+    )
     plot_start_goal!(config_init, config_goal, ins_params...)
-    foreach(i -> plot_agent!(
-        config_init[i],
-        map(arr -> arr[i], ins_params)...,
-        get_color(i)
-    ), 1:length(config_init))
+    foreach(
+        i -> plot_agent!(config_init[i], map(arr -> arr[i], ins_params)..., get_color(i)),
+        1:length(config_init),
+    )
     safe_savefig!(filename)
     return plot!()
 end

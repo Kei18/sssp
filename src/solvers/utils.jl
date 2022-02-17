@@ -183,7 +183,7 @@ function get_distance_table(
     roadmap::Vector{Node{MRMP.StateDubins}};
     g_func::Function = dist,
     goal_node::Node{MRMP.StateDubins} = roadmap[2],
-    )::Vector{Float64}
+)::Vector{Float64}
 
     table = fill(typemax(Float64), length(roadmap))
     OPEN = PriorityQueue{Int64,Float64}()

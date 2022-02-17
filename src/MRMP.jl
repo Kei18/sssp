@@ -30,7 +30,7 @@ check_goal = gen_check_goal(config_goal)                         # goal judge
 validate(config_init, connect, collide, check_goal, solution)    # check validity of solution
 
 # 4. refine
-(TPG, solution, cost) = smoothing(solution, collide, connect)
+(TPG, solution, cost) = smoothing(solution, connect, collide)
 println(cost)
 
 # 5. visualize

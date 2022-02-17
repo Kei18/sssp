@@ -266,7 +266,10 @@ function expand!(
             )
             push!(roadmap, u)
             # update neighbors
-            foreach(v -> push!(v.neighbors, u.id), filter(v -> connect(v.q, q_new), roadmap))
+            foreach(
+                v -> push!(v.neighbors, u.id),
+                filter(v -> connect(v.q, q_new), roadmap),
+            )
             updated = true
         end
     end
