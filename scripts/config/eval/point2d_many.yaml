@@ -19,7 +19,7 @@ instance:
   rad_obs_max: 0.04
 
 solvers:
-  - _target_: MRMP.planner3
+  - _target_: MRMP.SSSP
     epsilon: 0.2
     init_min_dist_thread: 0.05
   - _target_: MRMP.PP

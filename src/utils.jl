@@ -346,7 +346,12 @@ function validate(
         # check connectivity
         for i = 1:N
             if !connect(solution[t-1][i].q, solution[t][i].q, i)
-                @warn @sprintf("invalid: not connected, agent-%d, at t= %d -> %d", i, t - 1, t)
+                @warn @sprintf(
+                    "invalid: not connected, agent-%d, at t= %d -> %d",
+                    i,
+                    t - 1,
+                    t
+                )
                 return false
             end
         end

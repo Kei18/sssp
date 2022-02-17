@@ -77,7 +77,11 @@ function PP(
         rads = rads,
         TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
     )
-    VERBOSE > 0 && @info @sprintf("\t%f sec, construct initial roadmaps: |V|=%d", elapsed(), num_vertices)
+    VERBOSE > 0 && @info @sprintf(
+        "\t%f sec, construct initial roadmaps: |V|=%d",
+        elapsed(),
+        num_vertices
+    )
 
     if timeover()
         VERBOSE > 0 && @info @sprintf("\tsolution is not found within time limit")
@@ -99,7 +103,8 @@ function PP(
     # fail to find solution -> increase roadmaps
     while isnothing(solution) && !isnothing(roadmaps_growing_rate) && !timeover()
         num_vertices = Int64(floor(num_vertices * roadmaps_growing_rate))
-        VERBOSE > 0 && @info @sprintf("\t%f sec, update roadmaps: |V|=%d", elapsed(), num_vertices)
+        VERBOSE > 0 &&
+            @info @sprintf("\t%f sec, update roadmaps: |V|=%d", elapsed(), num_vertices)
         # update roadmap
         roadmaps = PRMs!(
             roadmaps,

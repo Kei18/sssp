@@ -72,13 +72,14 @@ end
 """plot roadmaps"""
 function plot_roadmap!(
     V::Union{Nothing,Vector{Vector{Node{State}}}},
-    ins_params...,
+    ins_params...;
+    lw::Float64 = 0.2,
 ) where {State<:AbsState}
     isnothing(V) && return nothing
 
     for i = 1:length(V)
         params = Dict(
-            :lw => 0.2,
+            :lw => lw,
             :markersize => 2,
             :markershape => :circle,
             :legend => nothing,
@@ -144,7 +145,7 @@ end
 
 """setup artboard"""
 function plot_init!(State::DataType)
-    if State in [StatePoint3D, StateArm33, StateCapsel3D]
+    if State in [StatePoint3D, StateArm33, StateCapsule3D]
         plot3d(
             size = (400, 400),
             xlim = (0, 1),
@@ -234,13 +235,17 @@ function plot_res!(
     plot_init!(State)
     plot_obs!(obstacles)
     plot_roadmap!(roadmaps, ins_params...)
-    plot_traj!(solution, ins_params...; lw=isnothing(roadmaps) ? 1.0 : 3.0, VERBOSE = VERBOSE)
+    plot_traj!(
+        solution,
+        ins_params...;
+        lw = isnothing(roadmaps) ? 1.0 : 3.0,
+        VERBOSE = VERBOSE,
+    )
     plot_start_goal!(config_init, config_goal, ins_params...)
-    foreach(i -> plot_agent!(
-        config_init[i],
-        map(arr -> arr[i], ins_params)...,
-        get_color(i)
-    ), 1:length(config_init))
+    foreach(
+        i -> plot_agent!(config_init[i], map(arr -> arr[i], ins_params)..., get_color(i)),
+        1:length(config_init),
+    )
     safe_savefig!(filename)
     return plot!()
 end

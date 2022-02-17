@@ -39,7 +39,7 @@ solvers:
     rad: 0.3
     roadmaps_growing_rate: 2.0
     collision_weight: 0.5
-  - _target_: MRMP.planner3
+  - _target_: MRMP.SSSP
     init_min_dist_thread: 0.2
     decreasing_rate_min_dist_thread: 0.5
     steering_depth: 2

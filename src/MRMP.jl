@@ -19,7 +19,7 @@ collide = gen_collide(config_init[1], ins_params...)             # collision che
 check_goal = gen_check_goal(config_goal)                         # goal judge
 
 # 3. solve
-@time solution, roadmaps = MRMP.Solvers.planner3(
+@time solution, roadmaps = MRMP.Solvers.SSSP(
     config_init,
     config_goal,
     connect,
@@ -30,7 +30,7 @@ check_goal = gen_check_goal(config_goal)                         # goal judge
 validate(config_init, connect, collide, check_goal, solution)    # check validity of solution
 
 # 4. refine
-(TPG, solution, cost) = smoothing(solution, collide, connect)
+(TPG, solution, cost) = smoothing(solution, connect, collide)
 println(cost)
 
 # 5. visualize
@@ -86,7 +86,7 @@ include("models/point.jl")
 include("models/point2d.jl")
 include("models/point3d.jl")
 include("models/line2d.jl")
-include("models/capsel3d.jl")
+include("models/capsule3d.jl")
 include("models/arm22.jl")
 include("models/arm33.jl")
 include("models/snake2d.jl")
