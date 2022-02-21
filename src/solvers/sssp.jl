@@ -144,10 +144,6 @@ function SSSP(
     # initial search node
     S_init = SuperNode(Q = Q_init, next = 1, id = get_Q_id(Q_init, 0), h = h_func(Q_init))
 
-    # store best node
-    S_best = S_init
-    f_best = S_init.f
-
     k = 0
     while !timeover()
         k += 1
@@ -197,7 +193,7 @@ function SSSP(
             ) && (distance_tables[i] = get_distance_table(roadmaps[i]))
 
             # expand search node
-            for p_id in vcat(v.neighbors, [v.id])
+            for p_id in vcat(v.neighbors, v.id)
 
                 # create new configuration
                 p = roadmaps[i][p_id]
@@ -224,12 +220,6 @@ function SSSP(
                 # insert
                 enqueue!(OPEN, S_new, S_new.f)
                 VISITED[S_new.id] = S_new
-
-                # update best one
-                if S_new.f < f_best
-                    S_best = S_new
-                    f_best = S_new.f
-                end
             end
             print_progress!(S, loop_cnt, force = isempty(OPEN))
         end

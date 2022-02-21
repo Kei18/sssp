@@ -99,7 +99,7 @@ function find_timed_path(
         end
 
         # expand
-        for k in S.v.neighbors
+        for k in vcat(S.v.neighbors, S.v.id)
             u = roadmap[k]
             num_generated_nodes += 1
             S_new = SearchNode(
