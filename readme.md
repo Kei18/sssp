@@ -8,7 +8,7 @@ The code repository of the paper "[Quick Multi-Robot Motion Planning by Combinin
 ![](./assets/demo_reduced.gif)
 
 - It is written in Julia (≥v1.6) and tested on MacOS-10.15.
-- The accompanied solvers are PRM [1], RRT [2], RRT-Connect [3], PP (PRM-based) [4], CBS (PRM-based)[5], and SSSP.
+- The accompanied solvers are PRM [1], RRT [2], RRT-Connect [3], PP (PRM-based) [4], CBS (PRM-based) [5], and SSSP.
 
 Please cite the following paper if you use the code in your published research:
 
