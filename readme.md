@@ -45,7 +45,10 @@ julia --project=. -e "using IJulia; jupyterlab()"
 
 ### Step 1. Generate Instance
 ```jl
+import Random: seed!
 using MRMP
+
+seed!(46)
 ins = MRMP.gen_random_instance_StatePoint2D(;
     N = 5,
     rad = 0.1,
@@ -54,6 +57,16 @@ ins = MRMP.gen_random_instance_StatePoint2D(;
 )
 config_init, config_goal, obstacles, ins_params... = ins         # example of ins_params: radius, base positions of arms
 ```
+
+The first time may take time for JIT compiling.
+
+With jupyterlab, you can visualize the generated instance as follows:
+
+```jl
+MRMP.plot_instance!(ins...)
+```
+
+![](./assets/minimum-example-ins.png)
 
 ### Step 2. Define Utility Functions
 ```jl
