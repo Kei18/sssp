@@ -306,7 +306,7 @@ function plot_anim!(
 
     # plot animation
     anim = @animate for (t, Q) in enumerate(Q_arr)
-        VERBOSE > 0 && @printf("\rplotting t = %d / %d", t, length(Q_arr))
+        VERBOSE > 0 && @printf("\rplot: %d / %d", t, length(Q_arr))
         plot_init!(State)
         plot_obs!(obstacles)
         plot_traj!(solution, ins_params...; lw=1.0)
