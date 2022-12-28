@@ -270,11 +270,11 @@ function plot_anim!(
     config_goal::Vector{State},
     obstacles::Vector{Obs} where {Obs<:Obstacle},
     ins_params...;
-    solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
-    filename::String = "tmp.gif",
-    fps::Int64 = 10,
-    interpolate_depth::Union{Nothing,Int64} = nothing,
-    VERBOSE::Int64 = 0,
+    solution::Union{Nothing,Vector{Vector{Node{State}}}}=nothing,
+    filename::String="tmp.gif",
+    fps::Int64=10,
+    interpolate_depth::Union{Nothing,Int64}=nothing,
+    VERBOSE::Int64=0
 ) where {State<:AbsState}
 
     if isnothing(solution)
@@ -282,49 +282,44 @@ function plot_anim!(
         return
     end
 
-    T = length(solution)
-    anim = @animate for (t, Q) in enumerate(vcat(solution, [solution[end]]))
-        VERBOSE > 0 && @printf("\rplotting t = %d / %d", t, T)
-        plot_init!(State)
-        plot_obs!(obstacles)
-        plot_traj!(solution, ins_params...; lw = 1.0)
-        plot_start_goal!(config_init, config_goal, ins_params...)
-
-        if !isnothing(interpolate_depth) && interpolate_depth > 0 && 1 < t <= T
-            # compute intermediate states
-            C_arr = Array{Any}(undef, 2 + sum(map(k -> 2^k, 0:interpolate_depth-1)))
-            add_mid_config(d, ind1, ind2) = begin
-                if d > 0
-                    C1 = C_arr[ind1]
-                    C2 = C_arr[ind2]
-                    C = map(e -> get_mid_status(e...), zip(C1, C2))
-                    ind = Int64((ind1 + ind2) / 2)
-                    C_arr[ind] = C
-                    add_mid_config(d - 1, ind1, ind)
-                    add_mid_config(d - 1, ind, ind2)
-                end
-            end
-
-            C_arr[1] = map(v -> v.q, solution[t-1])
-            C_arr[end] = map(v -> v.q, solution[t])
-            add_mid_config(interpolate_depth, 1, length(C_arr))
-            for Q_tmp in C_arr
-                for (i, q) in enumerate(Q_tmp)
-                    plot_agent!(q, map(arr -> arr[i], ins_params)..., get_color(i))
-                end
-            end
-        else
-            for (i, v) in enumerate(Q)
-                plot_agent!(v.q, map(arr -> arr[i], ins_params)..., get_color(i))
+    # preparing intermediate states
+    Q_arr = Vector{Vector{State}}()
+    for t in 1:length(solution)-1
+        Q_tmp = Vector{Vector{State}}(undef, 2^interpolate_depth + 1)
+        Q_tmp[1] = map(v -> v.q, solution[t])
+        Q_tmp[end] = map(v -> v.q, solution[t+1])
+        add_mid_config(d, ind1, ind2) = begin
+            if d > 0
+                Q1 = Q_tmp[ind1]
+                Q2 = Q_tmp[ind2]
+                Q = map(e -> get_mid_status(e...), zip(Q1, Q2))
+                ind = Int64((ind1 + ind2) / 2)
+                Q_tmp[ind] = Q
+                add_mid_config(d - 1, ind1, ind)
+                add_mid_config(d - 1, ind, ind2)
             end
         end
+        add_mid_config(interpolate_depth, 1, length(Q_tmp))
+        append!(Q_arr, Q_tmp[1:end-1])
     end
-    VERBOSE > 0 && println()
+    push!(Q_arr, map(v -> v.q, solution[end]))
 
+    # plot animation
+    anim = @animate for (t, Q) in enumerate(Q_arr)
+        VERBOSE > 0 && @printf("\rplotting t = %d / %d", t, length(Q_arr))
+        plot_init!(State)
+        plot_obs!(obstacles)
+        plot_traj!(solution, ins_params...; lw=1.0)
+        plot_start_goal!(config_init, config_goal, ins_params...)
+        for (i, q) in enumerate(Q)
+            plot_agent!(q, map(arr -> arr[i], ins_params)..., get_color(i))
+        end
+    end
+
+    # save file
     dirname = join(split(filename, "/")[1:end-1], "/")
     !isdir(dirname) && mkpath(dirname)
-
-    return gif(anim, filename, fps = fps)
+    return gif(anim, filename, fps=fps)
 end
 
 """
