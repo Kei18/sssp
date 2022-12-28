@@ -1,13 +1,13 @@
 sssp
 ===
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
-[![CI](https://github.com/Kei18/sssp/actions/workflows/ci.yaml/badge.svg?branch=dev)](https://github.com/Kei18/sssp/actions/workflows/ci.yaml)
+[![CI](https://github.com/Kei18/sssp-private/actions/workflows/deploy.yml/badge.svg)](https://github.com/Kei18/sssp-private/actions/workflows/deploy.yml)
 
 The code repository of the paper "[Quick Multi-Robot Motion Planning by Combining Sampling and Search](https://kei18.github.io/sssp/)" (SSSP).
 
 ![](./assets/demo_reduced.gif)
 
-- It is written in Julia (≥v1.6) and tested on MacOS-10.15.
+- It is written in Julia (≥v1.8) and tested on MacOS-10.15.
 - The accompanied solvers are PRM [1], RRT [2], RRT-Connect [3], PP (PRM-based) [4], CBS (PRM-based) [5], and SSSP.
 
 Please cite the following paper if you use the code in your published research:
