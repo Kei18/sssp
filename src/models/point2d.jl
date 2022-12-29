@@ -31,15 +31,10 @@ function dist(
     b_from::StatePoint2D,
     b_to::StatePoint2D,
     ;
-    concurrent::Bool = true
+    concurrent::Bool = true,
 )::Float64
     f = concurrent ? dist_moving : dist
-    return f(
-        [a_from.x, a_from.y],
-        [a_to.x, a_to.y],
-        [b_from.x, b_from.y],
-        [b_to.x, b_to.y],
-    )
+    return f([a_from.x, a_from.y], [a_to.x, a_to.y], [b_from.x, b_from.y], [b_to.x, b_to.y])
 end
 
 function gen_connect(

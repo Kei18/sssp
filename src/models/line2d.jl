@@ -23,7 +23,7 @@ function gen_connect(
     q::StateLine2D,  # to identify type
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
+    step_time::Float64 = STEP_TIME,
     max_dist::Union{Nothing,Float64} = nothing,
 )::Function
 
@@ -48,7 +48,7 @@ function gen_connect(
         !isnothing(max_dist) && D > max_dist && return false
 
         dt = diff_angles(q_to.theta, q_from.theta)
-        for e in vcat(collect(0:step_dist:D) / D, 1.0)
+        for e = 0:step_time:1
             # intermediate: root
             a = (1 - e) * [q_from.x, q_from.y] + e * [q_to.x, q_to.y]
             # intermediate: theta
@@ -73,8 +73,8 @@ end
 function gen_collide(
     q::StateLine2D,
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
     safety_dist::Float64 = SAFETY_DIST_LINE,
+    step_time::Float64 = STEP_TIME,
 )::Function
 
     N = length(rads)
@@ -85,31 +85,28 @@ function gen_collide(
         q_j_from::StateLine2D,
         q_j_to::StateLine2D,
         i::Int64,
-        j::Int64,
+        j::Int64;
+        concurrent::Bool = true,
     ) = begin
-        # check each pair of step
-        D_i = dist(q_i_from, q_i_to)
-        D_j = dist(q_j_from, q_j_to)
 
         dt_i = diff_angles(q_i_to.theta, q_i_from.theta)
         dt_j = diff_angles(q_j_to.theta, q_j_from.theta)
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i = 0:step_time:1
             # root, angle, tip
             a_i = (1 - e_i) * [q_i_from.x, q_i_from.y] + e_i * [q_i_to.x, q_i_to.y]
             t_i = q_i_from.theta + e_i * dt_i
             b_i = rads[i] * [cos(t_i), sin(t_i)] + a_i
 
-            for e_j in vcat(collect(0:step_dist:D_j) / D_j, 1.0)
+            arr_e_j = concurrent ? [e_i] : collect(0:step_time:1)
+            for e_j in arr_e_j
                 # root, angle, tip
                 a_j = (1 - e_j) * [q_j_from.x, q_j_from.y] + e_j * [q_j_to.x, q_j_to.y]
                 t_j = q_j_from.theta + e_j * dt_j
                 b_j = rads[j] * [cos(t_j), sin(t_j)] + a_j
 
                 # check collision
-                if dist(a_i, b_i, a_j, b_j) < safety_dist
-                    return true
-                end
+                dist(a_i, b_i, a_j, b_j) < safety_dist && return true
             end
         end
         return false
@@ -134,11 +131,9 @@ function gen_collide(
 
     f(Q::Vector{Node{StateLine2D}}, q_i_to::StateLine2D, i::Int64) = begin
         q_i_from = Q[i].q
-        D_i = dist(q_i_from, q_i_to)
-
         dt_i = diff_angles(q_i_to.theta, q_i_from.theta)
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i = 0:step_time:1
             # root, angle, tip
             a_i = (1 - e_i) * [q_i_from.x, q_i_from.y] + e_i * [q_i_to.x, q_i_to.y]
             t_i = q_i_from.theta + e_i * dt_i
@@ -150,9 +145,7 @@ function gen_collide(
                 b_j = rads[j] * [cos(q_j.theta), sin(q_j.theta)] + a_j
 
                 # check collision
-                if dist(a_i, b_i, a_j, b_j) < safety_dist
-                    return true
-                end
+                dist(a_i, b_i, a_j, b_j) < safety_dist && return true
             end
         end
 

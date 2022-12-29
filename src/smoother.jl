@@ -359,7 +359,7 @@ end
 
 function allow_concurrent_motions!(
     solution::Vector{Vector{Node{State}}},
-    collide::Function
+    collide::Function,
 )::Nothing where {State<:AbsState}
 
     N = length(first(solution))
@@ -418,7 +418,7 @@ function smoothing(
     solution::Vector{Vector{Node{State}}},
     connect::Function,
     collide::Function;
-    VERBOSE::Int64=0
+    VERBOSE::Int64 = 0,
 )::Tuple{
     Vector{Vector{Action{State}}},  # temporal plan graph
     Vector{Vector{Node{State}}},  # solution
@@ -441,7 +441,9 @@ function smoothing(
             return (TPG, solution_last, get_solution_cost(solution_last))
         else
             # 3. update solution
-            VERBOSE > 0 && @info("cost is updated: $(cost_last[:sum_of_cost]) -> $(cost[:sum_of_cost])")
+            VERBOSE > 0 && @info(
+                "cost is updated: $(cost_last[:sum_of_cost]) -> $(cost[:sum_of_cost])"
+            )
             solution_last = solution_tmp
             cost_last = cost
         end

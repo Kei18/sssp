@@ -225,7 +225,7 @@ function gen_random_instance(
     num_obs_min::Int64 = 0,
     num_obs_max::Int64 = 10,
     num_obs::Int64 = rand(num_obs_min:num_obs_max),
-    rad::Real= 0.025,
+    rad::Real = 0.025,
     rad_obs::Real = 0.05,
     rad_min::Real = rad,
     rad_max::Real = rad,

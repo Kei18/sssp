@@ -36,7 +36,7 @@ function dist(
     b_from::StatePoint3D,
     b_to::StatePoint3D,
     ;
-    concurrent::Bool=true
+    concurrent::Bool = true,
 )::Float64
     f = concurrent ? dist_moving : dist
     return f(

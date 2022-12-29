@@ -270,11 +270,11 @@ function plot_anim!(
     config_goal::Vector{State},
     obstacles::Vector{Obs} where {Obs<:Obstacle},
     ins_params...;
-    solution::Union{Nothing,Vector{Vector{Node{State}}}}=nothing,
-    filename::String="tmp.gif",
-    fps::Int64=10,
-    interpolate_depth::Union{Nothing,Int64}=nothing,
-    VERBOSE::Int64=0
+    solution::Union{Nothing,Vector{Vector{Node{State}}}} = nothing,
+    filename::String = "tmp.gif",
+    fps::Int64 = 10,
+    interpolate_depth::Union{Nothing,Int64} = nothing,
+    VERBOSE::Int64 = 0,
 ) where {State<:AbsState}
 
     if isnothing(solution)
@@ -284,7 +284,7 @@ function plot_anim!(
 
     # preparing intermediate states
     Q_arr = Vector{Vector{State}}()
-    for t in 1:length(solution)-1
+    for t = 1:length(solution)-1
         Q_tmp = Vector{Vector{State}}(undef, 2^interpolate_depth + 1)
         Q_tmp[1] = map(v -> v.q, solution[t])
         Q_tmp[end] = map(v -> v.q, solution[t+1])
@@ -309,7 +309,7 @@ function plot_anim!(
         VERBOSE > 0 && @printf("\rplot: %d / %d", t, length(Q_arr))
         plot_init!(State)
         plot_obs!(obstacles)
-        plot_traj!(solution, ins_params...; lw=1.0)
+        plot_traj!(solution, ins_params...; lw = 1.0)
         plot_start_goal!(config_init, config_goal, ins_params...)
         for (i, q) in enumerate(Q)
             plot_agent!(q, map(arr -> arr[i], ins_params)..., get_color(i))
@@ -319,7 +319,7 @@ function plot_anim!(
     # save file
     dirname = join(split(filename, "/")[1:end-1], "/")
     !isdir(dirname) && mkpath(dirname)
-    return gif(anim, filename, fps=fps)
+    return gif(anim, filename, fps = fps)
 end
 
 """

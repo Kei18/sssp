@@ -63,6 +63,7 @@ using LinearAlgebra: norm, dot, normalize
 
 # parameters
 const STEP_DIST = 0.01
+const STEP_TIME = 0.1
 const SAFETY_DIST_LINE = 0.01
 const DUBINS_TURN_RADIUS = 1.0
 

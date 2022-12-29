@@ -6,10 +6,17 @@ function gen_collide(q::State, rads::Vector{Float64})::Function where {State<:St
     """collision function for point robots"""
     N = length(rads)
 
-    f(q_i_from::State, q_i_to::State, q_j_from::State, q_j_to::State, i::Int64, j::Int64; concurrent::Bool = true) =
-        begin
-            dist(q_i_from, q_i_to, q_j_from, q_j_to; concurrent = concurrent) < rads[i] + rads[j]
-        end
+    f(
+        q_i_from::State,
+        q_i_to::State,
+        q_j_from::State,
+        q_j_to::State,
+        i::Int64,
+        j::Int64;
+        concurrent::Bool = true,
+    ) = begin
+        dist(q_i_from, q_i_to, q_j_from, q_j_to; concurrent = concurrent) < rads[i] + rads[j]
+    end
 
     f(q_i::State, q_j::State, i::Int64, j::Int64) = begin
         return dist(q_i, q_j) < rads[i] + rads[j]
