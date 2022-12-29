@@ -110,7 +110,7 @@ function dist_moving(
 end
 
 """compute difference of two angles"""
-function diff_angles(t1::Float64, t2::Float64)::Float64
+function diff_angles(t1::Real, t2::Real)::Real
     atan(sin(t1 - t2), cos(t1 - t2))
 end
 
