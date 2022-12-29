@@ -93,6 +93,22 @@ function dist(
     )
 end
 
+function dist_moving(
+    from1::Vector{T},
+    to1::Vector{T},
+    from2::Vector{T},
+    to2::Vector{T},
+)::Float64 where {T<:Real}
+    """point1: from1 -> to1, pint2: from2 -> to2"""
+    corr = -from1 + to1 + from2 - to2
+    a = dot(corr, corr)
+    b = dot(corr, from1 - from2)
+    d(t) = norm(((1 - t) * from1 + t * to1) - ((1 - t) * from2 + t * to2), 2)
+    b >= 0 && return d(0)
+    a + b <= 0 && return d(1)
+    return d(-b / a)
+end
+
 """compute difference of two angles"""
 function diff_angles(t1::Float64, t2::Float64)::Float64
     atan(sin(t1 - t2), cos(t1 - t2))

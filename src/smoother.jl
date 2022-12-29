@@ -37,7 +37,6 @@ function get_temporal_plan_graph(
 )::Vector{Vector{Action{State}}} where {State<:AbsState}
 
     N = length(solution[1])
-    T = length(solution)
 
     # temporal plan graph
     TPG = [Vector{Action{State}}() for i = 1:N]
@@ -78,9 +77,7 @@ function get_temporal_plan_graph(
     for i = 1:N
         for action_self in TPG[i]
             for j = 1:N
-                if j == i
-                    continue
-                end
+                (j == i) && continue
 
                 # exclude ealier actions
                 for action_other in filter(a -> a.t > action_self.t, TPG[j])
@@ -93,6 +90,8 @@ function get_temporal_plan_graph(
                         action_other.to.q,
                         i,
                         j,
+                        ;
+                        concurrent = false,
                     )
                         push!(
                             action_other.predecessors,
@@ -105,7 +104,7 @@ function get_temporal_plan_graph(
         end
     end
 
-    # remove redundant dependencies
+    # remove redundant dependencies & add successors
     for i = 1:N
         for action in TPG[i]
             latest_actions = Dict{Int64,Action}()
@@ -190,9 +189,7 @@ function try_skip_connection!(
                     break
                 end
             end
-            if conflicted
-                continue
-            end
+            conflicted && continue
 
             # update action orders
             deleteat!(TPG[i], k-1:k)
@@ -227,9 +224,7 @@ function get_causal_actions(
     tables = [Dict{String,Set{Tuple{Int64,String}}}() for i = 1:N]
     function f(i, id)
         action = TPG[i][findfirst(a -> a.id == id, TPG[i])]
-        if haskey(tables[i], id)
-            return tables[i][id]
-        end
+        haskey(tables[i], id) && return tables[i][id]
         causal_actions = Set{Tuple{Int64,String}}()
         for (j, id_j) in ((for_ancestors) ? action.predecessors : action.successors)
             push!(causal_actions, (j, id_j))
@@ -312,7 +307,7 @@ function get_solution_cost(
     # compute last timesteps
     last_timesteps = fill(T, N)
     for i = 1:N
-        for t in reverse(collect(1:T-1))
+        for t = T-1:-1:1
             solution[t][i] != solution[t+1][i] && break
             last_timesteps[i] = t
         end
@@ -362,6 +357,49 @@ function get_tpg_cost(
     return Dict(:sum_of_cost => sum(arr), :makespan => maximum(arr))
 end
 
+function allow_concurrent_motions!(
+    solution::Vector{Vector{Node{State}}},
+    collide::Function
+)::Nothing where {State<:AbsState}
+
+    N = length(first(solution))
+    refined = true
+    while refined
+        refined = false
+        for i = 1:N
+            T = length(solution)
+            for t = 2:T-1
+                v_pre = solution[t-1][i]
+                v_now = solution[t][i]
+                v_nxt = solution[t+1][i]
+                !(v_pre == v_now && v_now != v_nxt) && continue
+
+                # collision check
+                conflicted = false
+                for t_emu = t:T
+                    Q_pre = copy(solution[t_emu-1])
+                    Q_pre[i] = solution[t_emu][i]
+                    Q_now = copy(solution[t_emu])
+                    Q_now[i] = solution[min(t_emu + 1, T)][i]
+                    conflicted = collide(Q_pre, Q_now)
+                    conflicted && break
+                end
+                conflicted && continue
+
+                # replacement
+                foreach(t_emu -> solution[t_emu][i] = solution[t_emu+1][i], t:T-1)
+                refined = true
+            end
+        end
+
+        if refined
+            while solution[end] == solution[end-1]
+                pop!(solution)
+            end
+        end
+    end
+end
+
 """
     smoothing(
         solution::Vector{Vector{Node{State}}},
@@ -380,7 +418,7 @@ function smoothing(
     solution::Vector{Vector{Node{State}}},
     connect::Function,
     collide::Function;
-    VERBOSE::Int64 = 0,
+    VERBOSE::Int64=0
 )::Tuple{
     Vector{Vector{Action{State}}},  # temporal plan graph
     Vector{Vector{Node{State}}},  # solution
@@ -388,24 +426,24 @@ function smoothing(
 } where {State<:AbsState}
 
     isnothing(solution) && return nothing
-
-    solution_tmp = solution
     config_goal = map(v -> v.q, solution[end])
-    cost_last = nothing
-    sum_of_cost_last = Inf
+    solution_last, cost_last = solution, get_solution_cost(solution)
+
     while true
         # 1. create temporal plan graph
-        TPG = get_temporal_plan_graph(solution_tmp, collide, connect)
+        TPG = get_temporal_plan_graph(solution_last, collide, connect)
         # 2. sampling from temporal plan graph
         solution_tmp = get_greedy_solution(TPG, config_goal)
-        cost = get_tpg_cost(TPG)
-        if sum_of_cost_last >= cost[:sum_of_cost]
-            return (TPG, solution_tmp, cost)
+        cost = get_solution_cost(solution_tmp)
+
+        if cost_last[:sum_of_cost] <= cost[:sum_of_cost]
+            allow_concurrent_motions!(solution_last, collide)
+            return (TPG, solution_last, get_solution_cost(solution_last))
         else
             # 3. update solution
-            VERBOSE > 0 && @info @sprintf("cost is updated: %f -> %f", cost_last, cost)
+            VERBOSE > 0 && @info("cost is updated: $(cost_last[:sum_of_cost]) -> $(cost[:sum_of_cost])")
+            solution_last = solution_tmp
             cost_last = cost
-            sum_of_cost_last = get(cost, :sum_of_cost)
         end
     end
 end
