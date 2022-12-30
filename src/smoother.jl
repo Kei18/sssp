@@ -188,6 +188,7 @@ function try_skip_connection!(
                             a4 = TPG[j][k-1]
                             break
                         end
+                        (k == length(TPG[j])) && (a4 = TPG[j][k])
                     end
                     conflicted = collide(a3.from.q, a3.to.q, a4.to.q, a4.to.q, i, j)
                 end
@@ -404,6 +405,18 @@ function allow_concurrent_motions!(
     end
 end
 
+function remove_stop_motions!(solution::Vector{Vector{Node{State}}})::Nothing where {State<:AbsState}
+    t = 2
+    while t < length(solution)
+        if solution[t-1] == solution[t]
+            deleteat!(solution, t)
+        else
+            t += 1
+        end
+    end
+end
+
+
 """
     smoothing(
         solution::Vector{Vector{Node{State}}},
@@ -422,7 +435,8 @@ function smoothing(
     solution::Vector{Vector{Node{State}}},
     connect::Function,
     collide::Function;
-    VERBOSE::Int64=0
+    VERBOSE::Int64=0,
+    skip_connection::Bool = true,
 )::Tuple{
     Vector{Vector{Action{State}}},  # temporal plan graph
     Vector{Vector{Node{State}}},  # solution
@@ -435,13 +449,14 @@ function smoothing(
 
     while true
         # 1. create temporal plan graph
-        TPG = get_temporal_plan_graph(solution_last, collide, connect)
+        TPG = get_temporal_plan_graph(solution_last, collide, connect; skip_connection = skip_connection)
         # 2. sampling from temporal plan graph
         solution_tmp = get_greedy_solution(TPG, config_goal)
         cost = get_solution_cost(solution_tmp)
 
         if cost_last[:sum_of_cost] <= cost[:sum_of_cost]
             allow_concurrent_motions!(solution_last, collide)
+            remove_stop_motions!(solution_last)
             return (TPG, solution_last, get_solution_cost(solution_last))
         else
             # 3. update solution
