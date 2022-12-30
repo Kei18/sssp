@@ -172,18 +172,26 @@ function try_skip_connection!(
             conflicted = false
             for j = 1:N
                 j == i && continue
-                for a4 in filter(a -> !((j, a.id) in causal_actions), TPG[j])
-                    if collide(a3.from.q, a3.to.q, a4.from.q, a4.to.q, i, j; concurrent = false)
+                mutual_actions = filter(a -> !((j, a.id) in causal_actions), TPG[j])
+                for a4 in mutual_actions
+                    if collide(a3.from.q, a3.to.q, a4.from.q, a4.to.q, i, j; concurrent=false)
                         conflicted = true
                         break
                     end
                 end
                 conflicted && break
-                # check last location
-                if collide(a3.from.q, a3.to.q, TPG[j][end].to.q, TPG[j][end].to.q, i, j; concurrent = false)
-                    conflicted = true
-                    break
+
+                if isempty(mutual_actions)
+                    a4 = TPG[j][1]
+                    for k in 2:length(TPG[j])
+                        if TPG[j][k].t > a1.t
+                            a4 = TPG[j][k-1]
+                            break
+                        end
+                    end
+                    conflicted = collide(a3.from.q, a3.to.q, a4.to.q, a4.to.q, i, j)
                 end
+                conflicted && break
             end
             conflicted && continue
 
@@ -414,7 +422,7 @@ function smoothing(
     solution::Vector{Vector{Node{State}}},
     connect::Function,
     collide::Function;
-    VERBOSE::Int64 = 0,
+    VERBOSE::Int64=0
 )::Tuple{
     Vector{Vector{Action{State}}},  # temporal plan graph
     Vector{Vector{Node{State}}},  # solution
