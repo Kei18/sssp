@@ -166,25 +166,21 @@ function try_skip_connection!(
             # get causalities
             causal_actions = get_ancestors(a1, TPG)
             union!(causal_actions, get_descendants(a2, TPG))
-            causal_actions = filter(val -> val[1] != i, causal_actions)
+            filter!(val -> val[1] != i, causal_actions)
 
             # check collisions
             conflicted = false
             for j = 1:N
-                if j == i
-                    continue
-                end
+                j == i && continue
                 for a4 in filter(a -> !((j, a.id) in causal_actions), TPG[j])
-                    if collide(a3.from.q, a3.to.q, a4.from.q, a4.to.q, i, j)
+                    if collide(a3.from.q, a3.to.q, a4.from.q, a4.to.q, i, j; concurrent = false)
                         conflicted = true
                         break
                     end
                 end
-                if conflicted
-                    continue
-                end
+                conflicted && break
                 # check last location
-                if collide(a3.from.q, a3.to.q, TPG[j][end].to.q, TPG[j][end].to.q, i, j)
+                if collide(a3.from.q, a3.to.q, TPG[j][end].to.q, TPG[j][end].to.q, i, j; concurrent = false)
                     conflicted = true
                     break
                 end
