@@ -44,7 +44,7 @@ function gen_connect(
     obstacles::Vector{CircleObstacle3D},
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
+    step_time::Float64 = STEP_TIME,
     max_dist::Union{Nothing,Float64} = nothing,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
@@ -77,7 +77,7 @@ function gen_connect(
         dt3_θ = diff_angles(q_to.θ3, q_from.θ3)
         dt3_ϕ = diff_angles(q_to.ϕ3, q_from.ϕ3)
 
-        for e in vcat(collect(0:step_dist:D) / D, 1.0)
+        for e in 0:step_time:1
             # angles
             arr_θ = [q_from.θ1 + e * dt1_θ, q_from.θ2 + e * dt2_θ, q_from.θ3 + e * dt3_θ]
             arr_ϕ =
@@ -118,7 +118,7 @@ function gen_collide(
     q::StateArm33,
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
+    step_time::Float64 = STEP_TIME,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
@@ -131,10 +131,9 @@ function gen_collide(
         q_j_to::StateArm33,
         i::Int64,
         j::Int64,
+        ;
+        concurrent::Bool=true,
     ) = begin
-        # check each pair of step
-        D_i = dist(q_i_from, q_i_to)
-        D_j = dist(q_j_from, q_j_to)
 
         dt1_θ_i = diff_angles(q_i_to.θ1, q_i_from.θ1)
         dt1_ϕ_i = diff_angles(q_i_to.ϕ1, q_i_from.ϕ1)
@@ -150,7 +149,7 @@ function gen_collide(
         dt3_θ_j = diff_angles(q_j_to.θ3, q_j_from.θ3)
         dt3_ϕ_j = diff_angles(q_j_to.ϕ3, q_j_from.ϕ3)
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i in 0:step_time:1
             # intermediate angles & positions for agent-i
             arr_θ_i = [
                 q_i_from.θ1 + e_i * dt1_θ_i,
@@ -176,7 +175,8 @@ function gen_collide(
                 )
             end
 
-            for e_j in vcat(collect(0:step_dist:D_j) / D_j, 1.0)
+            arr_e_j = concurrent ? [e_i] : collect(0:step_time:1)
+            for e_j in arr_e_j
                 # intermediate angles & positions for agent-j
                 arr_θ_j = [
                     q_j_from.θ1 + e_j * dt1_θ_j,
@@ -233,7 +233,6 @@ function gen_collide(
 
     f(Q::Vector{Node{StateArm33}}, q_i_to::StateArm33, i::Int64) = begin
         q_i_from = Q[i].q
-        D_i = dist(q_i_from, q_i_to)
 
         dt1_θ_i = diff_angles(q_i_to.θ1, q_i_from.θ1)
         dt1_ϕ_i = diff_angles(q_i_to.ϕ1, q_i_from.ϕ1)
@@ -242,7 +241,7 @@ function gen_collide(
         dt3_θ_i = diff_angles(q_i_to.θ3, q_i_from.θ3)
         dt3_ϕ_i = diff_angles(q_i_to.ϕ3, q_i_from.ϕ3)
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i in 0:step_time:1
             # intermediate angles & positions for agent-i
             arr_θ_i = [
                 q_i_from.θ1 + e_i * dt1_θ_i,

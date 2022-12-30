@@ -30,7 +30,7 @@ function get_dubins_points(
     q_i_from::State,
     q_i_to::State,
     rad::Float64;
-    step_dist::Float64 = STEP_DIST,
+    step_time::Float64 = STEP_TIME,
     n_dividing::Union{Nothing,Int64} = nothing,
 )::Union{Nothing,Vector{Vector{Float64}}} where {State<:AbsState}
     # same -> return one point
@@ -47,7 +47,7 @@ function get_dubins_points(
     # sampling
     samples = dubins_path_sample_many(
         path_i,
-        isnothing(n_dividing) ? step_dist : dubins_path_length(path_i) / n_dividing,
+        isnothing(n_dividing) ? step_time : dubins_path_length(path_i) / n_dividing,
     )[end]
 
     if !isnothing(samples)
@@ -61,14 +61,15 @@ function get_dubins_points(
     return samples
 end
 
-
 function gen_connect(
     q::StateDubins,  # to identify type
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
+    step_time::Float64 = STEP_TIME,
     max_dist::Union{Nothing,Float64} = nothing,
 )::Function
+
+    n_dividing = Int(floor(1/step_time))
 
     # check: q \in C_free
     f(q::StateDubins, i::Int64)::Bool = begin
@@ -85,7 +86,7 @@ function gen_connect(
         D = dist(q_from, q_to)
         !isnothing(max_dist) && D > max_dist && return false
 
-        P = get_dubins_points(q_from, q_to, rads[i]; step_dist = STEP_DIST)
+        P = get_dubins_points(q_from, q_to, rads[i]; n_dividing = n_dividing)
         isnothing(P) && return false
         for p in P
             # outside
@@ -104,10 +105,11 @@ end
 function gen_collide(
     q::StateDubins,
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
+    step_time::Float64 = STEP_TIME,
 )::Function
 
     N = length(rads)
+    n_dividing = Int(floor(1/step_time))
 
     f(
         q_i_from::StateDubins,
@@ -116,11 +118,25 @@ function gen_collide(
         q_j_to::StateDubins,
         i::Int64,
         j::Int64,
+        ;
+        concurrent::Bool=true
     ) = begin
-        P_i = get_dubins_points(q_i_from, q_i_to, rads[i]; step_dist = step_dist)
-        P_j = get_dubins_points(q_j_from, q_j_to, rads[j]; step_dist = step_dist)
-        for p_i in P_i, p_j in P_j
-            dist(p_i[1:2], p_j[1:2]) < rads[i] + rads[j] && return true
+
+        P_i = get_dubins_points(q_i_from, q_i_to, rads[i]; n_dividing = n_dividing)
+        P_j = get_dubins_points(q_j_from, q_j_to, rads[j]; n_dividing = n_dividing)
+
+        if !concurrent
+            for p_i in P_i, p_j in P_j
+                dist(p_i[1:2], p_j[1:2]) < rads[i] + rads[j] && return true
+            end
+        else
+            # align length
+            l = max(length(P_i), length(P_j))
+            foreach(_ -> push!(P_i, last(P_i)), length(P_i)+1:1:l)
+            foreach(_ -> push!(P_j, last(P_j)), length(P_j)+1:1:l)
+            for (p_i, p_j) in zip(P_i, P_j)
+                dist(p_i[1:2], p_j[1:2]) < rads[i] + rads[j] && return true
+            end
         end
 
         return false
@@ -140,7 +156,7 @@ function gen_collide(
     end
 
     f(Q::Vector{Node{StateDubins}}, q_i_to::StateDubins, i::Int64) = begin
-        P_i = get_dubins_points(Q[i].q, q_i_to, rads[i]; step_dist = step_dist)
+        P_i = get_dubins_points(Q[i].q, q_i_to, rads[i]; n_dividing = n_dividing)
         for j = 1:N
             j == i && continue
             p_j = [Q[j].q.x, Q[j].q.y]
@@ -165,10 +181,10 @@ function plot_motion!(
     q_to::StateDubins,
     rad::Float64,
     params;
-    step_dist::Float64 = STEP_DIST,
+    step_time::Float64 = STEP_TIME,
 )
     q_from == q_to && return
-    points = get_dubins_points(q_from, q_to, rad; step_dist = step_dist)
+    points = get_dubins_points(q_from, q_to, rad; n_dividing = Int(floor(1 / step_time)))
     p = copy(params)
     if haskey(p, :markershape)
         !isnothing(points) && scatter!([points[end][1]], [points[end][2]]; params...)
@@ -245,6 +261,7 @@ function plot_anim!(
     filename::String = "tmp.gif",
     fps::Int64 = 10,
     interpolate_depth::Union{Nothing,Int64} = nothing,
+    flg_traj::Bool = false,
     VERBOSE::Int64 = 0,
 )
 
@@ -253,43 +270,42 @@ function plot_anim!(
         return
     end
 
-    T = length(solution)
     N = length(config_init)
-    anim = @animate for (t, Q) in enumerate(vcat(solution, [solution[end]]))
-        VERBOSE > 0 && @printf("\rplotting t = %d / %d", t, T)
+
+    # preparing intermediate states
+    num_anim = 2^interpolate_depth + 1
+    Q_arr = Vector{Vector{StateDubins}}()
+    for t = 1:length(solution)-1
+        Q_tmp = Vector{Vector{StateDubins}}(undef, num_anim)
+        foreach(k -> Q_tmp[k] = map(i -> solution[t][i].q, 1:N), 1:num_anim)
+        for i = 1:N
+            P = get_dubins_points(
+                solution[t][i].q,
+                solution[t+1][i].q,
+                ins_params[1][i];
+                n_dividing = num_anim-1,
+            )
+            length(P) > num_anim && (P = P[1:num_anim])
+            foreach(e -> Q_tmp[first(e)][i] = StateDubins(last(e)...), enumerate(P))
+        end
+        append!(Q_arr, Q_tmp[1:end-1])
+    end
+    push!(Q_arr, map(v -> v.q, solution[end]))
+
+    # plot animation
+    anim = @animate for (t, Q) in enumerate(Q_arr)
+        VERBOSE > 0 && @printf("\rplot: %d / %d", t, length(Q_arr))
         plot_init!(StateDubins)
         plot_obs!(obstacles)
-        plot_traj!(solution, ins_params...; lw = 1.0)
+        flg_traj && plot_traj!(solution, ins_params...; lw = 1.0)
         plot_start_goal!(config_init, config_goal, ins_params...)
-
-        if !isnothing(interpolate_depth) && interpolate_depth > 0 && 1 < t <= T
-            depth = sum(map(k -> 2^k, 0:interpolate_depth-1)) + 2
-            # compute intermediate states
-            for i = 1:N
-                P = get_dubins_points(
-                    solution[t-1][i].q,
-                    solution[t][i].q,
-                    ins_params[1][i];
-                    n_dividing = depth,
-                )
-                for (x, y, θ) in P
-                    plot_agent!(
-                        StateDubins(x, y, θ),
-                        map(arr -> arr[i], ins_params)...,
-                        get_color(i),
-                    )
-                end
-            end
-        else
-            for (i, v) in enumerate(Q)
-                plot_agent!(v.q, map(arr -> arr[i], ins_params)..., get_color(i))
-            end
+        for (i, q) in enumerate(Q)
+            plot_agent!(q, map(arr -> arr[i], ins_params)..., get_color(i))
         end
     end
-    VERBOSE > 0 && println()
 
+    # save file
     dirname = join(split(filename, "/")[1:end-1], "/")
     !isdir(dirname) && mkpath(dirname)
-
     return gif(anim, filename, fps = fps)
 end
