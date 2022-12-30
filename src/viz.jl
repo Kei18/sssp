@@ -274,6 +274,7 @@ function plot_anim!(
     filename::String = "tmp.gif",
     fps::Int64 = 10,
     interpolate_depth::Union{Nothing,Int64} = nothing,
+    flg_traj::Bool = false,
     VERBOSE::Int64 = 0,
 ) where {State<:AbsState}
 
@@ -309,7 +310,7 @@ function plot_anim!(
         VERBOSE > 0 && @printf("\rplot: %d / %d", t, length(Q_arr))
         plot_init!(State)
         plot_obs!(obstacles)
-        plot_traj!(solution, ins_params...; lw = 1.0)
+        flg_traj && plot_traj!(solution, ins_params...; lw = 1.0)
         plot_start_goal!(config_init, config_goal, ins_params...)
         for (i, q) in enumerate(Q)
             plot_agent!(q, map(arr -> arr[i], ins_params)..., get_color(i))

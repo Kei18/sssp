@@ -116,7 +116,7 @@ function gen_collide(
         i::Int64,
         j::Int64,
         ;
-        concurrent::Bool = true
+        concurrent::Bool = true,
     ) = begin
 
         dt1_i = diff_angles(q_i_to.theta1, q_i_from.theta1)
