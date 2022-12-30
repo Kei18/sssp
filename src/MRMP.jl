@@ -66,6 +66,7 @@ const STEP_DIST = 0.01
 const STEP_TIME = 0.1
 const SAFETY_DIST_LINE = 0.01
 const STEP_TIME_CAPSULE3D = 0.05
+const STEP_TIME_SNAKE2D = 0.05
 const DUBINS_TURN_RADIUS = 1.0
 
 # state (i.e., sampled point), defined in ./models

@@ -1,7 +1,5 @@
 """model definition of snake2d"""
 
-const STEP_DIST_SNAKE2D = 0.05
-
 struct StateSnake2D <: AbsState
     x::Float64
     y::Float64
@@ -62,7 +60,7 @@ function gen_connect(
     q::StateSnake2D,
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_SNAKE2D,
+    step_time::Float64 = STEP_TIME_SNAKE2D,
     max_dist::Union{Nothing,Float64} = nothing,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
@@ -94,7 +92,7 @@ function gen_connect(
         dt3 = diff_angles(q_to.theta3, q_from.theta3)
         dt4 = diff_angles(q_to.theta4, q_from.theta4)
 
-        for e in vcat(collect(0:step_dist:D) / D, 1.0)
+        for e in 0:step_time:1
             # angles
             T = [
                 q_from.theta1 + e * dt1,
@@ -126,7 +124,7 @@ end
 function gen_collide(
     q::StateSnake2D,
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_SNAKE2D,
+    step_time::Float64 = STEP_TIME_SNAKE2D,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
@@ -139,6 +137,8 @@ function gen_collide(
         q_j_to::StateSnake2D,
         i::Int64,
         j::Int64,
+        ;
+        concurrent::Bool=true,
     ) = begin
         # check each pair of step
         D_i = dist(q_i_from, q_i_to)
@@ -158,7 +158,7 @@ function gen_collide(
             diff_angles(q_j_to.theta4, q_j_from.theta4),
         ]
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i in 0:step_time:1
             # intermediate angles & positions for agent-i
             T_i = [
                 q_i_from.theta1 + e_i * dt_i[1],
@@ -172,7 +172,8 @@ function gen_collide(
                 2:5,
             )
 
-            for e_j in vcat(collect(0:step_dist:D_j) / D_j, 1.0)
+            arr_e_j = concurrent ? [e_i] : collect(0:step_time:1)
+            for e_j in arr_e_j
                 # intermediate angles & positions for agent-j
                 T_j = [
                     q_j_from.theta1 + e_j * dt_j[1],
@@ -219,7 +220,6 @@ function gen_collide(
 
     f(Q::Vector{Node{StateSnake2D}}, q_i_to::StateSnake2D, i::Int64) = begin
         q_i_from = Q[i].q
-        D_i = dist(q_i_from, q_i_to)
 
         dt_i = [
             diff_angles(q_i_to.theta1, q_i_from.theta1),
@@ -228,7 +228,7 @@ function gen_collide(
             diff_angles(q_i_to.theta4, q_i_from.theta4),
         ]
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i in 0:step_time:1
             # intermediate angles & positions for agent-i
             T_i = [
                 q_i_from.theta1 + e_i * dt_i[1],
