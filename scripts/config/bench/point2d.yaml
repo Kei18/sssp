@@ -1,10 +1,14 @@
 seed_start: 1
-num_instances: 1000
+num_instances: 100
 
 generator:
   target: MRMP.gen_random_instance_StatePoint2D
   params:
-    N: 6
-    rad: 0.1
-    num_obs: 3
-    rad_obs: 0.1
+    N_min: 5
+    N_max: 8
+    rad_min: 0.025
+    rad_max: 0.2
+    num_obs_min: 0
+    num_obs_max: 5
+    rad_obs_min: 0.025
+    rad_obs_max: 0.2
