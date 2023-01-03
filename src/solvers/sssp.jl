@@ -19,30 +19,6 @@ import ..Solvers: gen_g_func, get_distance_tables, get_distance_table
 end
 
 """
-    SSSP(
-        config_init::Vector{State},
-        config_goal::Vector{State},
-        connect::Function,
-        collide::Function,
-        check_goal::Function;
-        g_func::Function = gen_g_func(greedy = true),
-        steering_depth::Int64 = 2,
-        num_vertex_expansion::Int64 = 10,
-        init_min_dist_thread::Float64 = 0.1,
-        decreasing_rate_min_dist_thread::Float64 = 0.99,
-        epsilon::Union{Float64,Nothing} = nothing,
-        TIME_LIMIT::Union{Nothing,Real} = 30,
-        VERBOSE::Int64 = 0,
-
-        use_random_h_func::Bool = false,         # for ablation study
-        no_roadmap_at_beginning::Bool = false,   # for ablation study
-
-        no_fast_collision_check::Bool = false,   # use 'slow' collision checker
-    )::Tuple{
-        Union{Nothing,Vector{Vector{Node{State}}}},  # solution
-        Vector{Vector{Node{State}}},  # roadmap
-    } where {State<:AbsState}
-
 implementation of SSSP
 """
 function SSSP(
@@ -57,6 +33,7 @@ function SSSP(
     init_min_dist_thread::Float64 = 0.1,
     decreasing_rate_min_dist_thread::Float64 = 0.99,
     epsilon::Union{Float64,Nothing} = nothing,
+    prob_uniform_sampling::Float64 = 0.01,
     TIME_LIMIT::Union{Nothing,Real} = 30,
     VERBOSE::Int64 = 0,
 
@@ -189,6 +166,7 @@ function SSSP(
                 min_dist_thread,
                 num_vertex_expansion,
                 steering_depth,
+                prob_uniform_sampling,
             ) && (distance_tables[i] = get_distance_table(roadmaps[i]))
 
             # expand search node
@@ -238,12 +216,14 @@ function expand!(
     min_dist_thread::Float64,
     num_vertex_expansion::Int64,
     steering_depth::Int64,
+    prob_uniform_sampling::Float64
 )::Bool where {State<:AbsState}
 
     updated = false
     for _ = 1:num_vertex_expansion
         # steering
-        q_new = steering(connect, sampler(), v_from.q, steering_depth)
+        q_new = sampler()
+        rand() < 1 - prob_uniform_sampling && (q_new = steering(connect, sampler(), v_from.q, steering_depth))
         # check space-filling metric
         if minimum(v -> dist(v.q, q_new), roadmap) > min_dist_thread
             # add vertex and edges
