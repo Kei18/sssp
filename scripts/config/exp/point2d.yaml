@@ -1,0 +1,9 @@
+benchmark_file: ../data/benchmark/2022-12-30T22-17-20.287/instances.jld2
+
+seed_start: 1
+seed_end: 10
+
+solvers:
+  - target: MRMP.SSSP
+    params:
+      num_vertex_expansion: 5

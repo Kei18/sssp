@@ -16,6 +16,7 @@ function main(config_file::String)
     num_instances = get(config, "num_instances", 10)
     flg_save_fig = get(config, "save_fig", true)
 
+    # prepare directory
     date_str = replace(string(Dates.now()), ":" => "-")
     root_dir = joinpath(pwd(), "..", "data", "benchmark", date_str)
     !isdir(root_dir) && mkpath(root_dir)
