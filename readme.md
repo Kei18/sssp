@@ -123,8 +123,7 @@ julia --project=. -e 'using JuliaFormatter; format(".")'
 #### Hyperparameter Optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
 ```sh
 julia --project=. --threads=auto
-> include("./scripts/hypraopt.jl")
-> @time main("./scripts/config/hypra/params.yaml", "./scripts/config/eval/point2d.yaml")
+> @time include("scripts/hypraopt.jl"); main("scripts/config/hypra/params.yaml", "scripts/config/hypra/point2d.yaml")
 ```
 
 #### Evaluate Algorithms

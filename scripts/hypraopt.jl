@@ -18,9 +18,9 @@ function get_solver_args(ins)
     return [config_init, config_goal, connect, collide, check_goal]
 end
 
-function main(config_file::String)
+function main(config_files...)
     # load experimental setting
-    config = YAML.load_file(config_file)
+    config = merge(map(f -> YAML.load_file(f), config_files)...)
     num_search_times = get(config, "num_search_times", 100)
     time_limit_sec = get(config, "time_limit_sec", 30)
 
