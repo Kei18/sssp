@@ -23,8 +23,8 @@ function gen_connect(
     q::StateLine2D,  # to identify type
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_time::Float64 = STEP_TIME,
-    max_dist::Union{Nothing,Float64} = nothing,
+    step_time::Float64=STEP_TIME,
+    max_step_dist::Float64=sqrt(3) / 4
 )::Function
 
     # check: q \in C_free
@@ -32,20 +32,16 @@ function gen_connect(
         a = [q.x, q.y]
         b = [cos(q.theta), sin(q.theta)] * rads[i] + a
 
-        if any(x -> (x < rads[i] || 1 - rads[i] < x), vcat(a, b))
-            return false
-        end
+        any(x -> (x < rads[i] || 1 - rads[i] < x), vcat(a, b)) && return false
 
-        if any(o -> dist(a, b, [o.x, o.y]) < o.r, obstacles)
-            return false
-        end
+        any(o -> dist(a, b, [o.x, o.y]) < o.r, obstacles) && return false
 
         return true
     end
 
     f(q_from::StateLine2D, q_to::StateLine2D, i::Int64)::Bool = begin
-        D = dist(q_from, q_to)
-        !isnothing(max_dist) && D > max_dist && return false
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
 
         dt = diff_angles(q_to.theta, q_from.theta)
         for e = 0:step_time:1

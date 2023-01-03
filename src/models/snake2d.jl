@@ -60,9 +60,9 @@ function gen_connect(
     q::StateSnake2D,
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_time::Float64 = STEP_TIME_SNAKE2D,
-    max_dist::Union{Nothing,Float64} = nothing,
-    safety_dist::Float64 = SAFETY_DIST_LINE,
+    step_time::Float64=STEP_TIME_SNAKE2D,
+    max_step_dist::Float64=sqrt(6) / 4,
+    safety_dist::Float64=SAFETY_DIST_LINE
 )::Function
 
     # check: q \in C_free
@@ -83,9 +83,8 @@ function gen_connect(
     end
 
     f(q_from::StateSnake2D, q_to::StateSnake2D, i::Int64)::Bool = begin
-        D = dist(q_from, q_to)
-
-        !isnothing(max_dist) && D > max_dist && return false
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
 
         dt1 = diff_angles(q_to.theta1, q_from.theta1)
         dt2 = diff_angles(q_to.theta2, q_from.theta2)

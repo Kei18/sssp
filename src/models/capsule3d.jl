@@ -61,8 +61,8 @@ function gen_connect(
     obstacles::Vector{CircleObstacle3D},
     rads::Vector{Float64},
     axises::Vector{Float64};
-    step_time::Float64 = STEP_TIME_CAPSULE3D,
-    max_dist::Union{Nothing,Float64} = nothing,
+    step_time::Float64=STEP_TIME_CAPSULE3D,
+    max_step_dist::Float64=sqrt(6) / 4
 )::Function
 
     # check: q \in C_free
@@ -76,8 +76,8 @@ function gen_connect(
     end
 
     f(q_from::StateCapsule3D, q_to::StateCapsule3D, i::Int64)::Bool = begin
-        D = dist(q_from, q_to)
-        !isnothing(max_dist) && D > max_dist && return false
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
 
         dϕ = diff_angles(q_to.ϕ, q_from.ϕ)
         dθ = diff_angles(q_to.θ, q_from.θ)

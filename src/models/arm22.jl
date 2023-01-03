@@ -32,7 +32,7 @@ function gen_connect(
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
     step_time::Float64 = STEP_TIME,
-    max_dist::Union{Nothing,Float64} = nothing,
+    max_step_dist::Float64 = sqrt(2)/4,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
@@ -54,8 +54,8 @@ function gen_connect(
     end
 
     f(q_from::StateArm22, q_to::StateArm22, i::Int64)::Bool = begin
-        D = dist(q_from, q_to)
-        !isnothing(max_dist) && D > max_dist && return false
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
 
         dt1 = diff_angles(q_to.theta1, q_from.theta1)
         dt2 = diff_angles(q_to.theta2, q_from.theta2)

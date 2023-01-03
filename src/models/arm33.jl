@@ -44,9 +44,9 @@ function gen_connect(
     obstacles::Vector{CircleObstacle3D},
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
-    step_time::Float64 = STEP_TIME,
-    max_dist::Union{Nothing,Float64} = nothing,
-    safety_dist::Float64 = SAFETY_DIST_LINE,
+    step_time::Float64=STEP_TIME,
+    max_step_dist::Float64=sqrt(6) / 4,
+    safety_dist::Float64=SAFETY_DIST_LINE
 )::Function
 
     # check: q \in C_free
@@ -67,8 +67,8 @@ function gen_connect(
     end
 
     f(q_from::StateArm33, q_to::StateArm33, i::Int64)::Bool = begin
-        D = dist(q_from, q_to)
-        !isnothing(max_dist) && D > max_dist && return false
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
 
         dt1_θ = diff_angles(q_to.θ1, q_from.θ1)
         dt1_ϕ = diff_angles(q_to.ϕ1, q_from.ϕ1)
