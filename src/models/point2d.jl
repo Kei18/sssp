@@ -40,7 +40,8 @@ end
 function gen_connect(
     q::StatePoint2D,  # to identify type
     obstacles::Vector{CircleObstacle2D},
-    rads::Vector{Float64},
+    rads::Vector{Float64};
+    max_step_dist::Float64 = sqrt(2)/4,
 )::Function
 
     # check: q \in C_free
@@ -55,6 +56,9 @@ function gen_connect(
     end
 
     f(q_from::StatePoint2D, q_to::StatePoint2D, i::Int64)::Bool = begin
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
+
         any(x -> (x < rads[i] || 1 - rads[i] < x), [q_to.x, q_to.y]) && return false
 
         # check: collisions with static obstacles
