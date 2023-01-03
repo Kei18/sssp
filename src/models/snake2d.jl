@@ -92,7 +92,7 @@ function gen_connect(
         dt3 = diff_angles(q_to.theta3, q_from.theta3)
         dt4 = diff_angles(q_to.theta4, q_from.theta4)
 
-        for e in 0:step_time:1
+        for e = 0:step_time:1
             # angles
             T = [
                 q_from.theta1 + e * dt1,
@@ -138,7 +138,7 @@ function gen_collide(
         i::Int64,
         j::Int64,
         ;
-        concurrent::Bool=true,
+        concurrent::Bool = true,
     ) = begin
         # check each pair of step
         D_i = dist(q_i_from, q_i_to)
@@ -158,7 +158,7 @@ function gen_collide(
             diff_angles(q_j_to.theta4, q_j_from.theta4),
         ]
 
-        for e_i in 0:step_time:1
+        for e_i = 0:step_time:1
             # intermediate angles & positions for agent-i
             T_i = [
                 q_i_from.theta1 + e_i * dt_i[1],
@@ -228,7 +228,7 @@ function gen_collide(
             diff_angles(q_i_to.theta4, q_i_from.theta4),
         ]
 
-        for e_i in 0:step_time:1
+        for e_i = 0:step_time:1
             # intermediate angles & positions for agent-i
             T_i = [
                 q_i_from.theta1 + e_i * dt_i[1],

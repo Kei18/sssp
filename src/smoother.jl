@@ -174,7 +174,15 @@ function try_skip_connection!(
                 j == i && continue
                 mutual_actions = filter(a -> !((j, a.id) in causal_actions), TPG[j])
                 for a4 in mutual_actions
-                    if collide(a3.from.q, a3.to.q, a4.from.q, a4.to.q, i, j; concurrent=false)
+                    if collide(
+                        a3.from.q,
+                        a3.to.q,
+                        a4.from.q,
+                        a4.to.q,
+                        i,
+                        j;
+                        concurrent = false,
+                    )
                         conflicted = true
                         break
                     end
@@ -183,7 +191,7 @@ function try_skip_connection!(
 
                 if isempty(mutual_actions)
                     a4 = TPG[j][1]
-                    for k in 2:length(TPG[j])
+                    for k = 2:length(TPG[j])
                         if TPG[j][k].t > a1.t
                             a4 = TPG[j][k-1]
                             break
@@ -405,7 +413,9 @@ function allow_concurrent_motions!(
     end
 end
 
-function remove_stop_motions!(solution::Vector{Vector{Node{State}}})::Nothing where {State<:AbsState}
+function remove_stop_motions!(
+    solution::Vector{Vector{Node{State}}},
+)::Nothing where {State<:AbsState}
     t = 2
     while t < length(solution)
         if solution[t-1] == solution[t]
@@ -435,7 +445,7 @@ function smoothing(
     solution::Vector{Vector{Node{State}}},
     connect::Function,
     collide::Function;
-    VERBOSE::Int64=0,
+    VERBOSE::Int64 = 0,
     skip_connection::Bool = true,
 )::Tuple{
     Vector{Vector{Action{State}}},  # temporal plan graph
@@ -449,7 +459,12 @@ function smoothing(
 
     while true
         # 1. create temporal plan graph
-        TPG = get_temporal_plan_graph(solution_last, collide, connect; skip_connection = skip_connection)
+        TPG = get_temporal_plan_graph(
+            solution_last,
+            collide,
+            connect;
+            skip_connection = skip_connection,
+        )
         # 2. sampling from temporal plan graph
         solution_tmp = get_greedy_solution(TPG, config_goal)
         cost = get_solution_cost(solution_tmp)

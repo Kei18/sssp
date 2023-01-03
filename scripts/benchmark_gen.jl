@@ -23,7 +23,7 @@ function main(config_file::String)
 
     # save configuration file
     io = IOBuffer()
-    versioninfo(io, verbose=true)
+    versioninfo(io, verbose = true)
     additional_info = Dict(
         "git_hash" => read(`git log -1 --pretty=format:"%H"`, String),
         "date" => date_str,
@@ -41,14 +41,14 @@ function main(config_file::String)
     # generate instances
     I = Vector{Any}(undef, num_instances)
     cnt_fin = Threads.Atomic{Int}(0)
-    r = (x) -> round(x, digits=3)  # round
+    r = (x) -> round(x, digits = 3)  # round
     t_start = Base.time_ns()
 
-    Threads.@threads for k in 1:num_instances
+    Threads.@threads for k = 1:num_instances
         seed!(k)
         ins = generator()
         if flg_save_fig && Threads.nthreads() == 1
-            MRMP.plot_instance!(ins...; filename=joinpath(root_dir, "$(k).png"))
+            MRMP.plot_instance!(ins...; filename = joinpath(root_dir, "$(k).png"))
         end
         I[k] = ins
         Threads.atomic_add!(cnt_fin, 1)
@@ -57,7 +57,7 @@ function main(config_file::String)
             "$(r((Base.time_ns() - t_start) / 1.0e9)) sec" *
             "\t$(cnt_fin[])/$(num_instances) " *
             "($(r(cnt_fin[]/num_instances*100))%)" *
-            " tasks have been finished"
+            " tasks have been finished",
         )
     end
 

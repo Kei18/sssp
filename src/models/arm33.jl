@@ -77,7 +77,7 @@ function gen_connect(
         dt3_θ = diff_angles(q_to.θ3, q_from.θ3)
         dt3_ϕ = diff_angles(q_to.ϕ3, q_from.ϕ3)
 
-        for e in 0:step_time:1
+        for e = 0:step_time:1
             # angles
             arr_θ = [q_from.θ1 + e * dt1_θ, q_from.θ2 + e * dt2_θ, q_from.θ3 + e * dt3_θ]
             arr_ϕ =
@@ -132,7 +132,7 @@ function gen_collide(
         i::Int64,
         j::Int64,
         ;
-        concurrent::Bool=true,
+        concurrent::Bool = true,
     ) = begin
 
         dt1_θ_i = diff_angles(q_i_to.θ1, q_i_from.θ1)
@@ -149,7 +149,7 @@ function gen_collide(
         dt3_θ_j = diff_angles(q_j_to.θ3, q_j_from.θ3)
         dt3_ϕ_j = diff_angles(q_j_to.ϕ3, q_j_from.ϕ3)
 
-        for e_i in 0:step_time:1
+        for e_i = 0:step_time:1
             # intermediate angles & positions for agent-i
             arr_θ_i = [
                 q_i_from.θ1 + e_i * dt1_θ_i,
@@ -241,7 +241,7 @@ function gen_collide(
         dt3_θ_i = diff_angles(q_i_to.θ3, q_i_from.θ3)
         dt3_ϕ_i = diff_angles(q_i_to.ϕ3, q_i_from.ϕ3)
 
-        for e_i in 0:step_time:1
+        for e_i = 0:step_time:1
             # intermediate angles & positions for agent-i
             arr_θ_i = [
                 q_i_from.θ1 + e_i * dt1_θ_i,

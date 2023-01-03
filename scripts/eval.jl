@@ -31,7 +31,7 @@ function main(config_file::String)
 
     # save configuration file
     io = IOBuffer()
-    versioninfo(io, verbose=true)
+    versioninfo(io, verbose = true)
     additional_info = Dict(
         "git_hash" => read(`git log -1 --pretty=format:"%H"`, String),
         "date" => date_str,
@@ -56,18 +56,21 @@ function main(config_file::String)
 
     # pre-compile
     args = get_solver_args(first(I))
-    foreach(solver -> solver(args...; TIME_LIMIT=time_limit_sec), solvers)
+    foreach(solver -> solver(args...; TIME_LIMIT = time_limit_sec), solvers)
 
     # generate iterators
-    iterators = Iterators.product(
-                    enumerate(get_solver_args.(I)),
-                    enumerate(solvers),
-                    seed_start:seed_end
-                ) |> enumerate |> collect
+    iterators =
+        Iterators.product(
+            enumerate(get_solver_args.(I)),
+            enumerate(solvers),
+            seed_start:seed_end,
+        ) |>
+        enumerate |>
+        collect
     num_total_tasks = length(iterators)
     cnt_fin = Threads.Atomic{Int}(0)
     cnt_solved = Threads.Atomic{Int}(0)
-    r = (x) -> round(x, digits=3)  # round
+    r = (x) -> round(x, digits = 3)  # round
     t_start = Base.time_ns()
 
     # main loop
@@ -77,7 +80,7 @@ function main(config_file::String)
 
         # solve
         comp_time_planning = @elapsed begin
-            solution, _ = solver(args...; TIME_LIMIT=time_limit_sec)
+            solution, _ = solver(args...; TIME_LIMIT = time_limit_sec)
         end
         cost_original = get_solution_cost(solution)
 
@@ -98,9 +101,12 @@ function main(config_file::String)
             :elapsed_refinement => comp_time_refinement,
             :elapsed_total => comp_time_planning + comp_time_refinement,
             :soc_original => isnothing(cost_original) ? 0 : cost_original[:sum_of_cost],
-            :makespan_original => isnothing(cost_original) ? 0 : cost_original[:makespan],
-            :sum_of_cost_refined => isnothing(res_refined) ? 0 : res_refined[end][:sum_of_cost],
-            :makespan_refined => isnothing(res_refined) ? 0 : res_refined[end][:makespan],
+            :makespan_original =>
+                isnothing(cost_original) ? 0 : cost_original[:makespan],
+            :sum_of_cost_refined =>
+                isnothing(res_refined) ? 0 : res_refined[end][:sum_of_cost],
+            :makespan_refined =>
+                isnothing(res_refined) ? 0 : res_refined[end][:makespan],
         )
         result[k] = NamedTuple{Tuple(keys(row))}(values(row))
 

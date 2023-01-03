@@ -31,9 +31,9 @@ function gen_connect(
     obstacles::Vector{CircleObstacle2D},
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
-    step_time::Float64=STEP_TIME,
-    max_dist::Union{Nothing,Float64}=nothing,
-    safety_dist::Float64=SAFETY_DIST_LINE
+    step_time::Float64 = STEP_TIME,
+    max_dist::Union{Nothing,Float64} = nothing,
+    safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
     # check: q \in C_free
@@ -62,7 +62,7 @@ function gen_connect(
 
         a = positions[i]
 
-        for e in 0:step_time:1
+        for e = 0:step_time:1
             t1 = q_from.theta1 + e * dt1
             t2 = q_from.theta2 + e * dt2
 
@@ -89,9 +89,9 @@ function gen_connect(
         cross_to = c_to[1] * b_to[2] - b_to[1] * c_to[2]
 
         diff_from = abs(diff_angles(q_from.theta1, q_from.theta2))
-        diff_to   = abs(diff_angles(q_to.theta1,   q_to.theta2))
+        diff_to = abs(diff_angles(q_to.theta1, q_to.theta2))
 
-        cross_from * cross_to < 0 && (diff_from > π/2 || diff_to > π/2) && return false
+        cross_from * cross_to < 0 && (diff_from > π / 2 || diff_to > π / 2) && return false
 
         return true
     end
@@ -124,7 +124,7 @@ function gen_collide(
         dt1_j = diff_angles(q_j_to.theta1, q_j_from.theta1)
         dt2_j = diff_angles(q_j_to.theta2, q_j_from.theta2)
 
-        for e_i in 0:step_time:1
+        for e_i = 0:step_time:1
             # intermediate angles & positions for agent-i
             t1_i = q_i_from.theta1 + e_i * dt1_i
             t2_i = q_i_from.theta2 + e_i * dt2_i

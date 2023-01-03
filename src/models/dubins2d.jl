@@ -69,7 +69,7 @@ function gen_connect(
     max_dist::Union{Nothing,Float64} = nothing,
 )::Function
 
-    n_dividing = Int(floor(1/step_time))
+    n_dividing = Int(floor(1 / step_time))
 
     # check: q \in C_free
     f(q::StateDubins, i::Int64)::Bool = begin
@@ -109,7 +109,7 @@ function gen_collide(
 )::Function
 
     N = length(rads)
-    n_dividing = Int(floor(1/step_time))
+    n_dividing = Int(floor(1 / step_time))
 
     f(
         q_i_from::StateDubins,
@@ -119,7 +119,7 @@ function gen_collide(
         i::Int64,
         j::Int64,
         ;
-        concurrent::Bool=true
+        concurrent::Bool = true,
     ) = begin
 
         P_i = get_dubins_points(q_i_from, q_i_to, rads[i]; n_dividing = n_dividing)
@@ -283,7 +283,7 @@ function plot_anim!(
                 solution[t][i].q,
                 solution[t+1][i].q,
                 ins_params[1][i];
-                n_dividing = num_anim-1,
+                n_dividing = num_anim - 1,
             )
             length(P) > num_anim && (P = P[1:num_anim])
             foreach(e -> Q_tmp[first(e)][i] = StateDubins(last(e)...), enumerate(P))

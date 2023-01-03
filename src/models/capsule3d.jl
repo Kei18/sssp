@@ -83,7 +83,7 @@ function gen_connect(
         dθ = diff_angles(q_to.θ, q_from.θ)
         dψ = diff_angles(q_to.ψ, q_from.ψ)
 
-        for e in 0:step_time:1
+        for e = 0:step_time:1
             # intermediate: root
             a = (1 - e) * [q_from.x, q_from.y, q_from.z] + e * [q_to.x, q_to.y, q_to.z]
             # intermediate: rotation matrix
@@ -135,7 +135,7 @@ function gen_collide(
         dθ_j = diff_angles(q_j_to.θ, q_j_from.θ)
         dψ_j = diff_angles(q_j_to.ψ, q_j_from.ψ)
 
-        for e_i in 0:step_time:1
+        for e_i = 0:step_time:1
             # root, rotation, tip
             a_i =
                 (1 - e_i) * [q_i_from.x, q_i_from.y, q_i_from.z] +
@@ -189,7 +189,7 @@ function gen_collide(
         dψ_i = diff_angles(q_i_to.ψ, q_i_from.ψ)
 
         positions = map(j -> get_capsule3D_points(Q[j].q, axises[j]), 1:N)
-        for e_i in 0:step_time:1
+        for e_i = 0:step_time:1
             # root, rotation, tip
             a_i =
                 (1 - e_i) * [q_i_from.x, q_i_from.y, q_i_from.z] +
