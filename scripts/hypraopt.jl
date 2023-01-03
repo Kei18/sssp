@@ -42,7 +42,6 @@ function main(config_file::String)
 
     # load benchmark
     I = JLD2.load(config["benchmark_file"], "instances")
-    num_instances = length(I)
 
     # pre-compile
     args = get_solver_args(first(I))
@@ -50,12 +49,13 @@ function main(config_file::String)
         eval(Meta.parse(solver_info["target"]))(args...; TIME_LIMIT=time_limit_sec)
     end
 
+    num_solvers = length(config["solvers"])
+    num_instances = length(I)
+
     # optimization
     results = Dict()
-    for solver_info in config["solvers"]
+    for (k, solver_info) in enumerate(config["solvers"])
         solver_name = solver_info["target"]
-        println("hyper parameter search for $(solver_name) with $(num_search_times) samples " *
-            "with $(Threads.nthreads()) threads, timeout: $(time_limit_sec) sec")
         params_cands = Dict()
         foreach(e -> params_cands[Symbol(first(e))] = last(e), solver_info["params"])
         ho = Hyperoptimizer(num_search_times; params_cands...)
@@ -63,18 +63,21 @@ function main(config_file::String)
         for (i, params...) in ho
             solver = (args..., ; kwargs...) -> eval(Meta.parse(solver_name))(args...; params..., kwargs...)
             score = Threads.Atomic{Float64}(0)
+            cnt_fin = Threads.Atomic{Int}(0)
             iterators = get_solver_args.(I)
             Threads.@threads for args in iterators
                 t = @elapsed begin
-                    solution, _ = solver(args...; TIME_LIMIT = time_limit_sec)
+                    solution, _ = solver(args...; TIME_LIMIT=time_limit_sec)
                 end
                 isnothing(solution) && Threads.atomic_add!(score, 1.0 + t * 0.0001)
+                Threads.atomic_add!(cnt_fin, 1)
+                print("\r$(k)/$(num_solvers) $(solver_name)\t" *
+                    "params:$(i)/$(num_search_times)\tinstances:$(cnt_fin[])/$(num_instances)")
             end
-            print("\rfin: $(i)/$(num_search_times), failure: $(score[] |> floor |> Int)/$(num_instances)")
             push!(ho.results, score[])
         end
         results[solver_name] = ho
-        println("\nsolver:$(solver_name)\n$(ho)")
+        println()
         YAML.write_file(
             joinpath(root_dir, "best_params_$(solver_name).yaml"),
             Dict(solver_name => Dict(zip(ho.params, ho.minimizer))),
