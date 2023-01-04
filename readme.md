@@ -130,8 +130,7 @@ julia --project=. --threads=auto
 
 ```sh
 julia --project=. --threads=auto
-> include("./scripts/eval.jl")
-> @time main("./scripts/config/eval/point2d.yaml", "time_limit=300")
+> include("./scripts/eval.jl"); @time main("./scripts/config/eval/point2d.yaml")
 ```
 
 #### Scalability Test
