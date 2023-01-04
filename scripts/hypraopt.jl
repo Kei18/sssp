@@ -10,28 +10,11 @@ import Dates
 import JLD2
 import Logging
 
-function get_solver_args(ins)
-    config_init, config_goal, obstacles, ins_params... = ins
-    connect = gen_connect(config_init[1], obstacles, ins_params...)
-    collide = gen_collide(config_init[1], ins_params...)
-    check_goal = gen_check_goal(config_goal)
-    return [config_init, config_goal, connect, collide, check_goal]
-end
+include("./utils.jl")
 
-function main(args...)
+function main(args...; kwargs...)
     # load experimental setting
-    config = merge(
-        map(
-            arg -> begin
-                isfile(arg) && return YAML.load_file(arg)
-                typeof(arg) == String &&
-                    return Dict(first(split(arg, "=")) => last(split(arg, "=")))
-                typeof(arg) == Dict && return arg
-                Dict()
-            end,
-            args,
-        )...,
-    )
+    config = get_config(args...; kwargs...)
     num_search_times = get(config, "num_search_times", 100)
     typeof(num_search_times) != Int && (num_search_times = parse(Int, num_search_times))
     time_limit_sec = get(config, "time_limit_sec", 30)
@@ -43,15 +26,7 @@ function main(args...)
     !isdir(root_dir) && mkpath(root_dir)
 
     # save configuration file
-    io = IOBuffer()
-    versioninfo(io, verbose = true)
-    additional_info = Dict(
-        "git_hash" => read(`git log -1 --pretty=format:"%H"`, String),
-        "date" => date_str,
-        "nthreads" => Threads.nthreads(),
-        "env" => String(take!(io)),
-    )
-    YAML.write_file(joinpath(root_dir, "config.yaml"), merge(config, additional_info))
+    save_config(config, root_dir, date_str)
 
     # load benchmark
     I = JLD2.load(config["benchmark_file"], "instances")
@@ -59,7 +34,7 @@ function main(args...)
     # pre-compile
     args = get_solver_args(first(I))
     Threads.@threads for solver_info in config["solvers"]
-        eval(Meta.parse(solver_info["target"]))(args...; TIME_LIMIT = time_limit_sec)
+        eval(Meta.parse(solver_info["target"]))(args...; TIME_LIMIT=time_limit_sec)
     end
 
     num_solvers = length(config["solvers"])
@@ -83,7 +58,7 @@ function main(args...)
             iterators = get_solver_args.(I)
             Threads.@threads for args in iterators
                 t = @elapsed begin
-                    solution, _ = solver(args...; TIME_LIMIT = time_limit_sec)
+                    solution, _ = solver(args...; TIME_LIMIT=time_limit_sec)
                 end
                 isnothing(solution) && Threads.atomic_add!(score, 1.0 + t * 0.0001)
                 Threads.atomic_add!(cnt_fin, 1)
@@ -112,4 +87,5 @@ function main(args...)
         )
         println("\n", ho)
     end
+    postprocessing(config)
 end

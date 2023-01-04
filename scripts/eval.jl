@@ -1,7 +1,6 @@
 """experimental scripts to evaluate solvers"""
 
 using MRMP
-import YAML
 import Dates
 import JLD2
 import Random: seed!
@@ -9,29 +8,12 @@ import Base.Threads
 import Printf: @sprintf
 import CSV
 
-function get_solver_args(ins)
-    config_init, config_goal, obstacles, ins_params... = ins
-    connect = gen_connect(config_init[1], obstacles, ins_params...)
-    collide = gen_collide(config_init[1], ins_params...)
-    check_goal = gen_check_goal(config_goal)
-    return [config_init, config_goal, connect, collide, check_goal]
-end
+include("./utils.jl")
 
 # read experimental setting
-function main(args...)
+function main(args...; kwargs...)
     # load experimental setting
-    config = merge(
-        map(
-            arg -> begin
-                isfile(arg) && return YAML.load_file(arg)
-                typeof(arg) == String &&
-                    return Dict(first(split(arg, "=")) => last(split(arg, "=")))
-                typeof(arg) == Dict && return arg
-                Dict()
-            end,
-            args,
-        )...,
-    )
+    config = get_config(args...; kwargs...)
     time_limit_sec = get(config, "time_limit_sec", 10)
     typeof(time_limit_sec) != Int && (time_limit_sec = parse(Int, time_limit_sec))
     seed_start = get(config, "seed_start", 1)
@@ -45,15 +27,7 @@ function main(args...)
     !isdir(root_dir) && mkpath(root_dir)
 
     # save configuration file
-    io = IOBuffer()
-    versioninfo(io, verbose = true)
-    additional_info = Dict(
-        "git_hash" => read(`git log -1 --pretty=format:"%H"`, String),
-        "date" => date_str,
-        "nthreads" => Threads.nthreads(),
-        "env" => String(take!(io)),
-    )
-    YAML.write_file(joinpath(root_dir, "config.yaml"), merge(config, additional_info))
+    save_config(config, root_dir, date_str)
 
     # load benchmark
     I = JLD2.load(config["benchmark_file"], "instances")
@@ -166,4 +140,5 @@ function main(args...)
     result_file = joinpath(root_dir, "result.csv")
     CSV.write(result_file, result)
     println("\nresult file was saved in $(result_file)")
+    postprocessing(config)
 end

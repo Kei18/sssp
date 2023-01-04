@@ -4,31 +4,12 @@ seed_start: 1
 seed_end: 1
 time_limit_sec: 10
 
+postprocessing:
+  - target: send_slack_msg
+    params:
+      msg: "done: main/point2d"
+
 solvers:
-  - target: MRMP.CBS
-    params:
-      num_vertices: 50
-      max_makespan: 20
-      rad: ~
-      roadmaps_growing_rate: ~
-      collision_weight: 0.5
-  - target: MRMP.PP
-    params:
-      num_vertices: 200
-      max_makespan: 10
-      rad: 0.3
-      roadmaps_growing_rate: 1.0
-  - target: MRMP.PRM_direct
-    params:
-      epsilon: 0.1
-  - target: MRMP.RRT_connect
-    params:
-      steering_depth: 4
-      epsilon: 0.1
-  - target: MRMP.RRT
-    params:
-      steering_depth: 4
-      epsilon: 1.0
   - target: MRMP.SSSP
     params:
       init_min_dist_thread: 0.1
