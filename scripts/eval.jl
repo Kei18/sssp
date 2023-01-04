@@ -121,12 +121,12 @@ function main(config_file::String)
         cnt_total_fin = sum(map(l -> cnt_fin[l][], 1:num_solvers))
         str_solved = join(
             map(l -> begin
-                    @sprintf("%2d ", l) *
+                    @sprintf("%1d ", l) *
                     last(split(config["solvers"][l]["target"], ".")) * ":" *
                     @sprintf("%4d/%4d (%5.1f%%)",
                         cnt_solved[l][],
                         cnt_fin[l][],
-                        cnt_solved[l][] / cnt_fin[l][])
+                        cnt_solved[l][] / cnt_fin[l][] * 100)
                 end, 1:num_solvers),
             "; ")
         print(
@@ -135,7 +135,7 @@ function main(config_file::String)
                 (Base.time_ns() - t_start) / 1.0e9,
                 cnt_total_fin,
                 num_total_tasks,
-                cnt_total_fin / num_total_tasks) *
+                cnt_total_fin / num_total_tasks * 100) *
             "\t$(str_solved)"
         )
     end

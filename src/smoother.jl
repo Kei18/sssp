@@ -77,7 +77,7 @@ function get_temporal_plan_graph(
                 get_action_id(v_last, v_last, 1),
                 v_last,
                 v_last,
-                t,
+                1,
                 i,
                 Vector{Tuple{Int64,String}}(),
                 Vector{Tuple{Int64,String}}(),
