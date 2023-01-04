@@ -10,11 +10,25 @@ import Random: seed!
 import Base.Threads
 
 
-function main(config_file::String)
+function main(args...)
     # load experimental setting
-    config = YAML.load_file(config_file)
+    config = merge(
+        map(
+            arg -> begin
+                isfile(arg) && return YAML.load_file(arg)
+                typeof(arg) == String &&
+                    return Dict(first(split(arg, "=")) => last(split(arg, "=")))
+                typeof(arg) == Dict && return arg
+                Dict()
+            end,
+            args,
+        )...,
+    )
     num_instances = get(config, "num_instances", 10)
+    typeof(num_instances) != Int && (num_instances = parse(Int, num_instances))
     flg_save_fig = get(config, "save_fig", true)
+    typeof(flg_save_fig) != Bool && (flg_save_fig = parse(Bool, flg_save_fig))
+    flg_save_fig &= (Threads.nthreads() == 1)
 
     # prepare directory
     date_str = replace(string(Dates.now()), ":" => "-")
@@ -47,9 +61,8 @@ function main(config_file::String)
     Threads.@threads for k = 1:num_instances
         seed!(k)
         ins = generator()
-        if flg_save_fig && Threads.nthreads() == 1
+        flg_save_fig &&
             MRMP.plot_instance!(ins...; filename = joinpath(root_dir, "$(k).png"))
-        end
         I[k] = ins
         Threads.atomic_add!(cnt_fin, 1)
         print(

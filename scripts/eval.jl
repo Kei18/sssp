@@ -18,12 +18,26 @@ function get_solver_args(ins)
 end
 
 # read experimental setting
-function main(config_file::String)
+function main(args...)
     # load experimental setting
-    config = YAML.load_file(config_file)
+    config = merge(
+        map(
+            arg -> begin
+                isfile(arg) && return YAML.load_file(arg)
+                typeof(arg) == String &&
+                    return Dict(first(split(arg, "=")) => last(split(arg, "=")))
+                typeof(arg) == Dict && return arg
+                Dict()
+            end,
+            args,
+        )...,
+    )
     time_limit_sec = get(config, "time_limit_sec", 10)
+    typeof(time_limit_sec) != Int && (time_limit_sec = parse(Int, time_limit_sec))
     seed_start = get(config, "seed_start", 1)
+    typeof(seed_start) != Int && (seed_start = parse(Int, seed_start))
     seed_end = get(config, "seed_end", seed_start)
+    typeof(seed_end) != Int && (seed_end = parse(Int, seed_end))
 
     # prepare directory
     date_str = replace(string(Dates.now()), ":" => "-")
@@ -32,7 +46,7 @@ function main(config_file::String)
 
     # save configuration file
     io = IOBuffer()
-    versioninfo(io, verbose=true)
+    versioninfo(io, verbose = true)
     additional_info = Dict(
         "git_hash" => read(`git log -1 --pretty=format:"%H"`, String),
         "date" => date_str,
@@ -60,7 +74,7 @@ function main(config_file::String)
     args = get_solver_args(first(I))
     println("pre-compiling")
     Threads.@threads for solver in solvers
-        solver(args...; TIME_LIMIT=time_limit_sec)
+        solver(args...; TIME_LIMIT = time_limit_sec)
     end
 
     # generate iterators
@@ -85,7 +99,7 @@ function main(config_file::String)
 
         # solve
         comp_time_planning = @elapsed begin
-            solution, _ = solver(args...; TIME_LIMIT=time_limit_sec)
+            solution, _ = solver(args...; TIME_LIMIT = time_limit_sec)
         end
         cost_original = get_solution_cost(solution)
 
@@ -120,23 +134,32 @@ function main(config_file::String)
 
         cnt_total_fin = sum(map(l -> cnt_fin[l][], 1:num_solvers))
         str_solved = join(
-            map(l -> begin
+            map(
+                l -> begin
                     @sprintf("%1d ", l) *
-                    last(split(config["solvers"][l]["target"], ".")) * ":" *
-                    @sprintf("%4d/%4d (%5.1f%%)",
+                    last(split(config["solvers"][l]["target"], ".")) *
+                    ":" *
+                    @sprintf(
+                        "%4d/%4d (%3d%%)",
                         cnt_solved[l][],
                         cnt_fin[l][],
-                        cnt_solved[l][] / cnt_fin[l][] * 100)
-                end, 1:num_solvers),
-            "; ")
+                        cnt_solved[l][] / cnt_fin[l][] * 100
+                    )
+                end,
+                1:num_solvers,
+            ),
+            "; ",
+        )
         print(
             "\r" *
-            @sprintf("%6d sec, %4d/%4d (%5.1f%%) tasks done",
+            @sprintf(
+                "%6d sec, %4d/%4d (%3d%%) tasks done",
                 (Base.time_ns() - t_start) / 1.0e9,
                 cnt_total_fin,
                 num_total_tasks,
-                cnt_total_fin / num_total_tasks * 100) *
-            "\t$(str_solved)"
+                cnt_total_fin / num_total_tasks * 100
+            ) *
+            "\t$(str_solved)",
         )
     end
 

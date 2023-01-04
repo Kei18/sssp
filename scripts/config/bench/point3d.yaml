@@ -4,7 +4,7 @@ num_instances: 100
 generator:
   target: MRMP.gen_random_instance_StatePoint3D
   params:
-    N_min: 5
+    N_min: 2
     N_max: 8
     rad_min: 0.1
     rad_max: 0.15

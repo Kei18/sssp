@@ -4,7 +4,7 @@ using MRMP
 import Random: seed!
 using Hyperopt
 import YAML
-import Printf: @printf, @sprintf
+import Printf: @sprintf
 import Base.Threads
 import Dates
 import JLD2
@@ -18,11 +18,24 @@ function get_solver_args(ins)
     return [config_init, config_goal, connect, collide, check_goal]
 end
 
-function main(config_files...)
+function main(args...)
     # load experimental setting
-    config = merge(map(f -> YAML.load_file(f), config_files)...)
+    config = merge(
+        map(
+            arg -> begin
+                isfile(arg) && return YAML.load_file(arg)
+                typeof(arg) == String &&
+                    return Dict(first(split(arg, "=")) => last(split(arg, "=")))
+                typeof(arg) == Dict && return arg
+                Dict()
+            end,
+            args,
+        )...,
+    )
     num_search_times = get(config, "num_search_times", 100)
+    typeof(num_search_times) != Int && (num_search_times = parse(Int, num_search_times))
     time_limit_sec = get(config, "time_limit_sec", 30)
+    typeof(time_limit_sec) != Int && (time_limit_sec = parse(Int, time_limit_sec))
 
     # prepare directory
     date_str = replace(string(Dates.now()), ":" => "-")
@@ -51,8 +64,10 @@ function main(config_files...)
 
     num_solvers = length(config["solvers"])
     num_instances = length(I)
+    num_total_tasks = num_solvers * num_instances * num_search_times
 
     # optimization
+    cnt_fin_all = Threads.Atomic{Int}(0)
     results = Dict()
     for (k, solver_info) in enumerate(config["solvers"])
         solver_name = solver_info["target"]
@@ -73,18 +88,30 @@ function main(config_files...)
                 end
                 isnothing(solution) && Threads.atomic_add!(score, 1.0 + t * 0.0001)
                 Threads.atomic_add!(cnt_fin, 1)
+                Threads.atomic_add!(cnt_fin_all, 1)
                 print(
-                    "\r$(k)/$(num_solvers) $(solver_name)\t" *
-                    "params:$(i)/$(num_search_times)\tinstances:$(cnt_fin[])/$(num_instances)",
+                    "\r" * @sprintf(
+                        "%6d/%6d (%3d%%)\tsolver:%d/%d %12s\tparams:%4d/%4d\tinstances:%4d/%4d",
+                        cnt_fin_all[],
+                        num_total_tasks,
+                        cnt_fin_all[] / num_total_tasks * 100,
+                        k,
+                        num_solvers,
+                        last(split(solver_name, ".")),
+                        i,
+                        num_search_times,
+                        cnt_fin[],
+                        num_instances
+                    ),
                 )
             end
             push!(ho.results, score[])
         end
         results[solver_name] = ho
-        println()
         YAML.write_file(
             joinpath(root_dir, "best_params_$(solver_name).yaml"),
-            Dict(solver_name => Dict(zip(ho.params, ho.minimizer))),
+            Dict("target" => solver_name, "params" => Dict(zip(ho.params, ho.minimizer))),
         )
+        println("\n", ho)
     end
 end

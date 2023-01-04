@@ -1,4 +1,4 @@
-num_search_times: 100
+num_search_times: 50
 time_limit_sec: 30
 
 solvers_common_params_mapf: &solvers_common_params_mapf

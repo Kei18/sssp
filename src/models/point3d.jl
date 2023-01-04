@@ -51,7 +51,7 @@ function gen_connect(
     q::StatePoint3D,  # to identify type
     obstacles::Vector{CircleObstacle3D},
     rads::Vector{Float64};
-    max_step_dist::Float64=sqrt(3) / 4
+    max_step_dist::Float64 = sqrt(3) / 4,
 )::Function
 
     # check: q \in C_free
