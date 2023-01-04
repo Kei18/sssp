@@ -37,14 +37,14 @@ function main(args...; kwargs...)
     # generate instances
     I = Vector{Any}(undef, num_instances)
     cnt_fin = Threads.Atomic{Int}(0)
-    r = (x) -> round(x, digits=3)  # round
+    r = (x) -> round(x, digits = 3)  # round
     t_start = Base.time_ns()
 
     Threads.@threads for k = 1:num_instances
         seed!(k)
         ins = generator()
         flg_save_fig &&
-            MRMP.plot_instance!(ins...; filename=joinpath(root_dir, "$(k).png"))
+            MRMP.plot_instance!(ins...; filename = joinpath(root_dir, "$(k).png"))
         I[k] = ins
         Threads.atomic_add!(cnt_fin, 1)
         print(

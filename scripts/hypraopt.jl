@@ -34,7 +34,7 @@ function main(args...; kwargs...)
     # pre-compile
     args = get_solver_args(first(I))
     Threads.@threads for solver_info in config["solvers"]
-        eval(Meta.parse(solver_info["target"]))(args...; TIME_LIMIT=time_limit_sec)
+        eval(Meta.parse(solver_info["target"]))(args...; TIME_LIMIT = time_limit_sec)
     end
 
     num_solvers = length(config["solvers"])
@@ -58,7 +58,7 @@ function main(args...; kwargs...)
             iterators = get_solver_args.(I)
             Threads.@threads for args in iterators
                 t = @elapsed begin
-                    solution, _ = solver(args...; TIME_LIMIT=time_limit_sec)
+                    solution, _ = solver(args...; TIME_LIMIT = time_limit_sec)
                 end
                 isnothing(solution) && Threads.atomic_add!(score, 1.0 + t * 0.0001)
                 Threads.atomic_add!(cnt_fin, 1)

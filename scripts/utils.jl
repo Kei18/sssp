@@ -20,7 +20,7 @@ end
 
 function save_config(config::Dict, root_dir::String, date_str::String)
     io = IOBuffer()
-    versioninfo(io, verbose=true)
+    versioninfo(io, verbose = true)
     git_hash = try
         read(`git log -1 --pretty=format:"%H"`, String)
     catch
