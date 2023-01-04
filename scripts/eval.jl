@@ -32,7 +32,7 @@ function main(config_file::String)
 
     # save configuration file
     io = IOBuffer()
-    versioninfo(io, verbose = true)
+    versioninfo(io, verbose=true)
     additional_info = Dict(
         "git_hash" => read(`git log -1 --pretty=format:"%H"`, String),
         "date" => date_str,
@@ -58,8 +58,9 @@ function main(config_file::String)
 
     # pre-compile
     args = get_solver_args(first(I))
+    println("pre-compiling")
     Threads.@threads for solver in solvers
-        solver(args...; TIME_LIMIT = time_limit_sec)
+        solver(args...; TIME_LIMIT=time_limit_sec)
     end
 
     # generate iterators
@@ -74,17 +75,17 @@ function main(config_file::String)
     num_total_tasks = length(iterators)
     cnt_fin = map(_ -> Threads.Atomic{Int}(0), 1:num_solvers)
     cnt_solved = map(_ -> Threads.Atomic{Int}(0), 1:num_solvers)
-    r = (x) -> round(x, digits = 2)  # round
-    t_start = Base.time_ns()
 
     # main loop
+    println("done, start exp")
     result = Vector{Any}(undef, num_total_tasks)
+    t_start = Base.time_ns()
     Threads.@threads for (k, ((idx_ins, args), (idx_solver, solver), seed)) in iterators
         seed!(seed)
 
         # solve
         comp_time_planning = @elapsed begin
-            solution, _ = solver(args...; TIME_LIMIT = time_limit_sec)
+            solution, _ = solver(args...; TIME_LIMIT=time_limit_sec)
         end
         cost_original = get_solution_cost(solution)
 
@@ -122,15 +123,15 @@ function main(config_file::String)
             map(l -> begin
                     @sprintf("%2d ", l) *
                     last(split(config["solvers"][l]["target"], ".")) * ":" *
-                    @sprintf("%4d/%4d (%3.1f%%)",
-                             cnt_solved[l][],
-                             cnt_fin[l][],
-                             cnt_solved[l][]/cnt_fin[l][])
+                    @sprintf("%4d/%4d (%5.1f%%)",
+                        cnt_solved[l][],
+                        cnt_fin[l][],
+                        cnt_solved[l][] / cnt_fin[l][])
                 end, 1:num_solvers),
             "; ")
         print(
             "\r" *
-            @sprintf("%6d sec\t%4d/%4d (%3.1f%%) tasks have been finished",
+            @sprintf("%6d sec, %4d/%4d (%5.1f%%) tasks done",
                 (Base.time_ns() - t_start) / 1.0e9,
                 cnt_total_fin,
                 num_total_tasks,
