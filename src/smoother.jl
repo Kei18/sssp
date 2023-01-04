@@ -71,6 +71,19 @@ function get_temporal_plan_graph(
                 v_last = v_current
             end
         end
+
+        if isempty(TPG[i])
+            action = Action(
+                get_action_id(v_last, v_last, 1),
+                v_last,
+                v_last,
+                t,
+                i,
+                Vector{Tuple{Int64,String}}(),
+                Vector{Tuple{Int64,String}}(),
+            )
+            push!(TPG[i], action)
+        end
     end
 
     # type-2 dependency

@@ -6,6 +6,7 @@ import Dates
 import JLD2
 import Random: seed!
 import Base.Threads
+import Printf: @sprintf
 import CSV
 
 function get_solver_args(ins)
@@ -53,10 +54,13 @@ function main(config_file::String)
         solver = (args..., ; kwargs...) -> eval(target)(args...; params..., kwargs...)
         push!(solvers, solver)
     end
+    num_solvers = length(solvers)
 
     # pre-compile
     args = get_solver_args(first(I))
-    foreach(solver -> solver(args...; TIME_LIMIT = time_limit_sec), solvers)
+    Threads.@threads for solver in solvers
+        solver(args...; TIME_LIMIT = time_limit_sec)
+    end
 
     # generate iterators
     iterators =
@@ -68,9 +72,9 @@ function main(config_file::String)
         enumerate |>
         collect
     num_total_tasks = length(iterators)
-    cnt_fin = Threads.Atomic{Int}(0)
-    cnt_solved = Threads.Atomic{Int}(0)
-    r = (x) -> round(x, digits = 3)  # round
+    cnt_fin = map(_ -> Threads.Atomic{Int}(0), 1:num_solvers)
+    cnt_solved = map(_ -> Threads.Atomic{Int}(0), 1:num_solvers)
+    r = (x) -> round(x, digits = 2)  # round
     t_start = Base.time_ns()
 
     # main loop
@@ -110,15 +114,28 @@ function main(config_file::String)
         )
         result[k] = NamedTuple{Tuple(keys(row))}(values(row))
 
-        Threads.atomic_add!(cnt_fin, 1)
-        row[:solved] && row[:valid] && (Threads.atomic_add!(cnt_solved, 1))
+        Threads.atomic_add!(cnt_fin[idx_solver], 1)
+        row[:solved] && row[:valid] && (Threads.atomic_add!(cnt_solved[idx_solver], 1))
+
+        cnt_total_fin = sum(map(l -> cnt_fin[l][], 1:num_solvers))
+        str_solved = join(
+            map(l -> begin
+                    @sprintf("%2d ", l) *
+                    last(split(config["solvers"][l]["target"], ".")) * ":" *
+                    @sprintf("%4d/%4d (%3.1f%%)",
+                             cnt_solved[l][],
+                             cnt_fin[l][],
+                             cnt_solved[l][]/cnt_fin[l][])
+                end, 1:num_solvers),
+            "; ")
         print(
             "\r" *
-            "$(r((Base.time_ns() - t_start) / 1.0e9)) sec" *
-            "\t$(cnt_fin[])/$(num_instances) " *
-            "($(r(cnt_fin[]/num_instances*100))%)" *
-            " tasks have been finished, " *
-            "solved: $(cnt_solved[])/$(cnt_fin[]) ($(r(cnt_solved[]/cnt_fin[]*100))%)",
+            @sprintf("%6d sec\t%4d/%4d (%3.1f%%) tasks have been finished",
+                (Base.time_ns() - t_start) / 1.0e9,
+                cnt_total_fin,
+                num_total_tasks,
+                cnt_total_fin / num_total_tasks) *
+            "\t$(str_solved)"
         )
     end
 
