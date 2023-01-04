@@ -68,7 +68,6 @@ function main(args...)
 
     # optimization
     cnt_fin_all = Threads.Atomic{Int}(0)
-    results = Dict()
     for (k, solver_info) in enumerate(config["solvers"])
         solver_name = solver_info["target"]
         params_cands = Dict()
@@ -107,7 +106,6 @@ function main(args...)
             end
             push!(ho.results, score[])
         end
-        results[solver_name] = ho
         YAML.write_file(
             joinpath(root_dir, "best_params_$(solver_name).yaml"),
             Dict("target" => solver_name, "params" => Dict(zip(ho.params, ho.minimizer))),

@@ -120,38 +120,24 @@ julia --project=. -e 'using JuliaFormatter; format(".")'
 
 [![v1.0](https://img.shields.io/badge/tag-v1.0-blue)](https://github.com/Kei18/sssp/releases/tag/v1.0)
 
-#### Hyperparameter Optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
 ```sh
 julia --project=. --threads=auto
-> include("scripts/hypraopt.jl"); @time main("scripts/config/hypra/params.yaml", "scripts/config/hypra/point2d.yaml")
 ```
 
-#### Evaluate Algorithms
-
-```sh
-julia --project=. --threads=auto
-> include("./scripts/eval.jl"); @time main("./scripts/config/exp/point2d.yaml")
+#### benchmark generation
+```jl
+include("scripts/benchmark_gen.jl"); @time main("scripts/config/bench/capsule3d", "num_instances=50")
 ```
 
-#### Scalability Test
-```sh
-julia --project=. --threads=auto
-> include("./scripts/eval.jl")
-> @time foreach(N -> main("./scripts/config/eval/point2d_many.yaml", "instance.N=$N"), 10:10:50)
+#### hyperparameter optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
+```jl
+include("scripts/hypraopt.jl"); @time main("scripts/config/hypra/params.yaml", "benchmark_file=../data/benchmark/ijcai23/hypra/point2d.jld2")
 ```
 
-#### Ablation Study
-```sh
-julia --project=. --threads=auto
-> include("./scripts/eval.jl")
-> @time main("./scripts/config/eval/point2d_ablation.yaml")
-```
+#### evaluate algorithms
 
-#### Start Planning Server (Robot Demo)
-```sh
-julia --project=.
-> include("./scripts/server.jl")
-> # To close the server, just run `close()`
+```jl
+include("./scripts/eval.jl"); @time main("./scripts/config/exp/point2d.yaml", "time_limit_sec=300")
 ```
 
 ## Notes
