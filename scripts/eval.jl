@@ -6,6 +6,7 @@ import Dates
 import JLD2
 import Random: seed!
 import Base.Threads
+import Printf: @sprintf
 import CSV
 
 function get_solver_args(ins)
@@ -17,12 +18,26 @@ function get_solver_args(ins)
 end
 
 # read experimental setting
-function main(config_file::String)
+function main(args...)
     # load experimental setting
-    config = YAML.load_file(config_file)
+    config = merge(
+        map(
+            arg -> begin
+                isfile(arg) && return YAML.load_file(arg)
+                typeof(arg) == String &&
+                    return Dict(first(split(arg, "=")) => last(split(arg, "=")))
+                typeof(arg) == Dict && return arg
+                Dict()
+            end,
+            args,
+        )...,
+    )
     time_limit_sec = get(config, "time_limit_sec", 10)
+    typeof(time_limit_sec) != Int && (time_limit_sec = parse(Int, time_limit_sec))
     seed_start = get(config, "seed_start", 1)
+    typeof(seed_start) != Int && (seed_start = parse(Int, seed_start))
     seed_end = get(config, "seed_end", seed_start)
+    typeof(seed_end) != Int && (seed_end = parse(Int, seed_end))
 
     # prepare directory
     date_str = replace(string(Dates.now()), ":" => "-")
@@ -53,10 +68,14 @@ function main(config_file::String)
         solver = (args..., ; kwargs...) -> eval(target)(args...; params..., kwargs...)
         push!(solvers, solver)
     end
+    num_solvers = length(solvers)
 
     # pre-compile
     args = get_solver_args(first(I))
-    foreach(solver -> solver(args...; TIME_LIMIT = time_limit_sec), solvers)
+    println("pre-compiling")
+    Threads.@threads for solver in solvers
+        solver(args...; TIME_LIMIT = time_limit_sec)
+    end
 
     # generate iterators
     iterators =
@@ -68,13 +87,13 @@ function main(config_file::String)
         enumerate |>
         collect
     num_total_tasks = length(iterators)
-    cnt_fin = Threads.Atomic{Int}(0)
-    cnt_solved = Threads.Atomic{Int}(0)
-    r = (x) -> round(x, digits = 3)  # round
-    t_start = Base.time_ns()
+    cnt_fin = map(_ -> Threads.Atomic{Int}(0), 1:num_solvers)
+    cnt_solved = map(_ -> Threads.Atomic{Int}(0), 1:num_solvers)
 
     # main loop
+    println("done, start exp")
     result = Vector{Any}(undef, num_total_tasks)
+    t_start = Base.time_ns()
     Threads.@threads for (k, ((idx_ins, args), (idx_solver, solver), seed)) in iterators
         seed!(seed)
 
@@ -110,15 +129,37 @@ function main(config_file::String)
         )
         result[k] = NamedTuple{Tuple(keys(row))}(values(row))
 
-        Threads.atomic_add!(cnt_fin, 1)
-        row[:solved] && row[:valid] && (Threads.atomic_add!(cnt_solved, 1))
+        Threads.atomic_add!(cnt_fin[idx_solver], 1)
+        row[:solved] && row[:valid] && (Threads.atomic_add!(cnt_solved[idx_solver], 1))
+
+        cnt_total_fin = sum(map(l -> cnt_fin[l][], 1:num_solvers))
+        str_solved = join(
+            map(
+                l -> begin
+                    @sprintf("%1d ", l) *
+                    last(split(config["solvers"][l]["target"], ".")) *
+                    ":" *
+                    @sprintf(
+                        "%4d/%4d (%3d%%)",
+                        cnt_solved[l][],
+                        cnt_fin[l][],
+                        cnt_solved[l][] / cnt_fin[l][] * 100
+                    )
+                end,
+                1:num_solvers,
+            ),
+            "; ",
+        )
         print(
             "\r" *
-            "$(r((Base.time_ns() - t_start) / 1.0e9)) sec" *
-            "\t$(cnt_fin[])/$(num_instances) " *
-            "($(r(cnt_fin[]/num_instances*100))%)" *
-            " tasks have been finished, " *
-            "solved: $(cnt_solved[])/$(cnt_fin[]) ($(r(cnt_solved[]/cnt_fin[]*100))%)",
+            @sprintf(
+                "%6d sec, %4d/%4d (%3d%%) tasks done",
+                (Base.time_ns() - t_start) / 1.0e9,
+                cnt_total_fin,
+                num_total_tasks,
+                cnt_total_fin / num_total_tasks * 100
+            ) *
+            "\t$(str_solved)",
         )
     end
 

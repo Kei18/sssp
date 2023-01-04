@@ -1,9 +1,38 @@
-benchmark_file: ../data/benchmark/2022-12-30T22-17-20.287/instances.jld2
+benchmark_file: ../data/benchmark/ijcai23/main/point2d.jld2
 
 seed_start: 1
-seed_end: 10
+seed_end: 1
+time_limit_sec: 10
 
 solvers:
+  - target: MRMP.CBS
+    params:
+      num_vertices: 50
+      max_makespan: 20
+      rad: ~
+      roadmaps_growing_rate: ~
+      collision_weight: 0.5
+  - target: MRMP.PP
+    params:
+      num_vertices: 200
+      max_makespan: 10
+      rad: 0.3
+      roadmaps_growing_rate: 1.0
+  - target: MRMP.PRM_direct
+    params:
+      epsilon: 0.1
+  - target: MRMP.RRT_connect
+    params:
+      steering_depth: 4
+      epsilon: 0.1
+  - target: MRMP.RRT
+    params:
+      steering_depth: 4
+      epsilon: 1.0
   - target: MRMP.SSSP
     params:
-      num_vertex_expansion: 5
+      init_min_dist_thread: 0.1
+      decreasing_rate_min_dist_thread: 0.5
+      steering_depth: 4
+      epsilon: 4.0
+      num_vertex_expansion: 10

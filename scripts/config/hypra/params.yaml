@@ -1,11 +1,35 @@
-num_search_times: 10
-time_limit_sec: 1
-benchmark_file: ../data/benchmark/2022-12-30T22-17-20.287/instances.jld2
+num_search_times: 50
+time_limit_sec: 30
 
-solvers:
-- target: MRMP.SSSP
-  params:
-    epsilon:
+solvers_common_params_mapf: &solvers_common_params_mapf
+  num_vertices:
+    - 50
+    - 100
+    - 200
+    - 400
+  rad:
+    - null
+    - 0.1
+    - 0.3
+    - 0.5
+    - 1.0
+    - 2.0
+  max_makespan:
+    - 10
+    - 20
+  roadmaps_growing_rate:
+    - null
+    - 1.0
+    - 1.5
+    - 2.0
+
+solvers_common_params_rrt: &solvers_common_params_rrt
+  steering_depth:
+    - 0
+    - 1
+    - 2
+    - 4
+  epsilon:
     - null
     - 0.1
     - 0.2
@@ -13,40 +37,67 @@ solvers:
     - 1.0
     - 2.0
     - 4.0
-    num_vertex_expansion:
-    - 5
-    - 10
-    - 15
-    - 20
-    - 30
-    init_min_dist_thread:
-    - 0.01
-    - 0.05
-    - 0.1
-    - 0.2
-    - 0.4
-    decreasing_rate_min_dist_thread:
-    - 0.99
-    - 0.5
-- target: MRMP.PP
-  params:
-    num_vertices:
-    - 50
-    - 100
-    - 200
-    - 400
-    rad:
-    - null
-    - 0.1
-    - 0.3
-    - 0.5
-    - 1.0
-    - 2.0
-    max_makespan:
-    - 10
-    - 20
-    roadmaps_growing_rate:
-    - null
-    - 1.0
-    - 1.5
-    - 2.0
+
+solvers:
+  - target: MRMP.PP
+    params:
+      <<: *solvers_common_params_mapf
+
+  - target: MRMP.CBS
+    params:
+      <<: *solvers_common_params_mapf
+      collision_weight:
+      - 0.0
+      - 0.5
+      - 1.0
+      - 2.0
+      - 4.0
+
+  - target: MRMP.RRT
+    params:
+      <<: *solvers_common_params_rrt
+
+  - target: MRMP.RRT_connect
+    params:
+      <<: *solvers_common_params_rrt
+
+  - target: MRMP.PRM_direct
+    params:
+      epsilon:
+      - null
+      - 0.1
+      - 0.2
+      - 0.5
+      - 1.0
+      - 2.0
+      - 4.0
+
+  - target: MRMP.SSSP
+    params:
+      steering_depth:
+      - 1
+      - 2
+      - 4
+      epsilon:
+      - null
+      - 0.1
+      - 0.2
+      - 0.5
+      - 1.0
+      - 2.0
+      - 4.0
+      num_vertex_expansion:
+      - 5
+      - 10
+      - 15
+      - 20
+      - 30
+      init_min_dist_thread:
+      - 0.01
+      - 0.05
+      - 0.1
+      - 0.2
+      - 0.4
+      decreasing_rate_min_dist_thread:
+      - 0.99
+      - 0.5

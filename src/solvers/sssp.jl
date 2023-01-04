@@ -216,14 +216,15 @@ function expand!(
     min_dist_thread::Float64,
     num_vertex_expansion::Int64,
     steering_depth::Int64,
-    prob_uniform_sampling::Float64
+    prob_uniform_sampling::Float64,
 )::Bool where {State<:AbsState}
 
     updated = false
     for _ = 1:num_vertex_expansion
         # steering
         q_new = sampler()
-        rand() < 1 - prob_uniform_sampling && (q_new = steering(connect, sampler(), v_from.q, steering_depth))
+        rand() < 1 - prob_uniform_sampling &&
+            (q_new = steering(connect, sampler(), v_from.q, steering_depth))
         # check space-filling metric
         if minimum(v -> dist(v.q, q_new), roadmap) > min_dist_thread
             # add vertex and edges

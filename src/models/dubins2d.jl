@@ -65,8 +65,8 @@ function gen_connect(
     q::StateDubins,  # to identify type
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_time::Float64=STEP_TIME,
-    max_step_dist::Float64=sqrt(3) / 4
+    step_time::Float64 = STEP_TIME,
+    max_step_dist::Float64 = sqrt(3) / 4,
 )::Function
 
     n_dividing = Int(floor(1 / step_time))
@@ -86,7 +86,7 @@ function gen_connect(
         # check \delta
         dist(q_from, q_to) > max_step_dist && return false
 
-        P = get_dubins_points(q_from, q_to, rads[i]; n_dividing=n_dividing)
+        P = get_dubins_points(q_from, q_to, rads[i]; n_dividing = n_dividing)
         isnothing(P) && return false
         for p in P
             # outside

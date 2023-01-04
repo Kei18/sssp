@@ -61,8 +61,8 @@ function gen_connect(
     obstacles::Vector{CircleObstacle3D},
     rads::Vector{Float64},
     axises::Vector{Float64};
-    step_time::Float64=STEP_TIME_CAPSULE3D,
-    max_step_dist::Float64=sqrt(6) / 4
+    step_time::Float64 = STEP_TIME_CAPSULE3D,
+    max_step_dist::Float64 = sqrt(6) / 4,
 )::Function
 
     # check: q \in C_free

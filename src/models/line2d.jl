@@ -23,8 +23,8 @@ function gen_connect(
     q::StateLine2D,  # to identify type
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_time::Float64=STEP_TIME,
-    max_step_dist::Float64=sqrt(3) / 4
+    step_time::Float64 = STEP_TIME,
+    max_step_dist::Float64 = sqrt(3) / 4,
 )::Function
 
     # check: q \in C_free

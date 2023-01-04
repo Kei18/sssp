@@ -60,9 +60,9 @@ function gen_connect(
     q::StateSnake2D,
     obstacles::Vector{CircleObstacle2D},
     rads::Vector{Float64};
-    step_time::Float64=STEP_TIME_SNAKE2D,
-    max_step_dist::Float64=sqrt(6) / 4,
-    safety_dist::Float64=SAFETY_DIST_LINE
+    step_time::Float64 = STEP_TIME_SNAKE2D,
+    max_step_dist::Float64 = sqrt(6) / 4,
+    safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
     # check: q \in C_free
