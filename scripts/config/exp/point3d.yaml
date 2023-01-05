@@ -1,4 +1,4 @@
-benchmark_file: ../data/benchmark/ijcai23/main/point2d.jld2
+benchmark_file: ../data/benchmark/ijcai23/main/point3d.jld2
 
 seed_start: 1
 seed_end: 10
@@ -7,7 +7,7 @@ time_limit_sec: 300
 postprocessing:
   - target: send_slack_msg
     params:
-      msg: "done: main/point2d"
+      msg: "done: main/point3d"
 
 solvers:
   - target: "MRMP.CBS"
