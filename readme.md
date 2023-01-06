@@ -131,7 +131,7 @@ include("scripts/benchmark_gen.jl"); @time main("scripts/config/bench/capsule3d"
 
 #### hyperparameter optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
 ```jl
-include("scripts/hypraopt.jl"); @time main("scripts/config/hypra/params.yaml", "benchmark_file=../data/benchmark/ijcai23/hypra/point2d.jld2")
+include("scripts/hypraopt.jl"); @time main("scripts/config/hypra/params.yaml", "scripts/config/hypra/point2d.yaml")
 ```
 
 #### evaluate algorithms
