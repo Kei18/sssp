@@ -1,0 +1,43 @@
+benchmark_file: ../data/benchmark/ijcai23/main/snake2d.jld2
+
+seed_start: 1
+seed_end: 10
+time_limit_sec: 300
+
+postprocessing:
+  - target: send_slack_msg
+    params:
+      msg: "done: main/snake2d"
+
+solvers:
+  - target: "MRMP.CBS"
+    params:
+      num_vertices: 50
+      max_makespan: 20
+      rad: 1.0
+      roadmaps_growing_rate: 2.0
+      collision_weight: 1.0
+  - target: "MRMP.PP"
+    params:
+      num_vertices: 400
+      max_makespan: 20
+      rad: 2.0
+      roadmaps_growing_rate: 2.0
+  - target: "MRMP.PRM_direct"
+    params:
+      epsilon: 0.1
+  - target: "MRMP.RRT"
+    params:
+      steering_depth: 2
+      epsilon: ~
+  - target: "MRMP.RRT_connect"
+    params:
+      steering_depth: 2
+      epsilon: 0.5
+  - target: "MRMP.SSSP"
+    params:
+      init_min_dist_thread: 0.4
+      decreasing_rate_min_dist_thread: 0.99
+      steering_depth: 2
+      epsilon: ~
+      num_vertex_expansion: 10
