@@ -1,0 +1,43 @@
+benchmark_file: ../data/benchmark/ijcai23/main/arm33.jld2
+
+seed_start: 1
+seed_end: 10
+time_limit_sec: 300
+
+postprocessing:
+  - target: send_slack_msg
+    params:
+      msg: "done: main/arm33"
+
+solvers:
+  - target: "MRMP.CBS"
+    params:
+      num_vertices: 50
+      max_makespan: 20
+      rad: 1.0
+      roadmaps_growing_rate: 2.0
+      collision_weight: 4.0
+  - target: "MRMP.PP"
+    params:
+      num_vertices: 100
+      max_makespan: 20
+      rad: 1.0
+      roadmaps_growing_rate: 2.0
+  - target: "MRMP.PRM_direct"
+    params:
+      epsilon: 0.2
+  - target: "MRMP.RRT"
+    params:
+      steering_depth: 1
+      epsilon: 4.0
+  - target: "MRMP.RRT_connect"
+    params:
+      steering_depth: 4
+      epsilon: ~
+  - target: "MRMP.SSSP"
+    params:
+      init_min_dist_thread: 0.4
+      decreasing_rate_min_dist_thread: 0.99
+      steering_depth: 2
+      epsilon: 4.0
+      num_vertex_expansion: 30
