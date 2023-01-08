@@ -87,5 +87,7 @@ function main(args...; kwargs...)
         )
         println("\n", ho)
     end
+
+    println("\nresult files were saved in $(root_dir)")
     postprocessing(config)
 end

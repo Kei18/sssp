@@ -1,3 +1,4 @@
+using Base: root_module
 """experimental scripts to evaluate solvers"""
 
 using MRMP
@@ -32,6 +33,7 @@ function main(args...; kwargs...)
     # load benchmark
     I = JLD2.load(config["benchmark_file"], "instances")
     num_instances = length(I)
+    cp(config["benchmark_file"], joinpath(root_dir, "instances..jld2"))
 
     # load solvers
     solvers = []
