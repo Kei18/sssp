@@ -13,9 +13,9 @@ solvers:
   - target: "MRMP.CBS"
     params:
       num_vertices: 100
-      max_makespan: 10
+      max_makespan: 20
       rad: 1.0
-      roadmaps_growing_rate: 1.0
+      roadmaps_growing_rate: 2.0
       collision_weight: 2.0
   - target: "MRMP.PP"
     params:
@@ -25,19 +25,19 @@ solvers:
       roadmaps_growing_rate: 1.0
   - target: "MRMP.PRM_direct"
     params:
-      epsilon: 0.2
+      epsilon: ~
   - target: "MRMP.RRT"
     params:
       steering_depth: 4
-      epsilon: 4.0
+      epsilon: ~
   - target: "MRMP.RRT_connect"
     params:
-      steering_depth: 4
-      epsilon: ~
+      steering_depth: 2
+      epsilon: 0.5
   - target: "MRMP.SSSP"
     params:
-      init_min_dist_thread: 0.2
+      init_min_dist_thread: 0.4
       decreasing_rate_min_dist_thread: 0.5
-      steering_depth: 2
+      steering_depth: 1
       epsilon: 4.0
-      num_vertex_expansion: 5
+      num_vertex_expansion: 10
