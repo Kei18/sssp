@@ -12,32 +12,32 @@ postprocessing:
 solvers:
   - target: "MRMP.CBS"
     params:
-      num_vertices: 100
-      max_makespan: 10
-      rad: 0.5
-      roadmaps_growing_rate: ~
-      collision_weight: 1.0
+      num_vertices: 200
+      max_makespan: 20
+      rad: 0.3
+      roadmaps_growing_rate: 1.0
+      collision_weight: 0.5
   - target: "MRMP.PP"
     params:
-      num_vertices: 200
-      max_makespan: 10
+      num_vertices: 100
+      max_makespan: 20
       rad: 2.0
-      roadmaps_growing_rate: 2.0
+      roadmaps_growing_rate: 1.5
   - target: "MRMP.PRM_direct"
     params:
       epsilon: 0.5
   - target: "MRMP.RRT"
     params:
       steering_depth: 2
-      epsilon: 1.0
+      epsilon: ~
   - target: "MRMP.RRT_connect"
     params:
       steering_depth: 4
-      epsilon: 0.5
+      epsilon: 1.0
   - target: "MRMP.SSSP"
     params:
-      init_min_dist_thread: 0.05
-      decreasing_rate_min_dist_thread: 0.99
-      steering_depth: 2
-      epsilon: 2.0
-      num_vertex_expansion: 5
+      init_min_dist_thread: 0.2
+      decreasing_rate_min_dist_thread: 0.5
+      steering_depth: 1
+      epsilon: 4.0
+      num_vertex_expansion: 20

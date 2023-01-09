@@ -33,3 +33,4 @@ Manifest.toml
 */local/
 /local/
 .DS_Store
+**/.ipynb_checkpoints/
