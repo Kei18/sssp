@@ -1,0 +1,24 @@
+benchmark_file: ../data/benchmark/ijcai23/scalability/point2d_10.jld2
+
+seed_start: 1
+seed_end: 10
+time_limit_sec: 300
+
+postprocessing:
+  - target: send_slack_msg
+    params:
+      msg: "done: scalability/point2d"
+
+solvers:
+  - target: "MRMP.PP"
+    params:
+      num_vertices: 500
+      max_makespan: 64
+      rad: 0.1
+      roadmaps_growing_rate: 1.05
+  - target: "MRMP.SSSP"
+    params:
+      decreasing_rate_min_dist_thread: 0.5
+      steering_depth: 2
+      epsilon: 0.2
+      num_vertex_expansion: 5
