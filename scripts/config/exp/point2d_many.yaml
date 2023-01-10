@@ -19,6 +19,7 @@ solvers:
   - target: "MRMP.SSSP"
     params:
       decreasing_rate_min_dist_thread: 0.5
+      init_min_dist_thread: 0.05
       steering_depth: 2
       epsilon: 0.2
-      num_vertex_expansion: 5
+      num_vertex_expansion: 10
