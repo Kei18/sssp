@@ -124,17 +124,17 @@ julia --project=. -e 'using JuliaFormatter; format(".")'
 julia --project=. --threads=auto
 ```
 
-#### benchmark generation
+### benchmark generation
 ```jl
 include("scripts/benchmark_gen.jl"); @time main("scripts/config/bench/capsule3d", "num_instances=50")
 ```
 
-#### hyperparameter optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
+### hyperparameter optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
 ```jl
 include("scripts/hypraopt.jl"); @time main("scripts/config/hypra/params.yaml", "scripts/config/hypra/point2d.yaml")
 ```
 
-#### evaluate algorithms
+### evaluate algorithms
 
 ```jl
 include("./scripts/eval.jl"); @time main("./scripts/config/exp/point2d.yaml", "time_limit_sec=300")
