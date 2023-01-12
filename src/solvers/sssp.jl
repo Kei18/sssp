@@ -40,9 +40,8 @@ function SSSP(
     # for ablation study
     use_random_h_func::Bool = false,
     no_roadmap_at_beginning::Bool = false,
-
-    # just for fairness of experiments
-    no_fast_collision_check::Bool = false,
+    on_PRM::Bool = false,
+    on_PRM_num_vertices::Int64 = 100,
 )::Tuple{
     Union{Nothing,Vector{Vector{Node{State}}}},  # solution
     Vector{Vector{Node{State}}},  # roadmap
@@ -66,7 +65,7 @@ function SSSP(
 
     # get initial roadmap by RRT-connect
     roadmaps = (
-        no_roadmap_at_beginning ?
+        (no_roadmap_at_beginning || on_PRM) ?
         map(
             i -> begin
                 v_init = Node{State}(config_init[i], 1, [])
@@ -84,12 +83,27 @@ function SSSP(
             steering_depth = steering_depth,
             epsilon = epsilon,
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
-        )
+        ) # default
     )
     if isnothing(roadmaps)
         VERBOSE > 0 &&
             @info @sprintf("\t%6.4f sec: failed to construct initial roadmaps\n", elapsed())
         return (nothing, map(i -> Vector{Node{State}}(), 1:N))
+    end
+
+    if on_PRM
+        for i = 1:N
+            expand!(
+                (q_from::State, q_to::State) -> conn(q_from, q_to, i),
+                sampler,
+                first(roadmaps[i]),
+                roadmaps[i],
+                0.0,  # min_dist_thread,
+                on_PRM_num_vertices,  # num_vertex_expansion,
+                steering_depth,
+                1.0, # prob_uniform_sampling,
+            )
+        end
     end
 
     VERBOSE > 0 && !no_roadmap_at_beginning && @info ("\tdone, setup initial roadmaps")
@@ -164,7 +178,7 @@ function SSSP(
                 v,
                 roadmaps[i],
                 min_dist_thread,
-                num_vertex_expansion,
+                on_PRM ? 0 : num_vertex_expansion,
                 steering_depth,
                 prob_uniform_sampling,
             ) && (distance_tables[i] = get_distance_table(roadmaps[i]))
@@ -180,8 +194,7 @@ function SSSP(
                 # check duplication and collision
                 Q_id = get_Q_id(Q, j)
                 haskey(EXPLORED, Q_id) && continue
-                !no_fast_collision_check && collide(S.Q, p.q, i) && continue
-                no_fast_collision_check && collide(S.Q, Q) && continue
+                collide(S.Q, p.q, i) && continue
 
                 # create new search node
                 S_new = SuperNode(
