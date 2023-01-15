@@ -19,10 +19,13 @@ solvers_common_params: &solvers_common_params
 solvers:
   - target: "MRMP.SSSP"
     params:
+      <<: *solvers_common_params
       prob_uniform_sampling: 0.01
   - target: "MRMP.SSSP"
     params:
+      <<: *solvers_common_params
       prob_uniform_sampling: 0.5
   - target: "MRMP.SSSP"
     params:
+      <<: *solvers_common_params
       prob_uniform_sampling: 1.0
