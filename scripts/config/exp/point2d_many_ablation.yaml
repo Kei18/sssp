@@ -1,0 +1,28 @@
+benchmark_file: ../data/benchmark/ijcai23/scalability/point2d_20.jld2
+
+seed_start: 1
+seed_end: 10
+time_limit_sec: 300
+
+postprocessing:
+  - target: send_slack_msg
+    params:
+      msg: "done: scalability/point2d_many"
+
+solvers_common_params: &solvers_common_params
+  decreasing_rate_min_dist_thread: 0.99
+  init_min_dist_thread: 0.02
+  steering_depth: 2
+  epsilon: 0.05
+  num_vertex_expansion: 5
+
+solvers:
+  - target: "MRMP.SSSP"
+    params:
+      prob_uniform_sampling: 0.01
+  - target: "MRMP.SSSP"
+    params:
+      prob_uniform_sampling: 0.5
+  - target: "MRMP.SSSP"
+    params:
+      prob_uniform_sampling: 1.0
