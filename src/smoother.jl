@@ -383,6 +383,7 @@ function get_tpg_cost(
     return Dict(:sum_of_cost => sum(arr), :makespan => maximum(arr))
 end
 
+"""further removing stationary motions"""
 function allow_concurrent_motions!(
     solution::Vector{Vector{Node{State}}},
     collide::Function,
@@ -426,6 +427,7 @@ function allow_concurrent_motions!(
     end
 end
 
+"""removing duplicated configurations a the end of solutions"""
 function remove_stop_motions!(
     solution::Vector{Vector{Node{State}}},
 )::Nothing where {State<:AbsState}

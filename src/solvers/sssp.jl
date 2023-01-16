@@ -19,6 +19,31 @@ import ..Solvers: gen_g_func, get_distance_tables, get_distance_table
 end
 
 """
+    SSSP(
+        config_init::Vector{State},
+        config_goal::Vector{State},
+        connect::Function,
+        collide::Function,
+        check_goal::Function;
+        g_func::Function = gen_g_func(greedy = true),
+        steering_depth::Int64 = 2,
+        num_vertex_expansion::Int64 = 10,
+        init_min_dist_thread::Float64 = 0.1,
+        decreasing_rate_min_dist_thread::Float64 = 0.99,
+        epsilon::Union{Float64,Nothing} = nothing,
+        prob_uniform_sampling::Float64 = 0.01,
+        TIME_LIMIT::Union{Nothing,Real} = 30,
+        VERBOSE::Int64 = 0,
+
+        use_random_h_func::Bool = false,        # for ablation study
+        no_roadmap_at_beginning::Bool = false,  # for ablation study
+        on_PRM::Bool = false,                   # for ablation study
+        on_PRM_num_vertices::Int64 = 100,       # for ablation study
+    )::Tuple{
+        Union{Nothing,Vector{Vector{Node{State}}}},  # solution
+        Vector{Vector{Node{State}}},  # roadmap
+    } where {State<:AbsState}
+
 implementation of SSSP
 """
 function SSSP(
