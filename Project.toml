@@ -1,6 +1,6 @@
 name = "MRMP"
 uuid = "c7aa4c1c-513e-40f4-a62b-c98230a9110a"
-authors = ["Keisuke Okumura <okumura.k@coord.c.titech.ac.jp>"]
+authors = ["anonymous authors"]
 version = "0.1.0"
 
 [deps]

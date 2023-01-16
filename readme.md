@@ -1,9 +1,8 @@
 sssp
 ===
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
-[![CI](https://github.com/Kei18/sssp-private/actions/workflows/ci.yaml/badge.svg)](https://github.com/Kei18/sssp-private/actions/workflows/ci.yaml)
+![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)
 
-The code repository of the paper "[Quick Multi-Robot Motion Planning by Combining Sampling and Search](https://kei18.github.io/sssp/)" (SSSP).
+The code repository of the paper "Quick Multi-Robot Motion Planning by Combining Sampling and Search."
 
 ![](./assets/demo_reduced.gif)
 
@@ -13,7 +12,6 @@ The code repository of the paper "[Quick Multi-Robot Motion Planning by Combinin
 ## Setup
 
 ```sh
-git clone https://github.com/Kei18/sssp.git && cd sssp
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
@@ -106,8 +104,6 @@ julia --project=. -e 'using JuliaFormatter; format(".")'
 
 ## Reproduction
 
-[![v1.0](https://img.shields.io/badge/tag-v1.0-blue)](https://github.com/Kei18/sssp/releases/tag/v1.0)
-
 ```sh
 julia --project=. --threads=auto
 ```
@@ -133,10 +129,7 @@ include("./scripts/eval.jl"); @time main("./scripts/config/exp/point2d.yaml", "t
 - Dubins paths are computed by [Dubins.jl](https://github.com/kaarthiksundar/Dubins.jl).
 
 ## Licence
-This software is released under the MIT License, see [LICENSE.txt](LICENCE.txt).
-
-## Author
-[Keisuke Okumura](https://kei18.github.io) is a Ph.D. student at the Tokyo Institute of Technology, interested in controlling multiple moving agents.
+This software will be released under the MIT License.
 
 ## Reference
 1. Kavraki, L. E., Svestka, P., Latombe, J. C., & Overmars, M. H. (1996).
