@@ -307,5 +307,5 @@ function plot_anim!(
     # save file
     dirname = join(split(filename, "/")[1:end-1], "/")
     !isdir(dirname) && mkpath(dirname)
-    return gif(anim, filename, fps = fps)
+    return gif(anim, filename, fps=fps, show_msg=false)
 end

@@ -59,8 +59,7 @@ config_init, config_goal, obstacles, ins_params... = ins         # example of in
 ```
 
 The first time may take time for JIT compiling.
-
-With jupyterlab, you can visualize the generated instance as follows:
+You can visualize the generated instance as follows:
 
 ```jl
 MRMP.plot_instance!(ins...)
@@ -90,13 +89,13 @@ validate(config_init, connect, collide, check_goal, solution)    # check validit
 
 ### Step 4. Refine Solution
 ```jl
-(TPG, solution, cost) = smoothing(solution, connect, collide)
+(TPG, solution, cost) = smoothing(solution, connect, collide; VERBOSE=1)
 println(cost)
 ```
 
 ### Step 5. Visualize Solution
 ```jl
-plot_anim!(config_init, config_goal, obstacles, ins_params...; solution=solution, interpolate_depth=2)
+plot_anim!(config_init, config_goal, obstacles, ins_params...; solution=solution, interpolate_depth=3, fps=30)
 ```
 
 You now get `tmp.gif` like below.
@@ -142,7 +141,6 @@ include("./scripts/eval.jl"); @time main("./scripts/config/exp/point2d.yaml", "t
 
 ## Notes
 - Several planning examples are available in `./notebooks`.
-- The evaluation script is inspired by [Hydra](https://hydra.cc/).
 - Dubins paths are computed by [Dubins.jl](https://github.com/kaarthiksundar/Dubins.jl).
 
 ## Licence
