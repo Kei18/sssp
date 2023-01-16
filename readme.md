@@ -10,17 +10,6 @@ The code repository of the paper "[Quick Multi-Robot Motion Planning by Combinin
 - It is written in Julia (≥v1.8).
 - The accompanied solvers are PRM [1], RRT [2], RRT-Connect [3], PP (PRM-based) [4], CBS (PRM-based) [5], and SSSP.
 
-Please cite the following paper if you use the code in your published research:
-
-```
-@article{okumura2022sssp,
-  title={Quick Multi-Robot Motion Planning by Combining Sampling and Search},
-  author={Okumura, Keisuke and D{\'e}fago, Xavier},
-  journal={arXiv preprint},
-  year={2022}
-}
-```
-
 ## Setup
 
 ```sh
