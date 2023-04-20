@@ -1,25 +1,14 @@
 sssp
 ===
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
-[![CI](https://github.com/Kei18/sssp/actions/workflows/ci.yaml/badge.svg?branch=dev)](https://github.com/Kei18/sssp/actions/workflows/ci.yaml)
+[![CI](https://github.com/Kei18/sssp-private/actions/workflows/ci.yaml/badge.svg)](https://github.com/Kei18/sssp-private/actions/workflows/ci.yaml)
 
 The code repository of the paper "[Quick Multi-Robot Motion Planning by Combining Sampling and Search](https://kei18.github.io/sssp/)" (SSSP).
 
 ![](./assets/demo_reduced.gif)
 
-- It is written in Julia (≥v1.6) and tested on MacOS-10.15.
+- It is written in Julia (≥v1.8).
 - The accompanied solvers are PRM [1], RRT [2], RRT-Connect [3], PP (PRM-based) [4], CBS (PRM-based) [5], and SSSP.
-
-Please cite the following paper if you use the code in your published research:
-
-```
-@article{okumura2022sssp,
-  title={Quick Multi-Robot Motion Planning by Combining Sampling and Search},
-  author={Okumura, Keisuke and D{\'e}fago, Xavier},
-  journal={arXiv preprint},
-  year={2022}
-}
-```
 
 ## Setup
 
@@ -59,8 +48,7 @@ config_init, config_goal, obstacles, ins_params... = ins         # example of in
 ```
 
 The first time may take time for JIT compiling.
-
-With jupyterlab, you can visualize the generated instance as follows:
+You can visualize the generated instance as follows:
 
 ```jl
 MRMP.plot_instance!(ins...)
@@ -90,13 +78,13 @@ validate(config_init, connect, collide, check_goal, solution)    # check validit
 
 ### Step 4. Refine Solution
 ```jl
-(TPG, solution, cost) = smoothing(solution, connect, collide)
+(TPG, solution, cost) = smoothing(solution, connect, collide; VERBOSE=1)
 println(cost)
 ```
 
 ### Step 5. Visualize Solution
 ```jl
-plot_anim!(config_init, config_goal, obstacles, ins_params...; solution=solution, interpolate_depth=2)
+plot_anim!(config_init, config_goal, obstacles, ins_params...; solution=solution, interpolate_depth=3, fps=30)
 ```
 
 You now get `tmp.gif` like below.
@@ -118,54 +106,34 @@ julia --project=. -e 'using JuliaFormatter; format(".")'
 
 ## Reproduction
 
-[![v1.0](https://img.shields.io/badge/tag-v1.0-blue)](https://github.com/Kei18/sssp/releases/tag/v1.0)
-
-#### Hyperparameter Optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
-```sh
-julia --project=. --threads=auto
-> include("./scripts/hypraopt.jl")
-> @time main("./scripts/config/hypra/params.yaml", "./scripts/config/eval/point2d.yaml")
-```
-
-#### Evaluate Algorithms
+[![v1.2](https://img.shields.io/badge/tag-v1.2-blue.svg?style=flat)](https://github.com/Kei18/sssp/releases/tag/v1.2)
 
 ```sh
 julia --project=. --threads=auto
-> include("./scripts/eval.jl")
-> @time main("./scripts/config/eval/point2d.yaml", "time_limit=300")
 ```
 
-#### Scalability Test
-```sh
-julia --project=. --threads=auto
-> include("./scripts/eval.jl")
-> @time foreach(N -> main("./scripts/config/eval/point2d_many.yaml", "instance.N=$N"), 10:10:50)
+### benchmark generation
+```jl
+include("scripts/benchmark_gen.jl"); @time main("scripts/config/bench/capsule3d", "num_instances=50")
 ```
 
-#### Ablation Study
-```sh
-julia --project=. --threads=auto
-> include("./scripts/eval.jl")
-> @time main("./scripts/config/eval/point2d_ablation.yaml")
+### hyperparameter optimization with [Hyperopt.jl](https://github.com/baggepinnen/Hyperopt.jl)
+```jl
+include("scripts/hypraopt.jl"); @time main("scripts/config/hypra/params.yaml", "scripts/config/hypra/point2d.yaml")
 ```
 
-#### Start Planning Server (Robot Demo)
-```sh
-julia --project=.
-> include("./scripts/server.jl")
-> # To close the server, just run `close()`
+### evaluate algorithms
+
+```jl
+include("./scripts/eval.jl"); @time main("./scripts/config/exp/point2d.yaml", "time_limit_sec=300")
 ```
 
 ## Notes
 - Several planning examples are available in `./notebooks`.
-- The evaluation script is inspired by [Hydra](https://hydra.cc/).
 - Dubins paths are computed by [Dubins.jl](https://github.com/kaarthiksundar/Dubins.jl).
 
 ## Licence
 This software is released under the MIT License, see [LICENSE.txt](LICENCE.txt).
-
-## Author
-[Keisuke Okumura](https://kei18.github.io) is a Ph.D. student at the Tokyo Institute of Technology, interested in controlling multiple moving agents.
 
 ## Reference
 1. Kavraki, L. E., Svestka, P., Latombe, J. C., & Overmars, M. H. (1996).

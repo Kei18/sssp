@@ -1,0 +1,47 @@
+benchmark_file: ../data/benchmark/ijcai23/main/point2d.jld2
+
+seed_start: 1
+seed_end: 10
+time_limit_sec: 300
+
+postprocessing:
+  - target: send_slack_msg
+    params:
+      msg: "done: ablation/point2d"
+
+solvers_common_params: &solvers_common_params
+  init_min_dist_thread: 0.2
+  decreasing_rate_min_dist_thread: 0.5
+  steering_depth: 2
+  epsilon: 4.0
+  num_vertex_expansion: 5
+
+solvers:
+  - target: MRMP.SSSP
+    params:
+      <<: *solvers_common_params
+  - target: MRMP.SSSP
+    params:
+      <<: *solvers_common_params
+      use_random_h_func: true
+  - target: MRMP.SSSP
+    params:
+      <<: *solvers_common_params
+      no_roadmap_at_beginning: true
+  - target: MRMP.SSSP
+    params:
+      <<: *solvers_common_params
+      num_vertex_expansion: 0
+  - target: MRMP.SSSP
+    params:
+      <<: *solvers_common_params
+      init_min_dist_thread: 0.0
+  - target: MRMP.SSSP
+    params:
+      <<: *solvers_common_params
+      prob_uniform_sampling: 1.0
+  - target: MRMP.SSSP
+    params:
+      <<: *solvers_common_params
+      on_PRM: true
+      on_PRM_num_vertices: 100

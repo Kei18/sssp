@@ -1,7 +1,5 @@
 """model definition of capsule3d"""
 
-const STEP_DIST_CAPSULE3D = 0.05
-
 struct StateCapsule3D <: AbsState
     x::Float64
     y::Float64
@@ -63,8 +61,8 @@ function gen_connect(
     obstacles::Vector{CircleObstacle3D},
     rads::Vector{Float64},
     axises::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_CAPSULE3D,
-    max_dist::Union{Nothing,Float64} = nothing,
+    step_time::Float64 = STEP_TIME_CAPSULE3D,
+    max_step_dist::Float64 = sqrt(6) / 4,
 )::Function
 
     # check: q \in C_free
@@ -78,14 +76,14 @@ function gen_connect(
     end
 
     f(q_from::StateCapsule3D, q_to::StateCapsule3D, i::Int64)::Bool = begin
-        D = dist(q_from, q_to)
-        !isnothing(max_dist) && D > max_dist && return false
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
 
         dϕ = diff_angles(q_to.ϕ, q_from.ϕ)
         dθ = diff_angles(q_to.θ, q_from.θ)
         dψ = diff_angles(q_to.ψ, q_from.ψ)
 
-        for e in vcat(collect(0:step_dist:D) / D, 1.0)
+        for e = 0:step_time:1
             # intermediate: root
             a = (1 - e) * [q_from.x, q_from.y, q_from.z] + e * [q_to.x, q_to.y, q_to.z]
             # intermediate: rotation matrix
@@ -110,7 +108,7 @@ function gen_collide(
     q::StateCapsule3D,
     rads::Vector{Float64},
     axises::Vector{Float64};
-    step_dist::Float64 = STEP_DIST_CAPSULE3D,
+    step_time::Float64 = STEP_TIME_CAPSULE3D,
 )::Function
 
     N = length(rads)
@@ -122,6 +120,8 @@ function gen_collide(
         q_j_to::StateCapsule3D,
         i::Int64,
         j::Int64,
+        ;
+        concurrent::Bool = true,
     ) = begin
         # check each pair of step
         D_i = dist(q_i_from, q_i_to)
@@ -135,7 +135,7 @@ function gen_collide(
         dθ_j = diff_angles(q_j_to.θ, q_j_from.θ)
         dψ_j = diff_angles(q_j_to.ψ, q_j_from.ψ)
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i = 0:step_time:1
             # root, rotation, tip
             a_i =
                 (1 - e_i) * [q_i_from.x, q_i_from.y, q_i_from.z] +
@@ -147,7 +147,8 @@ function gen_collide(
             )
             b_i = a_i + R_i * [axises[i], 0, 0]
 
-            for e_j in vcat(collect(0:step_dist:D_j) / D_j, 1.0)
+            arr_e_j = concurrent ? [e_i] : collect(0:step_time:1)
+            for e_j in arr_e_j
                 # root, rotation, tip
                 a_j =
                     (1 - e_j) * [q_j_from.x, q_j_from.y, q_j_from.z] +
@@ -188,7 +189,7 @@ function gen_collide(
         dψ_i = diff_angles(q_i_to.ψ, q_i_from.ψ)
 
         positions = map(j -> get_capsule3D_points(Q[j].q, axises[j]), 1:N)
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i = 0:step_time:1
             # root, rotation, tip
             a_i =
                 (1 - e_i) * [q_i_from.x, q_i_from.y, q_i_from.z] +

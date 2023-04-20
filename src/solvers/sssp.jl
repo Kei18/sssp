@@ -11,8 +11,7 @@ import ..Solvers: gen_g_func, get_distance_tables, get_distance_table
 @kwdef mutable struct SuperNode{State<:AbsState}
     Q::Vector{Node{State}}  # set of search nodes
     next::Int64  # next agent, 0 -> fixed agents
-    id::String = get_Q_id(Q, next)
-    parent_id::Union{Nothing,String} = nothing  # parent node
+    parent::Union{Nothing,SuperNode} = nothing  # parent node
     g::Float64 = 0.0  # g-value
     h::Float64 = 0.0  # h-value
     f::Float64 = g + h  # f-value
@@ -32,13 +31,14 @@ end
         init_min_dist_thread::Float64 = 0.1,
         decreasing_rate_min_dist_thread::Float64 = 0.99,
         epsilon::Union{Float64,Nothing} = nothing,
+        prob_uniform_sampling::Float64 = 0.01,
         TIME_LIMIT::Union{Nothing,Real} = 30,
         VERBOSE::Int64 = 0,
 
-        use_random_h_func::Bool = false,         # for ablation study
-        no_roadmap_at_beginning::Bool = false,   # for ablation study
-
-        no_fast_collision_check::Bool = false,   # use 'slow' collision checker
+        use_random_h_func::Bool = false,        # for ablation study
+        no_roadmap_at_beginning::Bool = false,  # for ablation study
+        on_PRM::Bool = false,                   # for ablation study
+        on_PRM_num_vertices::Int64 = 100,       # for ablation study
     )::Tuple{
         Union{Nothing,Vector{Vector{Node{State}}}},  # solution
         Vector{Vector{Node{State}}},  # roadmap
@@ -58,15 +58,15 @@ function SSSP(
     init_min_dist_thread::Float64 = 0.1,
     decreasing_rate_min_dist_thread::Float64 = 0.99,
     epsilon::Union{Float64,Nothing} = nothing,
+    prob_uniform_sampling::Float64 = 0.01,
     TIME_LIMIT::Union{Nothing,Real} = 30,
     VERBOSE::Int64 = 0,
 
     # for ablation study
     use_random_h_func::Bool = false,
     no_roadmap_at_beginning::Bool = false,
-
-    # just for fairness of experiments
-    no_fast_collision_check::Bool = false,
+    on_PRM::Bool = false,
+    on_PRM_num_vertices::Int64 = 100,
 )::Tuple{
     Union{Nothing,Vector{Vector{Node{State}}}},  # solution
     Vector{Vector{Node{State}}},  # roadmap
@@ -90,7 +90,7 @@ function SSSP(
 
     # get initial roadmap by RRT-connect
     roadmaps = (
-        no_roadmap_at_beginning ?
+        (no_roadmap_at_beginning || on_PRM) ?
         map(
             i -> begin
                 v_init = Node{State}(config_init[i], 1, [])
@@ -108,12 +108,27 @@ function SSSP(
             steering_depth = steering_depth,
             epsilon = epsilon,
             TIME_LIMIT = (isnothing(TIME_LIMIT) ? nothing : TIME_LIMIT - elapsed()),
-        )
+        ) # default
     )
     if isnothing(roadmaps)
         VERBOSE > 0 &&
             @info @sprintf("\t%6.4f sec: failed to construct initial roadmaps\n", elapsed())
         return (nothing, map(i -> Vector{Node{State}}(), 1:N))
+    end
+
+    if on_PRM
+        for i = 1:N
+            expand!(
+                (q_from::State, q_to::State) -> conn(q_from, q_to, i),
+                sampler,
+                first(roadmaps[i]),
+                roadmaps[i],
+                0.0,  # min_dist_thread,
+                on_PRM_num_vertices,  # num_vertex_expansion,
+                steering_depth,
+                1.0, # prob_uniform_sampling,
+            )
+        end
     end
 
     VERBOSE > 0 && !no_roadmap_at_beginning && @info ("\tdone, setup initial roadmaps")
@@ -142,7 +157,7 @@ function SSSP(
     Q_init = [roadmaps[i][1] for i = 1:N]
 
     # initial search node
-    S_init = SuperNode(Q = Q_init, next = 1, id = get_Q_id(Q_init, 0), h = h_func(Q_init))
+    S_init = SuperNode(Q = Q_init, next = 1, h = h_func(Q_init))
 
     k = 0
     while !timeover()
@@ -152,14 +167,14 @@ function SSSP(
         OPEN = PriorityQueue{SuperNode{State},Float64}()
 
         # discovered list to avoid duplication
-        VISITED = Dict{String,SuperNode{State}}()
+        EXPLORED = Dict{Vector{Int64},SuperNode{State}}()
 
         # threshold of space-filling metric
         min_dist_thread = init_min_dist_thread * (decreasing_rate_min_dist_thread^(k - 1))
 
         # setup initail node
         enqueue!(OPEN, S_init, S_init.f)
-        VISITED[S_init.id] = S_init
+        EXPLORED[get_Q_id(Q_init, S_init.next)] = S_init
 
         loop_cnt = 0
         while !isempty(OPEN) && !timeover()
@@ -172,7 +187,7 @@ function SSSP(
             if check_goal(S.Q)
                 print_progress!(S, loop_cnt, force = true)
                 VERBOSE > 0 && @info @sprintf("\n\t%6.4f sec: found solution\n", elapsed())
-                return (backtrack(S, VISITED), roadmaps)
+                return (backtrack(S), roadmaps)
             end
 
             # initial search or update for refine agents
@@ -188,8 +203,9 @@ function SSSP(
                 v,
                 roadmaps[i],
                 min_dist_thread,
-                num_vertex_expansion,
+                on_PRM ? 0 : num_vertex_expansion,
                 steering_depth,
+                prob_uniform_sampling,
             ) && (distance_tables[i] = get_distance_table(roadmaps[i]))
 
             # expand search node
@@ -202,16 +218,14 @@ function SSSP(
 
                 # check duplication and collision
                 Q_id = get_Q_id(Q, j)
-                haskey(VISITED, Q_id) && continue
-                !no_fast_collision_check && collide(S.Q, p.q, i) && continue
-                no_fast_collision_check && collide(S.Q, Q) && continue
+                haskey(EXPLORED, Q_id) && continue
+                collide(S.Q, p.q, i) && continue
 
                 # create new search node
                 S_new = SuperNode(
                     Q = Q,
                     next = j,
-                    id = Q_id,
-                    parent_id = S.id,
+                    parent = S,
                     h = h_func(Q),
                     g = S.g + g_func(S.Q, Q),
                     depth = S.depth + 1,
@@ -219,7 +233,7 @@ function SSSP(
 
                 # insert
                 enqueue!(OPEN, S_new, S_new.f)
-                VISITED[S_new.id] = S_new
+                EXPLORED[Q_id] = S_new
             end
             print_progress!(S, loop_cnt, force = isempty(OPEN))
         end
@@ -240,12 +254,15 @@ function expand!(
     min_dist_thread::Float64,
     num_vertex_expansion::Int64,
     steering_depth::Int64,
+    prob_uniform_sampling::Float64,
 )::Bool where {State<:AbsState}
 
     updated = false
     for _ = 1:num_vertex_expansion
         # steering
-        q_new = steering(connect, sampler(), v_from.q, steering_depth)
+        q_new = sampler()
+        rand() < 1 - prob_uniform_sampling &&
+            (q_new = steering(connect, sampler(), v_from.q, steering_depth))
         # check space-filling metric
         if minimum(v -> dist(v.q, q_new), roadmap) > min_dist_thread
             # add vertex and edges
@@ -440,21 +457,20 @@ function extend!(
 end
 
 """generate id of search nodes"""
-function get_Q_id(Q::Vector{Node{State}}, next::Int64)::String where {State<:AbsState}
-    return @sprintf("%s_%d", join([v.id for v in Q], "-"), next)
+function get_Q_id(Q::Vector{Node{State}}, next::Int64)::Vector{Int} where {State<:AbsState}
+    return vcat(map(v -> v.id, Q), [next])
 end
 
 """obtain solution from search nodes by backtracking"""
 function backtrack(
     S_fin::SuperNode{State},
-    VISITED::Dict{String,SuperNode{State}},
 )::Vector{Vector{Node{State}}} where {State<:AbsState}
 
     S = S_fin
     solution = Vector{Vector{Node{State}}}()
-    while S.parent_id != nothing
+    while S.parent != nothing
         pushfirst!(solution, S.Q)
-        S = VISITED[S.parent_id]
+        S = S.parent
     end
     pushfirst!(solution, S.Q)
     return solution

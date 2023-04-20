@@ -1,0 +1,6 @@
+benchmark_file: ../data/benchmark/ijcai23/hypra/capsule3d.jld2
+
+postprocessing:
+  - target: send_slack_msg
+    params:
+      msg: "done: hypra/capsule3d"

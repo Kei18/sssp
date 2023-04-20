@@ -35,8 +35,11 @@ function dist(
     a_to::StatePoint3D,
     b_from::StatePoint3D,
     b_to::StatePoint3D,
+    ;
+    concurrent::Bool = true,
 )::Float64
-    return dist(
+    f = concurrent ? dist_moving : dist
+    return f(
         [a_from.x, a_from.y, a_from.z],
         [a_to.x, a_to.y, a_to.z],
         [b_from.x, b_from.y, b_from.z],
@@ -47,7 +50,8 @@ end
 function gen_connect(
     q::StatePoint3D,  # to identify type
     obstacles::Vector{CircleObstacle3D},
-    rads::Vector{Float64},
+    rads::Vector{Float64};
+    max_step_dist::Float64 = sqrt(3) / 4,
 )::Function
 
     # check: q \in C_free
@@ -64,14 +68,13 @@ function gen_connect(
     end
 
     f(q_from::StatePoint3D, q_to::StatePoint3D, i::Int64) = begin
-        if any(x -> (x < rads[i] || 1 - rads[i] < x), [q_to.x, q_to.y, q_to.z])
-            return false
-        end
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
+
+        any(x -> (x < rads[i] || 1 - rads[i] < x), [q_to.x, q_to.y, q_to.z]) && return false
 
         # check: collisions with static obstacles
-        if any([dist(q_from, q_to, o) < o.r + rads[i] for o in obstacles])
-            return false
-        end
+        any([dist(q_from, q_to, o) < o.r + rads[i] for o in obstacles]) && return false
 
         return true
     end

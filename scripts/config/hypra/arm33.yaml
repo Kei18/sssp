@@ -1,0 +1,6 @@
+benchmark_file: ../data/benchmark/ijcai23/hypra/arm33.jld2
+
+postprocessing:
+  - target: send_slack_msg
+    params:
+      msg: "done: hypra/arm33"

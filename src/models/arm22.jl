@@ -31,8 +31,8 @@ function gen_connect(
     obstacles::Vector{CircleObstacle2D},
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
-    max_dist::Union{Nothing,Float64} = nothing,
+    step_time::Float64 = STEP_TIME,
+    max_step_dist::Float64 = sqrt(2) / 4,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
@@ -54,15 +54,15 @@ function gen_connect(
     end
 
     f(q_from::StateArm22, q_to::StateArm22, i::Int64)::Bool = begin
-        D = dist(q_from, q_to)
-        !isnothing(max_dist) && D > max_dist && return false
+        # check \delta
+        dist(q_from, q_to) > max_step_dist && return false
 
         dt1 = diff_angles(q_to.theta1, q_from.theta1)
         dt2 = diff_angles(q_to.theta2, q_from.theta2)
 
         a = positions[i]
 
-        for e in vcat(collect(0:step_dist:D) / D, 1.0)
+        for e = 0:step_time:1
             t1 = q_from.theta1 + e * dt1
             t2 = q_from.theta2 + e * dt2
 
@@ -77,10 +77,21 @@ function gen_connect(
                 o -> (dist(a, b, [o.x, o.y]) < o.r || dist(b, c, [o.x, o.y]) < o.r),
                 obstacles,
             ) && return false
-
-            # self collision
-            dist(a, b, c) < safety_dist && return false
         end
+
+        # self collision
+        b_from = [cos(q_from.theta1), sin(q_from.theta1)]
+        c_from = b_from + [cos(q_from.theta2), sin(q_from.theta2)]
+        cross_from = c_from[1] * b_from[2] - b_from[1] * c_from[2]
+
+        b_to = [cos(q_to.theta1), sin(q_to.theta1)]
+        c_to = b_to + [cos(q_to.theta2), sin(q_to.theta2)]
+        cross_to = c_to[1] * b_to[2] - b_to[1] * c_to[2]
+
+        diff_from = abs(diff_angles(q_from.theta1, q_from.theta2))
+        diff_to = abs(diff_angles(q_to.theta1, q_to.theta2))
+
+        cross_from * cross_to < 0 && (diff_from > π / 2 || diff_to > π / 2) && return false
 
         return true
     end
@@ -91,7 +102,7 @@ function gen_collide(
     q::StateArm22,
     positions::Vector{Vector{Float64}},
     rads::Vector{Float64};
-    step_dist::Float64 = STEP_DIST,
+    step_time::Float64 = STEP_TIME,
     safety_dist::Float64 = SAFETY_DIST_LINE,
 )::Function
 
@@ -104,17 +115,16 @@ function gen_collide(
         q_j_to::StateArm22,
         i::Int64,
         j::Int64,
+        ;
+        concurrent::Bool = true,
     ) = begin
-        # check each pair of step
-        D_i = dist(q_i_from, q_i_to)
-        D_j = dist(q_j_from, q_j_to)
 
         dt1_i = diff_angles(q_i_to.theta1, q_i_from.theta1)
         dt2_i = diff_angles(q_i_to.theta2, q_i_from.theta2)
         dt1_j = diff_angles(q_j_to.theta1, q_j_from.theta1)
         dt2_j = diff_angles(q_j_to.theta2, q_j_from.theta2)
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i = 0:step_time:1
             # intermediate angles & positions for agent-i
             t1_i = q_i_from.theta1 + e_i * dt1_i
             t2_i = q_i_from.theta2 + e_i * dt2_i
@@ -122,7 +132,8 @@ function gen_collide(
             b_i = rads[i] * [cos(t1_i), sin(t1_i)] + a_i
             c_i = rads[i] * [cos(t2_i), sin(t2_i)] + b_i
 
-            for e_j in vcat(collect(0:step_dist:D_j) / D_j, 1.0)
+            arr_e_j = concurrent ? [e_i] : collect(0:step_time:1)
+            for e_j in arr_e_j
                 # intermediate angles & positions for agent-j
                 t1_j = q_j_from.theta1 + e_j * dt1_j
                 t2_j = q_j_from.theta2 + e_j * dt2_j
@@ -172,12 +183,11 @@ function gen_collide(
 
     f(C::Vector{StateArm22}, q_i_to::StateArm22, i::Int64) = begin
         q_i_from = C[i]
-        D_i = dist(q_i_from, q_i_to)
 
         dt1_i = diff_angles(q_i_to.theta1, q_i_from.theta1)
         dt2_i = diff_angles(q_i_to.theta2, q_i_from.theta2)
 
-        for e_i in vcat(collect(0:step_dist:D_i) / D_i, 1.0)
+        for e_i = 0:step_time:1
             # intermediate angles & positions for agent-i
             t1_i = q_i_from.theta1 + e_i * dt1_i
             t2_i = q_i_from.theta2 + e_i * dt2_i

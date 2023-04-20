@@ -1,8 +1,5 @@
-root: ../data/exp/hypra
-seed_offset: 10000
-num_instances: 50
-num_search_times: 100
-time_limit: 30
+num_search_times: 50
+time_limit_sec: 30
 
 solvers_common_params_mapf: &solvers_common_params_mapf
   num_vertices:
@@ -42,22 +39,31 @@ solvers_common_params_rrt: &solvers_common_params_rrt
     - 4.0
 
 solvers:
-  - _target_: MRMP.PP
-    <<: *solvers_common_params_mapf
-  - _target_: MRMP.CBS
-    <<: *solvers_common_params_mapf
-    collision_weight:
+  - target: MRMP.PP
+    params:
+      <<: *solvers_common_params_mapf
+
+  - target: MRMP.CBS
+    params:
+      <<: *solvers_common_params_mapf
+      collision_weight:
       - 0.0
       - 0.5
       - 1.0
       - 2.0
       - 4.0
-  - _target_: MRMP.RRT
-    <<: *solvers_common_params_rrt
-  - _target_: MRMP.RRT_connect
-    <<: *solvers_common_params_rrt
-  - _target_: MRMP.PRM_direct
-    epsilon:
+
+  - target: MRMP.RRT
+    params:
+      <<: *solvers_common_params_rrt
+
+  - target: MRMP.RRT_connect
+    params:
+      <<: *solvers_common_params_rrt
+
+  - target: MRMP.PRM_direct
+    params:
+      epsilon:
       - null
       - 0.1
       - 0.2
@@ -65,11 +71,14 @@ solvers:
       - 1.0
       - 2.0
       - 4.0
-  - _target_: MRMP.SSSP
+
+  - target: MRMP.SSSP
+    params:
+      steering_depth:
       - 1
       - 2
       - 4
-    epsilon:
+      epsilon:
       - null
       - 0.1
       - 0.2
@@ -77,18 +86,18 @@ solvers:
       - 1.0
       - 2.0
       - 4.0
-    num_vertex_expansion:
+      num_vertex_expansion:
       - 5
       - 10
       - 15
       - 20
       - 30
-    init_min_dist_thread:
+      init_min_dist_thread:
       - 0.01
       - 0.05
       - 0.1
       - 0.2
       - 0.4
-    decreasing_rate_min_dist_thread:
+      decreasing_rate_min_dist_thread:
       - 0.99
       - 0.5
