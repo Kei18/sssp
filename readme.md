@@ -3,7 +3,7 @@ sssp
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENCE.txt)
 [![CI](https://github.com/Kei18/sssp-private/actions/workflows/ci.yaml/badge.svg)](https://github.com/Kei18/sssp-private/actions/workflows/ci.yaml)
 
-The code repository of the paper "[Quick Multi-Robot Motion Planning by Combining Sampling and Search](https://kei18.github.io/sssp/)" (SSSP).
+The code repository of the paper "[Quick Multi-Robot Motion Planning by Combining Sampling and Search](https://kei18.github.io/sssp/)" (SSSP; IJCAI-23).
 
 ![](./assets/demo_reduced.gif)
 
