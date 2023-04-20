@@ -106,6 +106,8 @@ julia --project=. -e 'using JuliaFormatter; format(".")'
 
 ## Reproduction
 
+[![v1.2](https://img.shields.io/badge/tag-v1.2-blue.svg?style=flat)](https://github.com/Kei18/sssp/releases/tag/v1.2)
+
 ```sh
 julia --project=. --threads=auto
 ```
