@@ -106,8 +106,6 @@ julia --project=. -e 'using JuliaFormatter; format(".")'
 
 ## Reproduction
 
-[![v1.0](https://img.shields.io/badge/tag-v1.0-blue)](https://github.com/Kei18/sssp/releases/tag/v1.0)
-
 ```sh
 julia --project=. --threads=auto
 ```
@@ -134,9 +132,6 @@ include("./scripts/eval.jl"); @time main("./scripts/config/exp/point2d.yaml", "t
 
 ## Licence
 This software is released under the MIT License, see [LICENSE.txt](LICENCE.txt).
-
-## Author
-[Keisuke Okumura](https://kei18.github.io) is a Ph.D. student at the Tokyo Institute of Technology, interested in controlling multiple moving agents.
 
 ## Reference
 1. Kavraki, L. E., Svestka, P., Latombe, J. C., & Overmars, M. H. (1996).
