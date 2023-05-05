@@ -12,8 +12,8 @@ twitter: _kei18
 authors:
   - name: Keisuke Okumura
     url: https://kei18.github.io/
-    # affiliation: |
-    #   National Institute of Advanced Technology and Science / University of Cambridge
+    affiliation: |
+      National Institute of Advanced Technology and Science / University of Cambridge
   - name: Xavier Défago
     url: https://www.coord.c.titech.ac.jp/m/defago/
     affiliation: Tokyo Institute of Technology
@@ -70,6 +70,6 @@ citation: |-
   }
 
 contact: |-
-  keisuke.oku18 [at] gmail.com / okumura.k [at] aist.go.jp
+  ko393@cl.cam.ac.uk
 
 copyright: Keisuke Okumura
