@@ -19,7 +19,9 @@ authors:
     affiliation: Tokyo Institute of Technology
 
 topLinks:
-  - name: preprint (arXiv)
+  - name: IJCAI-23 paper
+    url: https://doi.org/10.24963/ijcai.2023/29
+  - name: preprint on arXiv
     url: https://arxiv.org/abs/2203.00315
 
 headerImage: demo
@@ -57,16 +59,17 @@ news:
 
 video: https://player.vimeo.com/video/678664920
 
-# slides: https://speakerdeck.com/player/c720eb1fa04244c79127fe6ba0c03030
+slides: https://speakerdeck.com/player/e396c48d7d04492a96ce3b8fedb7277a
 
 citation: |-
-  # preprint
-
-  @article{okumura2022sssp,
-    title={Quick Multi-Robot Motion Planning by Combining Sampling and Search},
-    author={Okumura, Keisuke and D{\'e}fago, Xavier},
-    journal={arXiv preprint},
-    year={2022}
+  @inproceedings{okumura2023quick,
+    title     = {Quick Multi-Robot Motion Planning by Combining Sampling and Search},
+    author    = {Okumura, Keisuke and Défago, Xavier},
+    booktitle = {Proceedings of the Thirty-Second International Joint Conference on Artificial Intelligence, {IJCAI-23}},
+    pages     = {252--261},
+    year      = {2023},
+    month     = {8},
+    doi       = {10.24963/ijcai.2023/29},
   }
 
 contact: |-
